@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -31,16 +31,9 @@ const nextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.(png|jpg|jpeg|gif|ico|svg)$/i,
-      type: 'asset/resource',
-    });
-    return config;
-  },
-  swcMinify: false,
+  swcMinify: true,
   experimental: {
-    forceSwcTransforms: false,
+    esmExternals: 'loose'
   }
 };
 
