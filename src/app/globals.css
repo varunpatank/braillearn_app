@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 213 41% 97%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100 text-slate-900 antialiased min-h-screen;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-slate-900 font-bold;
+  }
+  p {
+    @apply text-slate-800;
+  }
+  label {
+    @apply text-slate-900 font-medium;
+  }
+}
+
+/* Gradient text animation */
+.animate-gradient {
+  background-size: 300% 300%;
+  animation: gradient 8s linear infinite;
+  background-image: linear-gradient(
+    45deg,
+    #3B82F6,
+    #8B5CF6,
+    #6366F1,
+    #3B82F6
+  );
+}
+
+.animate-gradient-background {
+  background-size: 400% 400%;
+  animation: gradientBackground 15s ease infinite;
+}
+
+@keyframes gradientBackground {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Floating waste animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    filter: blur(0px);
+  }
+  25% {
+    transform: translateY(-20px) rotate(90deg) scale(1.1);
+    filter: blur(1px);
+  }
+  50% {
+    transform: translateY(0) rotate(180deg) scale(1);
+    filter: blur(0px);
+  }
+  75% {
+    transform: translateY(20px) rotate(270deg) scale(0.9);
+    filter: blur(1px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    filter: brightness(1) blur(0px);
+    transform: scale(1);
+  }
+  50% {
+    filter: brightness(1.3) blur(2px);
+    transform: scale(1.05);
+  }
+}
+
+.animate-float {
+  animation: float 20s ease-in-out infinite;
+}
+
+/* Loading screen animations */
+.loading-screen {
+  @apply fixed inset-0 flex items-center justify-center z-50;
+}
+
+.garbage-can {
+  @apply relative w-32 h-32 transform-gpu;
+  transform-origin: bottom center;
+  animation: garbage-open 3s ease-in-out infinite;
+}
+
+@keyframes garbage-open {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.5));
+  }
+  50% {
+    transform: scale(1.1) rotate(-5deg);
+    filter: drop-shadow(0 0 30px rgba(147, 51, 234, 0.5));
+  }
+}
+
+/* Glass morphism effects */
+.glass-card {
+  @apply bg-white/30 backdrop-blur-lg border border-white/40 shadow-xl;
+}
+
+/* Import Leaflet styles */
+@import '../styles/leaflet.css';

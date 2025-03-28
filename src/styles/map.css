@@ -1,0 +1,46 @@
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0.5rem 1rem;
+  min-width: 200px;
+}
+
+.custom-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.difficulty-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.difficulty-badge.easy {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: rgb(21, 128, 61);
+}
+
+.difficulty-badge.medium {
+  background-color: rgba(234, 179, 8, 0.1);
+  color: rgb(161, 98, 7);
+}
+
+.difficulty-badge.hard {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: rgb(185, 28, 28);
+}
