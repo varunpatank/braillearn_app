@@ -1,4 +1,4 @@
-** @type {import('next').NextConfig} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -33,7 +33,8 @@ const nextConfig = {
   },
   swcMinify: true,
   experimental: {
-    esmExternals: 'loose'
+    esmExternals: 'loose',
+    serverActions: true
   }
 };
 
