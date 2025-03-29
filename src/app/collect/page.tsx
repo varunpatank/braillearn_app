@@ -744,13 +744,9 @@ export default function CollectPage() {
           const fetchedUser = await getUserByEmail(user.email)
           if (fetchedUser) {
             setDbUser(fetchedUser)
-          } else {
-            toast.error('User not found')
-            router.push('/api/auth/login')
-          }
+          } 
         } catch (error) {
-          console.error('Error fetching user:', error)
-          toast.error('Failed to load user data')
+          
         }
       }
       setLoading(false)
@@ -970,7 +966,7 @@ Respond ONLY with a JSON object in the exact format below (with no additional te
 
                 <Button
                   onClick={handleVerify}
-                  className="w-full bg-blue-600 hover:bg-green-700 text-white"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={!verificationImage || verificationStatus === 'verifying'}
                 >
                   {verificationStatus === 'verifying' ? (

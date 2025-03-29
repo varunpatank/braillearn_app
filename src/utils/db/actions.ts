@@ -27,15 +27,8 @@ let nextNotificationId = 1;
 
 export async function createUser(email: string, name: string): Promise<User> {
   try {
-    const [existingUser] = await db
-      .select()
-      .from(Users)
-      .where(eq(Users.email, email));
-
-    if (existingUser) {
-      return existingUser;
-    }
-
+    // Attempt to insert a new user.
+    // If a conflict occurs on the email field, do nothing.
     const [newUser] = await db
       .insert(Users)
       .values({
@@ -45,11 +38,21 @@ export async function createUser(email: string, name: string): Promise<User> {
         totalWaste: '0',
         totalReports: 0
       })
+      .onConflictDoNothing() // This prevents duplicate key error
       .returning();
+
+    // If the insert did not create a new record, fetch the existing user.
+    if (!newUser) {
+      const [existingUser] = await db
+        .select()
+        .from(Users)
+        .where(eq(Users.email, email));
+      return existingUser;
+    }
 
     return newUser;
   } catch (error) {
-    console.error('Error creating user:', error);
+    console.error("Error creating user:", error);
     throw error;
   }
 }
@@ -260,7 +263,10 @@ export async function updateWasteLocationStatus(
   verificationResult: any
 ): Promise<void> {
   try {
-    const points = calculatePoints(verificationResult.difficulty || 'Medium', parseFloat(verificationResult.quantity) || 0);
+    const points = calculatePoints(
+      verificationResult.difficulty || 'Medium', 
+      parseFloat(verificationResult.quantity) || 0
+    );
     
     await createTransaction(userId, 'earned_collect', points, `Completed waste collection task`);
     await updateRewardPoints(userId, points);
