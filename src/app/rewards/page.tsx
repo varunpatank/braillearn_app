@@ -190,11 +190,12 @@ export default function RewardsPage() {
             icon: "✅",
             style: {
               borderRadius: "12px",
-              background: "#f0fdf4",
-              color: "#065f46",
-              borderLeft: "5px solid #10b981",
-              boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+              background: "#f0f5ff",               // soft light blue background
+              color: "#1e3a8a",                    // deep blue text
+              borderLeft: "5px solid #3b82f6",     // blue-500 left border
+              boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.05)", // softer shadow
             },
+            
           }
         );
       } catch (error) {
@@ -313,7 +314,7 @@ export default function RewardsPage() {
                 )}
                 <Button
                   onClick={() => handleRedeemReward(coupon)}
-                  className="w-full bg-blue-700 hover:bg-green-600 text-white"
+                  className="w-full bg-blue-700 hover:bg-blue-700 text-white"
                   disabled={balance < coupon.cost}
                 >
                   <Gift className="w-4 h-4 mr-2" />

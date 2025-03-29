@@ -54,9 +54,7 @@ export async function loginUser(email: string, password: string) {
       .from(Users)
       .where(eq(Users.email, email));
 
-    if (!user) {
-      throw new Error('User not found');
-    }
+    
 
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
