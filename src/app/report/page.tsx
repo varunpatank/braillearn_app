@@ -195,7 +195,7 @@ export default function ReportPage() {
       <h1 className="text-3xl font-semibold mb-6 text-gray-800">Report Waste</h1>
       
       {/* Display current total points */}
-      <div className="mb-6 bg-green-50 p-4 rounded-xl shadow border-l-4 border-blue-700">
+      <div className="mb-6 bg-blue-50 p-4 rounded-xl shadow border-l-4 border-blue-700">
         <h2 className="text-xl font-semibold text-gray-800">Your Total Points</h2>
         <p className="text-2xl font-bold text-blue-700">{balance}</p>
       </div>
@@ -287,7 +287,7 @@ export default function ReportPage() {
               />
             </div>
             <div>
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">Estimated Amount</label>
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">Estimated Amount (kg)</label>
               <input
                 type="text"
                 id="amount"
@@ -332,7 +332,7 @@ export default function ReportPage() {
               {reports.map((report) => (
                 <tr key={report.id} className="hover:bg-gray-50 transition-colors duration-200">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <MapPin className="inline-block w-4 h-4 mr-2 text-green-500" />
+                    <MapPin className="inline-block w-4 h-4 mr-2 text-blue-500" />
                     {report.location}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.wasteType}</td>

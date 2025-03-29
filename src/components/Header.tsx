@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Menu, Coins, Search, User, ChevronDown } from "lucide-react"
 import { 
@@ -23,6 +23,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [totalPoints, setTotalPoints] = useState(0)
   const pathname = usePathname()
   const isMobile = useMediaQuery("(max-width: 768px)")
+  const router = useRouter()
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -89,17 +90,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search tasks, locations..."
+                placeholder="Search Tasks"
                 className="w-full px-4 py-2 bg-white border border-blue-200 rounded-full text-blue-900 placeholder-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               />
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400" />
+              <Search 
+                onClick={() => router.push('/collect')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400 cursor-pointer" 
+              />
             </div>
           </div>
         )}
 
         <div className="flex items-center space-x-4">
           {isMobile && (
-            <Button variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-50">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-blue-600 hover:bg-blue-50"
+              onClick={() => router.push('/collect')}
+            >
               <Search className="h-5 w-5" />
             </Button>
           )}
@@ -124,15 +133,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>
-                  <span>{user.name || user.email}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/settings">Profile Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout}>
-                  Sign Out
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-56">
+  <DropdownMenuItem>
+    <span>{user.name || user.email}</span>
+  </DropdownMenuItem>
+  <DropdownMenuItem
+    onClick={handleLogout}
+    className="border border-red-500 rounded px-2 py-1 text-red-500 hover:bg-red-100"
+  >
+    Sign Out
+  </DropdownMenuItem>
+</DropdownMenuContent>
+
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
