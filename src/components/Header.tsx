@@ -126,27 +126,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <div className="h-10 w-10 rounded-full bg-blue-100 animate-pulse" />
           ) : user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="flex items-center text-blue-600 hover:bg-blue-50">
-                  <User className="h-5 w-5 mr-1" />
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuContent align="end" className="w-56">
-  <DropdownMenuItem>
-    <span>{user.name || user.email}</span>
-  </DropdownMenuItem>
-  <DropdownMenuItem
-    onClick={handleLogout}
-    className="border border-red-500 rounded px-2 py-1 text-red-500 hover:bg-red-100"
-  >
-    Sign Out
-  </DropdownMenuItem>
-</DropdownMenuContent>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon" className="flex items-center text-blue-600 hover:bg-blue-50">
+      <User className="h-5 w-5 mr-1" />
+      <ChevronDown className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end" className="w-56">
+    <DropdownMenuItem>
+      <span>{user.name || user.email}</span>
+    </DropdownMenuItem>
+    <DropdownMenuItem
+      onClick={handleLogout}
+      className="border border-red-500 rounded px-2 py-1 text-red-500 hover:bg-red-100"
+    >
+      Sign Out
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
 
-              </DropdownMenuContent>
-            </DropdownMenu>
           ) : (
             <Link href="/login">
               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
