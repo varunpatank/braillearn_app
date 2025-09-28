@@ -1,0 +1,25 @@
+"use strict";
+/*
+ * ATTENTION: An "eval-source-map" devtool has been used.
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file with attached SourceMaps in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+exports.id = "vendor-chunks/@react-leaflet";
+exports.ids = ["vendor-chunks/@react-leaflet"];
+exports.modules = {
+
+/***/ "(ssr)/./node_modules/@react-leaflet/core/lib/context.js":
+/*!*********************************************************!*\
+  !*** ./node_modules/@react-leaflet/core/lib/context.js ***!
+  \*********************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   CONTEXT_VERSION: () => (/* binding */ CONTEXT_VERSION),\n/* harmony export */   LeafletContext: () => (/* binding */ LeafletContext),\n/* harmony export */   LeafletProvider: () => (/* binding */ LeafletProvider),\n/* harmony export */   createLeafletContext: () => (/* binding */ createLeafletContext),\n/* harmony export */   extendContext: () => (/* binding */ extendContext),\n/* harmony export */   useLeafletContext: () => (/* binding */ useLeafletContext)\n/* harmony export */ });\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ \"(ssr)/./node_modules/next/dist/server/future/route-modules/app-page/vendored/ssr/react.js\");\n\nconst CONTEXT_VERSION = 1;\nfunction createLeafletContext(map) {\n    return Object.freeze({\n        __version: CONTEXT_VERSION,\n        map\n    });\n}\nfunction extendContext(source, extra) {\n    return Object.freeze({\n        ...source,\n        ...extra\n    });\n}\nconst LeafletContext = /*#__PURE__*/ (0,react__WEBPACK_IMPORTED_MODULE_0__.createContext)(null);\nconst LeafletProvider = LeafletContext.Provider;\nfunction useLeafletContext() {\n    const context = (0,react__WEBPACK_IMPORTED_MODULE_0__.useContext)(LeafletContext);\n    if (context == null) {\n        throw new Error(\"No context provided: useLeafletContext() can only be used in a descendant of <MapContainer>\");\n    }\n    return context;\n}\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiKHNzcikvLi9ub2RlX21vZHVsZXMvQHJlYWN0LWxlYWZsZXQvY29yZS9saWIvY29udGV4dC5qcyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7O0FBQWtEO0FBQzNDLE1BQU1FLGtCQUFrQixFQUFFO0FBQzFCLFNBQVNDLHFCQUFxQkMsR0FBRztJQUNwQyxPQUFPQyxPQUFPQyxNQUFNLENBQUM7UUFDakJDLFdBQVdMO1FBQ1hFO0lBQ0o7QUFDSjtBQUNPLFNBQVNJLGNBQWNDLE1BQU0sRUFBRUMsS0FBSztJQUN2QyxPQUFPTCxPQUFPQyxNQUFNLENBQUM7UUFDakIsR0FBR0csTUFBTTtRQUNULEdBQUdDLEtBQUs7SUFDWjtBQUNKO0FBQ08sTUFBTUMsK0JBQWlCWCxvREFBYUEsQ0FBQyxNQUFNO0FBQzNDLE1BQU1ZLGtCQUFrQkQsZUFBZUUsUUFBUSxDQUFDO0FBQ2hELFNBQVNDO0lBQ1osTUFBTUMsVUFBVWQsaURBQVVBLENBQUNVO0lBQzNCLElBQUlJLFdBQVcsTUFBTTtRQUNqQixNQUFNLElBQUlDLE1BQU07SUFDcEI7SUFDQSxPQUFPRDtBQUNYIiwic291cmNlcyI6WyJ3ZWJwYWNrOi8vd2FzdGVoZXJvLy4vbm9kZV9tb2R1bGVzL0ByZWFjdC1sZWFmbGV0L2NvcmUvbGliL2NvbnRleHQuanM/ZThiNSJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBjcmVhdGVDb250ZXh0LCB1c2VDb250ZXh0IH0gZnJvbSAncmVhY3QnO1xuZXhwb3J0IGNvbnN0IENPTlRFWFRfVkVSU0lPTiA9IDE7XG5leHBvcnQgZnVuY3Rpb24gY3JlYXRlTGVhZmxldENvbnRleHQobWFwKSB7XG4gICAgcmV0dXJuIE9iamVjdC5mcmVlemUoe1xuICAgICAgICBfX3ZlcnNpb246IENPTlRFWFRfVkVSU0lPTixcbiAgICAgICAgbWFwXG4gICAgfSk7XG59XG5leHBvcnQgZnVuY3Rpb24gZXh0ZW5kQ29udGV4dChzb3VyY2UsIGV4dHJhKSB7XG4gICAgcmV0dXJuIE9iamVjdC5mcmVlemUoe1xuICAgICAgICAuLi5zb3VyY2UsXG4gICAgICAgIC4uLmV4dHJhXG4gICAgfSk7XG59XG5leHBvcnQgY29uc3QgTGVhZmxldENvbnRleHQgPSBjcmVhdGVDb250ZXh0KG51bGwpO1xuZXhwb3J0IGNvbnN0IExlYWZsZXRQcm92aWRlciA9IExlYWZsZXRDb250ZXh0LlByb3ZpZGVyO1xuZXhwb3J0IGZ1bmN0aW9uIHVzZUxlYWZsZXRDb250ZXh0KCkge1xuICAgIGNvbnN0IGNvbnRleHQgPSB1c2VDb250ZXh0KExlYWZsZXRDb250ZXh0KTtcbiAgICBpZiAoY29udGV4dCA9PSBudWxsKSB7XG4gICAgICAgIHRocm93IG5ldyBFcnJvcignTm8gY29udGV4dCBwcm92aWRlZDogdXNlTGVhZmxldENvbnRleHQoKSBjYW4gb25seSBiZSB1c2VkIGluIGEgZGVzY2VuZGFudCBvZiA8TWFwQ29udGFpbmVyPicpO1xuICAgIH1cbiAgICByZXR1cm4gY29udGV4dDtcbn1cbiJdLCJuYW1lcyI6WyJjcmVhdGVDb250ZXh0IiwidXNlQ29udGV4dCIsIkNPTlRFWFRfVkVSU0lPTiIsImNyZWF0ZUxlYWZsZXRDb250ZXh0IiwibWFwIiwiT2JqZWN0IiwiZnJlZXplIiwiX192ZXJzaW9uIiwiZXh0ZW5kQ29udGV4dCIsInNvdXJjZSIsImV4dHJhIiwiTGVhZmxldENvbnRleHQiLCJMZWFmbGV0UHJvdmlkZXIiLCJQcm92aWRlciIsInVzZUxlYWZsZXRDb250ZXh0IiwiY29udGV4dCIsIkVycm9yIl0sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///(ssr)/./node_modules/@react-leaflet/core/lib/context.js\n");
+
+/***/ })
+
+};
+;

@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .braille-bg {
+    background-image: url('/braille-pattern.svg');
+    background-repeat: repeat;
+  }
+}

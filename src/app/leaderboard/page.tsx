@@ -10,8 +10,7 @@ import { toast } from 'react-hot-toast'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { useRouter } from 'next/navigation'
 
-/** If your DB row also has other fields (description, collectionInfo, etc.)
- *  add them here as optional or required. */
+
 type RewardRow = {
   id: number
   userId: number

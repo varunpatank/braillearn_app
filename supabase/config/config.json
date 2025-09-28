@@ -1,0 +1,7 @@
+{
+  "project_id": "orivtoadumvhcfwtliit",
+  "db_host": "db.orivtoadumvhcfwtliit.supabase.co",
+  "db_port": 5432,
+  "db_name": "postgres",
+  "db_user": "postgres"
+}

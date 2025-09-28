@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary-dark: #1e3a8a;
+    --primary-main: #1d4ed8;
+    --primary-light: #3b82f6;
+  }
+
+  body {
+    @apply bg-gray-50;
+    zoom: 130%;
+  }
+}
+
+@layer components {
+  .braille-bg {
+    background-color: #f8fafc;
+    background-image: radial-gradient(#1e3a8a 0.5px, transparent 0.5px);
+    background-size: 10px 10px;
+  }
+
+  .btn-primary {
+    @apply bg-primary-700 text-white px-4 py-2 rounded-lg hover:bg-primary-800 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+           transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-primary-700 border border-primary-200 px-4 py-2 rounded-lg 
+           hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 
+           focus:ring-offset-2 transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply w-full border border-gray-300 rounded-lg px-4 py-2 
+           focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+           transition-colors duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6
+           hover:shadow-md transition-shadow duration-200;
+  }
+}
+
+/* Loading Animation */
+@keyframes brailleLoad {
+  0% { transform: scale(0.3); opacity: 0.2; }
+  20% { transform: scale(1); opacity: 1; }
+  40% { transform: scale(0.3); opacity: 0.2; }
+  100% { transform: scale(0.3); opacity: 0.2; }
+}
+
+.braille-loader {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 40px;
+  height: 60px;
+}
+
+.braille-loader div {
+  width: 12px;
+  height: 12px;
+  background-color: #1e3a8a;
+  border-radius: 50%;
+  animation: brailleLoad 2.4s infinite;
+}
+
+.braille-loader div:nth-child(1) { animation-delay: 0s; }
+.braille-loader div:nth-child(2) { animation-delay: 0.4s; }
+.braille-loader div:nth-child(3) { animation-delay: 0.8s; }
+.braille-loader div:nth-child(4) { animation-delay: 1.2s; }
+.braille-loader div:nth-child(5) { animation-delay: 1.6s; }
+.braille-loader div:nth-child(6) { animation-delay: 2s; }
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+}
+
+/* High Contrast Mode */
+@media (forced-colors: active) {
+  .btn-primary,
+  .btn-secondary {
+    @apply border-2;
+  }
+}
+
+/* Focus Styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+}
+
+/* Interactive Elements */
+.interactive-hover {
+  @apply transition-transform hover:scale-105;
+}
+
+.interactive-press {
+  @apply transition-transform active:scale-95;
+}
+
+/* Animations */
+.fade-in {
+  @apply animate-[fadeIn_0.3s_ease-in-out];
+}
+
+.slide-up {
+  @apply animate-[slideUp_0.3s_ease-in-out];
+}
+
+/* Braille Pattern Background */
+.braille-pattern {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#1e3a8a 0.5px, transparent 0.5px);
+  background-size: 10px 10px;
+  background-position: 0 0;
+}
