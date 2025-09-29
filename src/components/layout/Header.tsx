@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Settings, BookOpen, Mic, Home, Volume2, VolumeX, Info, LogOut } from 'lucide-react';
+import { Menu, X, User, Settings, BookOpen, Mic, Home, Volume2, VolumeX } from 'lucide-react';
 import { useAudio } from '../../context/AudioContext';
-import { useAuth } from '../../context/AuthContext';
+import { useMockAuth } from '../../context/MockAuthContext';
+import { MockAuthModal } from '../MockAuthModal';
+import { UserProfileDropdown } from '../UserProfileDropdown';
 import Logo from '../common/Logo';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
-  const { user, signOut } = useAuth();
+  const { user } = useMockAuth();
   const location = useLocation();
 
   const toggleMenu = () => {
@@ -79,32 +83,27 @@ const Header: React.FC = () => {
                 )}
               </button>
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm font-medium text-gray-700">
-                    {user.username}
-                  </span>
-                  <button
-                    onClick={signOut}
-                    className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-                  >
-                    <LogOut size={16} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
+                <UserProfileDropdown />
               ) : (
                 <>
-                  <Link 
-                    to="/signin" 
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                  <button 
+                    onClick={() => {
+                      setAuthMode('login');
+                      setShowAuthModal(true);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Sign In
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md shadow-sm transition-colors"
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthMode('signup');
+                      setShowAuthModal(true);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg border-2 border-gray-900 transition-colors"
                   >
                     Sign Up
-                  </Link>
+                  </button>
                 </>
               )}
             </div>
@@ -189,28 +188,49 @@ const Header: React.FC = () => {
               </div>
             </Link>
             <div className="pt-4 pb-3 border-t border-gray-200">
-              <div className="flex items-center px-3">
-                <Link
-                  to="/signin"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 w-full"
-                  onClick={closeMenu}
-                >
-                  Sign In
-                </Link>
-              </div>
-              <div className="flex items-center px-3 mt-2">
-                <Link
-                  to="/signup"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-primary-600 hover:bg-primary-700 w-full text-center"
-                  onClick={closeMenu}
-                >
-                  Sign Up
-                </Link>
-              </div>
+              {user ? (
+                <div className="px-3">
+                  <UserProfileDropdown />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center px-3">
+                    <button
+                      onClick={() => {
+                        setAuthMode('login');
+                        setShowAuthModal(true);
+                        closeMenu();
+                      }}
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 w-full border-2 border-gray-300"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                  <div className="flex items-center px-3 mt-2">
+                    <button
+                      onClick={() => {
+                        setAuthMode('signup');
+                        setShowAuthModal(true);
+                        closeMenu();
+                      }}
+                      className="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 w-full text-center border-2 border-gray-900 shadow-lg"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
+      
+      {/* Authentication Modal */}
+      <MockAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authMode}
+      />
     </header>
   );
 };

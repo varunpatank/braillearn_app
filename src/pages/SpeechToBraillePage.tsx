@@ -99,7 +99,7 @@ const SpeechToBraillePage: React.FC = () => {
       </section>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8 mt-12">
+        <div className="bg-white rounded-xl shadow-lg border-2 border-gray-900 p-6 mb-8 mt-12">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             Speak or Type
           </h2>
@@ -151,7 +151,7 @@ const SpeechToBraillePage: React.FC = () => {
           )}
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+        <div className="bg-white rounded-xl shadow-lg border-2 border-gray-900 p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
               Braille Output
@@ -204,7 +204,7 @@ const SpeechToBraillePage: React.FC = () => {
           </div>
 
           {showPdfSettings && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-900 shadow-md">
               <h3 className="font-medium text-gray-900 mb-3">PDF Settings</h3>
               <div className="space-y-3">
                 <div>

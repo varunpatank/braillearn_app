@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import Header from './components/layout/Header';
@@ -14,6 +14,7 @@ import CreateProfile from './pages/auth/CreateProfile';
 import NotFoundPage from './pages/NotFoundPage';
 import { AppProvider } from './context/AppContext';
 import { AudioProvider } from './context/AudioContext';
+import { MockAuthProvider } from './context/MockAuthContext';
 import './styles/global.css';
 
 function App() {
@@ -32,12 +33,13 @@ function App() {
   }, []);
 
   return (
-    <AppProvider>
-      <AudioProvider>
-        <Router>
-          <div className="flex flex-col min-h-screen braille-bg">
-            <Header />
-            <main className="flex-grow">
+    <MockAuthProvider>
+      <AppProvider>
+        <AudioProvider>
+          <Router>
+            <div className="flex flex-col min-h-screen braille-bg">
+              <Header />
+              <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/learn" element={<LearnPage />} />
@@ -50,11 +52,12 @@ function App() {
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>
-            <Footer />
-          </div>
-        </Router>
-      </AudioProvider>
-    </AppProvider>
+              <Footer />
+            </div>
+          </Router>
+        </AudioProvider>
+      </AppProvider>
+    </MockAuthProvider>
   );
 }
 
