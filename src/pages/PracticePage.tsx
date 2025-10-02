@@ -219,6 +219,23 @@ const PracticePage: React.FC = () => {
     document.title = 'Practice Sessions - BrailleLearn';
     window.scrollTo(0, 0);
     speak('Welcome to Practice Sessions! Choose a practice mode to improve your braille skills.');
+    
+    // Test Gemini API connection when page loads
+    const testAPI = async () => {
+      try {
+        console.log('🔍 Testing Gemini API connection on page load...');
+        const isConnected = await geminiService.testConnection();
+        console.log('📊 API Connection Status:', isConnected ? 'Connected' : 'Failed');
+        
+        if (!isConnected) {
+          console.warn('⚠️ Gemini API connection test failed - AI features may not work properly');
+        }
+      } catch (error) {
+        console.error('❌ Error testing API connection:', error);
+      }
+    };
+    
+    testAPI();
   }, [speak]);
 
   // Timer effects
@@ -1112,7 +1129,7 @@ const PracticePage: React.FC = () => {
                       <div className="bg-gray-100 p-3 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-600"></div>
-                          <span className="text-sm text-gray-600">AI is thinking...</span>
+                          <span className="text-sm text-gray-600">BrailleLearn Agent is thinking...</span>
                         </div>
                       </div>
                     </div>
@@ -1408,7 +1425,7 @@ const PracticePage: React.FC = () => {
                       <div className="bg-gray-100 p-3 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-600"></div>
-                          <span className="text-sm text-gray-600">Coach is thinking...</span>
+                          <span className="text-sm text-gray-600">BrailleLearn Agent is thinking...</span>
                         </div>
                       </div>
                     </div>

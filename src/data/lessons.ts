@@ -1011,31 +1011,99 @@ const baseLessons: Lesson[] = [
 const generateExtendedLessons = (): Lesson[] => {
   const extendedLessons: Lesson[] = [];
   
+  // Level 6-10: Advanced Basics
+  const level6to10Topics = [
+    { topic: 'Capitalization', question: 'What does this capitalization symbol indicate?', options: ['Capital letter follows', 'All caps word', 'Proper noun', 'Emphasis'], correct: 'Capital letter follows', pattern: [6] },
+    { topic: 'Number Signs', question: 'What follows the number sign?', options: ['Letters', 'Numbers', 'Punctuation', 'Spaces'], correct: 'Numbers', pattern: [3, 4, 5, 6] },
+    { topic: 'Italics Indicator', question: 'What does this symbol represent?', options: ['Bold text', 'Italic text', 'Underlined text', 'Foreign word'], correct: 'Italic text', pattern: [4, 6] },
+    { topic: 'Bold Text Marker', question: 'How is bold text indicated in braille?', options: ['Double dots', 'Special symbol', 'Capital letters', 'Underscores'], correct: 'Special symbol', pattern: [4, 5, 6] },
+    { topic: 'Foreign Alphabet', question: 'What indicates foreign alphabet usage?', options: ['Special prefix', 'Different dots', 'Capital marker', 'Number sign'], correct: 'Special prefix', pattern: [4] }
+  ];
+  
+  // Level 11-15: Advanced Words  
+  const level11to15Topics = [
+    { topic: 'Compound Words', question: 'How should this compound word be read?', options: ['As one word', 'As two words', 'With hyphen', 'Separately spaced'], correct: 'As one word', pattern: [1, 2, 3] },
+    { topic: 'Abbreviations', question: 'What does this abbreviation stand for?', options: ['Doctor', 'Department', 'December', 'Degree'], correct: 'Doctor', pattern: [1, 4] },
+    { topic: 'Technical Terms', question: 'This technical term means:', options: ['Computer command', 'Medical term', 'Legal phrase', 'Scientific concept'], correct: 'Computer command', pattern: [1, 2, 4, 5] },
+    { topic: 'Proper Nouns', question: 'This represents which type of proper noun?', options: ['Person name', 'Place name', 'Organization', 'Brand name'], correct: 'Person name', pattern: [6, 1, 2] },
+    { topic: 'Academic Vocabulary', question: 'This academic term is used in:', options: ['Mathematics', 'Science', 'Literature', 'History'], correct: 'Mathematics', pattern: [1, 3, 4, 6] }
+  ];
+  
+  // Level 16-20: Complex Sentences
+  const level16to20Topics = [
+    { topic: 'Dialogue Format', question: 'How is spoken dialogue indicated?', options: ['Quotation marks', 'Special indent', 'Bold text', 'Italics'], correct: 'Quotation marks', pattern: [2, 3, 6] },
+    { topic: 'Poetry Structure', question: 'What indicates a new line in poetry?', options: ['Line break symbol', 'Special spacing', 'Indent marker', 'Stanza break'], correct: 'Line break symbol', pattern: [5] },
+    { topic: 'List Formatting', question: 'How are bulleted lists shown?', options: ['Special bullets', 'Number sequence', 'Letter sequence', 'Dash markers'], correct: 'Special bullets', pattern: [2, 5] },
+    { topic: 'Footnote Reference', question: 'What indicates a footnote reference?', options: ['Superscript number', 'Special symbol', 'Asterisk', 'Letter marker'], correct: 'Special symbol', pattern: [3, 5] },
+    { topic: 'Mathematical Expressions', question: 'How are mathematical equations formatted?', options: ['Special math mode', 'Standard text', 'Number format', 'Symbol replacement'], correct: 'Special math mode', pattern: [4, 5] }
+  ];
+  
+  // Level 21-25: Advanced Contractions
+  const level21to25Topics = [
+    { topic: 'Grade 2 Contractions', question: 'What word does this grade 2 contraction represent?', options: ['KNOWLEDGE', 'THROUGH', 'ENOUGH', 'OUGHT'], correct: 'KNOWLEDGE', pattern: [1, 3] },
+    { topic: 'Part-word Contractions', question: 'This contraction represents which word part?', options: ['-ING', '-TION', '-NESS', '-MENT'], correct: '-ING', pattern: [3, 4, 6] },
+    { topic: 'Initial Contractions', question: 'This initial contraction begins which words?', options: ['UNDER-', 'OVER-', 'OUT-', 'UPON-'], correct: 'UNDER-', pattern: [1, 3, 6] },
+    { topic: 'Final Contractions', question: 'This final contraction ends which words?', options: ['-NESS', '-MENT', '-TION', '-ALLY'], correct: '-NESS', pattern: [1, 4, 5, 6] },
+    { topic: 'Short-form Words', question: 'What complete word does this represent?', options: ['CHILDREN', 'CHARACTER', 'KNOWLEDGE', 'THROUGH'], correct: 'CHILDREN', pattern: [1, 6] }
+  ];
+  
+  // Level 26-30: Professional/Academic
+  const level26to30Topics = [
+    { topic: 'Scientific Notation', question: 'How is scientific notation expressed?', options: ['Superscript format', 'Special symbols', 'Standard notation', 'Abbreviated form'], correct: 'Special symbols', pattern: [4, 5, 6] },
+    { topic: 'Legal Documents', question: 'What indicates legal formatting?', options: ['Special indentation', 'Bold headers', 'Number systems', 'Citation format'], correct: 'Citation format', pattern: [2, 4, 6] },
+    { topic: 'Computer Code', question: 'How is programming code represented?', options: ['Monospace format', 'Special symbols', 'Standard text', 'Abbreviated syntax'], correct: 'Special symbols', pattern: [4, 6] },
+    { topic: 'Musical Notation', question: 'What does this music symbol indicate?', options: ['Note value', 'Key signature', 'Time signature', 'Tempo marking'], correct: 'Note value', pattern: [1, 4, 6] },
+    { topic: 'Foreign Languages', question: 'How are foreign words indicated?', options: ['Special markers', 'Italic format', 'Different alphabet', 'Translation notes'], correct: 'Special markers', pattern: [4] }
+  ];
+  
+  const allTopics = [
+    ...level6to10Topics, ...level11to15Topics, ...level16to20Topics,
+    ...level21to25Topics, ...level26to30Topics
+  ];
+  
   for (let level = 6; level <= 30; level++) {
-    const lessonsPerLevel = Math.min(5 + Math.floor(level / 5), 10);
+    const lessonsPerLevel = Math.min(3 + Math.floor(level / 10), 5);
     
     for (let i = 0; i < lessonsPerLevel; i++) {
-      const lessonNumber = (level - 1) * 10 + i + 1;
+      const lessonNumber = (level - 6) * 5 + i + 51; // Start from lesson 51
+      const topicIndex = ((level - 6) * 5 + i) % allTopics.length;
+      const topic = allTopics[topicIndex];
       
       extendedLessons.push({
         id: `lesson-${lessonNumber}`,
-        title: `Level ${level} - Advanced Skills ${i + 1}`,
-        description: `Master advanced braille techniques and specialized patterns for level ${level}`,
+        title: `Level ${level} - ${topic.topic}`,
+        description: `Master ${topic.topic.toLowerCase()} in braille reading and writing`,
         level: level,
         category: level <= 10 ? 'basics' : level <= 15 ? 'words' : level <= 20 ? 'sentences' : level <= 25 ? 'contractions' : 'advanced',
-        duration: 20 + (level * 2),
+        duration: 15 + (level * 1.5),
         exercises: [
           {
-            id: `ex-${lessonNumber}`,
+            id: `ex-${lessonNumber}-1`,
             type: 'multiple-choice',
-            question: `Advanced level ${level} braille challenge`,
-            options: ['Pattern A', 'Pattern B', 'Pattern C', 'Pattern D'],
-            correctAnswer: 'Pattern A',
-            braillePattern: [{ dots: [1, 2, 3], char: 'Advanced' }],
+            question: topic.question,
+            options: topic.options,
+            correctAnswer: topic.correct,
+            braillePattern: [{ dots: topic.pattern, char: topic.topic }],
+            points: 10 + level
+          },
+          {
+            id: `ex-${lessonNumber}-2`,
+            type: 'braille-to-text',
+            question: `Read this ${topic.topic.toLowerCase()} example:`,
+            correctAnswer: topic.correct.toLowerCase(),
+            braillePattern: [{ dots: topic.pattern, char: topic.correct }],
             points: 15 + level
+          },
+          {
+            id: `ex-${lessonNumber}-3`,
+            type: 'text-to-braille',
+            question: `Write "${topic.correct}" in braille:`,
+            correctAnswer: topic.pattern.join(','),
+            braillePattern: [{ dots: topic.pattern, char: topic.correct }],
+            points: 20 + level
           }
         ],
-        prerequisites: level > 6 ? [`lesson-${lessonNumber - 10}`] : ['lesson-50']
+        prerequisites: level > 6 ? [`lesson-${lessonNumber - 5}`] : ['lesson-50']
       });
     }
   }

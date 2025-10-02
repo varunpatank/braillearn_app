@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
-import LearnPage from './pages/LearnPage';
+import NewLearnPage from './pages/NewLearnPage';
 import LessonPage from './pages/lessons/LessonPage';
 import PracticePage from './pages/PracticePage';
 import SpeechToBraillePage from './pages/SpeechToBraillePage';
@@ -42,7 +42,7 @@ function App() {
               <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/learn" element={<LearnPage />} />
+                <Route path="/learn" element={<NewLearnPage />} />
                 <Route path="/learn/:lessonId" element={<LessonPage />} />
                 <Route path="/practice" element={<PracticePage />} />
                 <Route path="/speech-to-braille" element={<SpeechToBraillePage />} />
