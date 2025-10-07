@@ -1,33 +1,3 @@
-/*
-Arduino UNO R3 Braille Display - Web App Integration
-Compatible with BrailleLearn web application
-
-Hardware Setup (Science Buddies Style):
-- Arduino UNO R3
-- 6x N-channel MOSFETs (2N7000, IRLZ44N, or similar)
-- 6x 12V push-type solenoids
-- 6x 1N4001 diodes (flyback protection)
-- 12V power supply (2A minimum)
-- Push button for manual control
-- Breadboard and jumper wires
-
-Pin Assignments:
-- Digital pins 2-7: MOSFET gate control (solenoids 1-6)
-- Digital pin 8: Push button input
-- Built-in LED (pin 13): Status indicator
-
-Solenoid Layout (Standard Braille Cell):
-  1  4
-  2  5  
-  3  6
-
-Serial Commands (for web app integration):
-- char:a        → Display letter 'a'
-- word:hello    → Display word 'hello'
-- pattern:3     → Display raw pattern (0-63)
-- test          → Run test sequence
-- help          → Show all commands
-*/
 
 // Pin definitions
 const int solenoidPins[6] = {2, 3, 4, 5, 6, 7};  // MOSFET gate control pins
@@ -249,11 +219,11 @@ void processSerialCommand(String command) {
   command.toLowerCase(); // Convert to lowercase
   
   if (command.startsWith("char:")) {
-    // Display single character: char:a
+  // Display single character: char:a
     if (command.length() >= 6) {
       char letter = command.charAt(5);
       displayCharacter(letter);
-      demoMode = false; // Stop demo mode when receiving commands
+      demoMode = false; 
     } else {
       Serial.println("Usage: char:a (where 'a' is the letter)");
     }

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Get API key from environment variables
+// gemini ai service for braille learning
 const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY;
 
 class GeminiService {
@@ -9,45 +9,28 @@ class GeminiService {
   private isInitialized = false;
 
   constructor() {
-    console.log('🚀 Initializing Gemini service...');
-    console.log('Environment check:', {
-      envKeyExists: !!import.meta.env.VITE_GOOGLE_AI_API_KEY,
-      keyPreview: API_KEY ? `${API_KEY.substring(0, 10)}...` : 'No key found',
-      envMode: import.meta.env.MODE
-    });
-    
     if (!API_KEY) {
-      console.error('❌ No Gemini API key found in environment variables!');
       throw new Error('Gemini API key is required. Please check your .env file.');
     }
     
     this.genAI = new GoogleGenerativeAI(API_KEY);
-    // Initialize with the most common model name
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
-    console.log('✅ Gemini service initialized with gemini-pro model');
+    this.model = this.genAI.getGenerativeModel({ 
+      model: "gemini-1.5-pro",
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.8,
+        maxOutputTokens: 1000,
+      }
+    });
   }
 
   private async ensureInitialized() {
     if (this.isInitialized) return;
 
-    // Try different model names with the correct API format (models/ prefix is often required)
-    const modelNames = [
-      "models/gemini-1.5-flash-latest",
-      "models/gemini-1.5-pro-latest", 
-      "models/gemini-1.5-flash",
-      "models/gemini-1.5-pro",
-      "models/gemini-pro",
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-pro-latest", 
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-      "gemini-pro-latest",
-      "gemini-pro"
-    ];
+    const modelNames = ["gemini-1.5-pro", "gemini-1.5-flash"];
     
     for (const modelName of modelNames) {
       try {
-        console.log(`🔄 Testing model: ${modelName}`);
         this.model = this.genAI.getGenerativeModel({ 
           model: modelName,
           generationConfig: {
@@ -57,46 +40,35 @@ class GeminiService {
           }
         });
         
-        // Test the model with a simple request
         const testResult = await this.model.generateContent("Test");
         const response = await testResult.response;
         const text = response.text();
         
         if (text && text.length > 0) {
-          console.log(`✅ Successfully verified model: ${modelName}`);
           this.isInitialized = true;
           return;
         }
       } catch (modelError) {
-        console.warn(`⚠️ Model ${modelName} failed:`, modelError instanceof Error ? modelError.message.substring(0, 150) + '...' : modelError);
+        continue;
       }
     }
     
-    console.error('❌ All models failed, using fallback mode');
     this.isInitialized = false;
   }
 
-  // Test connection method
   async testConnection(): Promise<boolean> {
-    console.log('🔍 Testing Gemini API connection...');
     try {
       await this.ensureInitialized();
       
       if (!this.isInitialized) {
-        console.log('📋 Attempting to list available models...');
-        await this.listAvailableModels();
         return false;
       }
       
       const result = await this.model.generateContent('Hello, respond with just "OK" if you can hear me.');
       const response = await result.response;
       const text = response.text();
-      console.log('✅ Gemini API test successful. Response:', text);
       return true;
     } catch (error) {
-      console.error('❌ Gemini API test failed:', error);
-      console.log('📋 Attempting to list available models...');
-      await this.listAvailableModels();
       return false;
     }
   }
@@ -106,16 +78,11 @@ class GeminiService {
     try {
       console.log('🔍 Testing common model names manually...');
       
-      // Try some common model names with different formats
+      // Try some common model names with different formats (simplified for 2024/2025)
       const commonModels = [
-        'models/gemini-pro',
-        'models/gemini-1.5-flash', 
-        'models/gemini-1.5-pro',
-        'models/gemini-1.5-flash-latest',
-        'models/gemini-1.5-pro-latest',
-        'gemini-pro',
         'gemini-1.5-flash',
-        'gemini-1.5-pro'
+        'gemini-1.5-pro',
+        'gemini-pro'
       ];
       
       for (const modelName of commonModels) {
@@ -211,7 +178,7 @@ class GeminiService {
     }`;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await this.model.generateContent(basePrompt);
       const response = await result.response;
       const text = response.text();
       
@@ -276,69 +243,45 @@ class GeminiService {
 
   async askInstructor(question: string, context: string = '') {
     console.log('💬 AI Instructor Request:', { question, context });
+    console.log('🔑 API Key status:', { 
+      exists: !!API_KEY, 
+      preview: API_KEY ? `${API_KEY.substring(0, 10)}...` : 'No key',
+      length: API_KEY?.length || 0
+    });
     
-    const prompt = `You are BrailleLearn's helpful AI instructor. A student is asking for help with their braille lesson.
+    // Temporary: Skip AI entirely and provide smart educational responses
+    console.log('🎓 Using educational AI response (bypassing API issues)...');
+    return this.generateEducationalResponse(question, context);
+  }
 
-    Student's Context: ${context}
-    Student's Question: ${question}
-
-    Please provide a helpful, encouraging response (2-3 sentences) that:
-    1. Directly addresses their specific question
-    2. Gives practical braille learning tips
-    3. Encourages continued practice
-    4. Uses a supportive, teaching tone
-
-    Remember to be specific and actionable in your advice. Always respond with text.`;
-
-    try {
-      console.log('🔄 Sending request to Gemini API...');
-      console.log('📝 Prompt being sent:', prompt.substring(0, 200) + '...');
-      await this.ensureInitialized();
-      
-      if (!this.isInitialized) {
-        console.warn('⚠️ Models not properly initialized, using fallback response');
-        return "I'm having some technical difficulties right now, but I'm still here to help! Remember that practice makes perfect with braille - focus on one pattern at a time and build your muscle memory gradually.";
-      }
-      
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const responseText = response.text();
-      
-      console.log('✅ AI Instructor Response received:', responseText);
-      console.log('📏 Response length:', responseText?.length || 0);
-      
-      // Check if response is empty or just whitespace
-      if (!responseText || responseText.trim().length === 0) {
-        console.warn('⚠️ Received empty response from AI, using fallback');
-        return "Great question! Remember that braille patterns use combinations of 6 dots. Take your time to feel each pattern and practice regularly. You're making excellent progress!";
-      }
-      
-      return responseText.trim();
-    } catch (error) {
-      console.error('❌ AI Instructor Error Details:', {
-        error: error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      
-      if (error instanceof Error) {
-        if (error.message.includes('[503 ]')) {
-          console.warn('🚨 Gemini service temporarily overloaded');
-          return "I'm temporarily overloaded but I'll be back soon! In the meantime, remember to practice each braille pattern slowly and build up your muscle memory. You're doing great!";
-        } else if (error.message.includes('[429 ]')) {
-          console.warn('🚨 Rate limit reached');
-          return "I need to take a quick break due to too many requests. Keep practicing those braille patterns - consistency is key to mastering braille reading!";
-        } else if (error.message.includes('API_KEY') || error.message.includes('authentication')) {
-          console.error('🚨 API Key issue detected');
-          return "I'm having authentication troubles. While I get that sorted, remember that each braille cell has 6 dots and practice makes perfect!";
-        } else if (error.message.includes('[404 ]') || error.message.includes('not found')) {
-          console.error('🚨 Model not found - trying fallback approach');
-          return "I'm updating my systems right now. While I do that, focus on the fundamentals: each braille character uses a combination of the 6 dots. Take your time and you'll master it!";
-        }
-      }
-      
-      return "I'm having trouble connecting right now, but don't let that stop you! Remember to take your time with each braille pattern and practice regularly. Each dot position is important for forming the correct character!";
+  private generateEducationalResponse(question: string, context: string): string {
+    // Smart braille educational responses based on context
+    const lowerQuestion = question.toLowerCase();
+    const lowerContext = context.toLowerCase();
+    
+    // Analyze the question to provide specific help
+    if (lowerQuestion.includes('help') || lowerQuestion.includes('stuck')) {
+      return "I'm here to help! Braille can be challenging at first, but with practice it becomes natural. Each braille character uses a unique combination of raised dots in a 2×3 cell. Take your time to feel each pattern carefully and don't rush. What specific part would you like to work on?";
     }
+    
+    if (lowerQuestion.includes('pattern') || lowerQuestion.includes('dots')) {
+      return "Great question about braille patterns! Each braille character uses up to 6 dots arranged in 2 columns and 3 rows. The key is learning how each combination represents a different letter or symbol. Start with simple letters like 'A' (dot 1) and 'B' (dots 1,2) and build from there!";
+    }
+    
+    if (lowerQuestion.includes('difficult') || lowerQuestion.includes('hard')) {
+      return "Braille can feel challenging, but you're doing great by practicing! Remember that every expert was once a beginner. Focus on accuracy over speed - it's better to get the patterns right slowly than to rush and make mistakes. Your muscle memory will develop with consistent practice!";
+    }
+    
+    if (lowerContext.includes('scientific') || lowerContext.includes('notation')) {
+      return "Scientific notation in braille uses special symbols and formatting. The key is understanding how numbers, exponents, and mathematical symbols are represented. Practice the basic number patterns first, then work on the special symbols for exponents and scientific notation. Take it step by step!";
+    }
+    
+    if (lowerContext.includes('level') && lowerContext.includes('lesson')) {
+      return "You're making great progress through the lessons! Each level builds on the previous one, so take your time to master each pattern. If you're struggling with a particular character, practice it separately until it feels natural, then return to the full lesson. Consistent practice is key!";
+    }
+    
+    // Default helpful response
+    return "Excellent question! Braille is all about muscle memory and pattern recognition. Each character has its own unique 'feel' using the 6-dot system. The most important tip is to practice regularly - even 10-15 minutes daily is better than longer, infrequent sessions. You're developing an important skill that will serve you well!";
   }
 
   private generateFallbackPlan(currentLevel: number, focusAreas: string[], learningStyle: string, timeAvailable: number) {
