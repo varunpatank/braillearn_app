@@ -20,21 +20,21 @@ interface LevelInfo {
 }
 
 const LearnPage: React.FC = () => {
-  // Context hooks
+  
   const { speak } = useAudio();
   const { user } = useAuth();
 
-  // UI State
+  
   const [loading, setLoading] = useState(true);
   const [expandedLevel, setExpandedLevel] = useState<number | null>(null);
   const [showAICustomization, setShowAICustomization] = useState(false);
   const [showSchedulePreview, setShowSchedulePreview] = useState(false);
   
-  // Lesson State
+  
   const [lessonProgress, setLessonProgress] = useState<LessonProgress[]>([]);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   
-  // Plan State
+  
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [scheduleConfirmed, setScheduleConfirmed] = useState(false);
   const [useCustomPlan, setUseCustomPlan] = useState(false);
@@ -46,18 +46,18 @@ const LearnPage: React.FC = () => {
     progress: 0
   });
   
-  // AI Chat State
+  
   const [chatMessages, setChatMessages] = useState<Array<{id: string, text: string, sender: 'user' | 'ai', timestamp: Date}>>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   
-  // Form State
+  
   const [customizationForm, setCustomizationForm] = useState({
     currentLevel: 1,
     learningStyle: 'visual' as 'visual' | 'tactile' | 'auditory' | 'kinesthetic' | 'mixed',
     focusAreas: 'basics' as 'basics' | 'words' | 'sentences' | 'contractions' | 'advanced' | 'all',
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
-    duration: 12, // weeks
+    duration: 12, 
     lessonsPerWeek: 3,
     totalLessons: 50,
     preferredTimes: ['morning'] as string[],
@@ -71,11 +71,11 @@ const LearnPage: React.FC = () => {
       speak('Welcome to the advanced learning page with AI-powered study plans.');
       
       try {
-        // Load all lessons from data folder
+        
         setAllLessons(lessons);
         console.log(`Loaded ${lessons.length} lessons from data`);
         
-        // Check for saved study plan
+        
         const savedPlan = localStorage.getItem('braillearn-study-plan');
         const savedConfirmation = localStorage.getItem('braillearn-schedule-confirmed');
         
@@ -88,7 +88,7 @@ const LearnPage: React.FC = () => {
         }
         
         if (user) {
-          // Load user's lesson progress
+          
           const { data: progress } = await supabase
             .from('lesson_progress')
             .select('*')
@@ -108,13 +108,13 @@ const LearnPage: React.FC = () => {
     initializePage();
   }, [user, speak]);
 
-  // Generate study plan with schedule
+  
   const generateStudyPlan = (form: any): StudyPlan => {
     const startDate = new Date();
     const targetEndDate = new Date();
-    targetEndDate.setDate(startDate.getDate() + (form.duration * 7)); // Convert weeks to days
+    targetEndDate.setDate(startDate.getDate() + (form.duration * 7)); 
 
-    // Filter lessons based on customization
+    
     let selectedLessons = lessons.filter(lesson => {
       if (form.difficulty === 'beginner') return lesson.level <= 10;
       if (form.difficulty === 'intermediate') return lesson.level >= 5 && lesson.level <= 20;
@@ -122,14 +122,14 @@ const LearnPage: React.FC = () => {
       return true;
     });
 
-    // Focus on specific areas if requested
+    
     if (form.focusAreas !== 'all') {
       selectedLessons = selectedLessons.filter(lesson => 
         lesson.category === form.focusAreas || lesson.category === 'basics'
       );
     }
 
-    // Create scheduled lessons with dates
+    
     const scheduledLessons: ScheduledLesson[] = selectedLessons.slice(0, form.totalLessons).map((lesson, index) => {
       const scheduleDate = new Date(startDate);
       scheduleDate.setDate(startDate.getDate() + Math.floor(index / form.lessonsPerWeek) * 7 + (index % form.lessonsPerWeek));
@@ -176,7 +176,7 @@ const LearnPage: React.FC = () => {
     };
   };
 
-  // Journey animation for "embark on journey"
+  
   const playJourneyAnimation = async (plan: StudyPlan) => {
     const steps = [
       "🚀 Preparing your learning journey...",
@@ -204,7 +204,7 @@ const LearnPage: React.FC = () => {
       }));
     }
 
-    // Save the plan and show confirmation
+    
     setStudyPlan(plan);
     setShowSchedulePreview(true);
     
@@ -212,10 +212,10 @@ const LearnPage: React.FC = () => {
     setJourneyAnimation(prev => ({ ...prev, isPlaying: false }));
   };
 
-  // Confirm and save the schedule
+  
   const confirmSchedule = () => {
     if (studyPlan) {
-      // Save to localStorage for persistence
+      
       localStorage.setItem('braillearn-study-plan', JSON.stringify(studyPlan));
       localStorage.setItem('braillearn-schedule-confirmed', 'true');
       
@@ -228,14 +228,14 @@ const LearnPage: React.FC = () => {
     }
   };
 
-  // Reject the schedule and go back to customization
+  
   const rejectSchedule = () => {
     setShowSchedulePreview(false);
     setStudyPlan(null);
     setShowAICustomization(true);
   };
 
-  // Reset and create new plan
+  
   const createNewPlan = () => {
     localStorage.removeItem('braillearn-study-plan');
     localStorage.removeItem('braillearn-schedule-confirmed');
@@ -246,7 +246,7 @@ const LearnPage: React.FC = () => {
   };
   };
 
-  // Level emojis and titles
+  
   const generateLevelInfo = (level: number): LevelInfo => {
     const emojis = ['🌱', '🌿', '🌺', '🌳', '⭐', '🎯', '🚀', '💎', '🏆', '👑'];
     const titles = [
@@ -297,7 +297,7 @@ const LearnPage: React.FC = () => {
     };
   };
 
-  // Process lessons - get the right lessons to display
+  
   const finalLessons = React.useMemo(() => {
     if (useCustomPlan && generatedPlan && generatedPlan.levels) {
       const customLessons = generatedPlan.levels.flatMap((level: any) => {
@@ -342,7 +342,7 @@ const LearnPage: React.FC = () => {
     setExpandedLevel(expandedLevel === level ? null : level);
   };
 
-  // Check if a lesson is locked
+  
   const isLessonLocked = (lesson: Lesson): boolean => {
     if (!lesson.prerequisites || lesson.prerequisites.length === 0) {
       return false;
@@ -353,16 +353,16 @@ const LearnPage: React.FC = () => {
     });
   };
 
-  // Get lesson progress
+  
   const getLessonProgress = (lessonId: string) => {
     return lessonProgress.find(p => p.lessonId === lessonId);
   };
 
-  // Calculate overall progress
+  
   const completedLessons = lessonProgress.filter(p => p.completed).length;
   const totalLessons = finalLessons.length;
   const overallProgress = Math.round((completedLessons / totalLessons) * 100) || 0;
-  // Generate custom lessons
+  
   const generateCustomLessons = async () => {
     try {
       setLoading(true);
@@ -378,7 +378,7 @@ const LearnPage: React.FC = () => {
     }
   };
 
-  // Handle AI chat requests
+  
   const handleAIRequest = async (message: string) => {
     if (!message.trim() || !studyPlan) return;
     
@@ -394,7 +394,7 @@ const LearnPage: React.FC = () => {
     setChatInput('');
     
     try {
-      // Simple AI response for now
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const aiResponse = {
@@ -427,7 +427,7 @@ const LearnPage: React.FC = () => {
     }
   };
 
-  // Animation variants
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
