@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { Send, Loader2 } from 'lucide-react'
 
 type Message = {
@@ -16,8 +15,8 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY
-    console.log('API Key:', API_KEY ? 'Present' : 'Missing')
+    // Use server-side proxy for Gemini — no client env access
+    console.log('Messages page loaded — using server proxy for AI')
   }, [])
 
   useEffect(() => {
@@ -36,18 +35,14 @@ export default function MessagesPage() {
     setInput('')
 
     try {
-      const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY
-      if (!API_KEY) throw new Error('API key is missing')
-
-      const genAI = new GoogleGenerativeAI(API_KEY)
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" })
-
-      console.log('Sending message:', newMessage.content)
-      const result = await model.generateContent(newMessage.content)
-      const responseText = result.response.text()
-      console.log('Received response:', responseText)
-
-      const assistantMessage: Message = { role: 'assistant', content: responseText }
+      const res = await fetch('/api/gemini-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newMessage.content })
+      })
+      if (!res.ok) throw new Error('AI request failed')
+      const { text } = await res.json()
+      const assistantMessage: Message = { role: 'assistant', content: text }
       setMessages(prev => [...prev, assistantMessage])
     } catch (err) {
       console.error('Error:', err)

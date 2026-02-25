@@ -138,6 +138,30 @@ export interface BrailleDocument {
   updatedAt: string;
 }
 
+// BrailleQuest mission types
+export interface Mission {
+  id: string;
+  title: string;
+  description?: string;
+  xpReward?: number;
+  createdAt?: string;
+  isActive?: boolean;
+}
+
+export interface MissionSubmission {
+  id: string;
+  missionId: string;
+  userId: string;
+  imagePath?: string;
+  imageUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  aiVerification?: any;
+  score?: number;
+  status?: 'pending' | 'verified' | 'rejected';
+  createdAt?: string;
+}
+
 // Arduino hardware interface
 export interface ArduinoConnection {
   isConnected: boolean;

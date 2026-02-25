@@ -1,43 +1,43 @@
 
-// Pin definitions
-const int solenoidPins[6] = {2, 3, 4, 5, 6, 7};  // MOSFET gate control pins
-const int buttonPin = 8;                          // Push button pin
-const int statusLED = 13;                         // Built-in LED
 
-// Braille alphabet patterns (dots 1-6, same as web app)
+const int solenoidPins[6] = {2, 3, 4, 5, 6, 7};  
+const int buttonPin = 8;                          
+const int statusLED = 13;                         
+
+
 int braille[26][6] = {
-  {1,0,0,0,0,0},  // a
-  {1,1,0,0,0,0},  // b
-  {1,0,0,1,0,0},  // c
-  {1,0,0,1,1,0},  // d
-  {1,0,0,0,1,0},  // e
-  {1,1,0,1,0,0},  // f
-  {1,1,0,1,1,0},  // g
-  {1,1,0,0,1,0},  // h
-  {0,1,0,1,0,0},  // i
-  {0,1,0,1,1,0},  // j
-  {1,0,1,0,0,0},  // k
-  {1,1,1,0,0,0},  // l
-  {1,0,1,1,0,0},  // m
-  {1,0,1,1,1,0},  // n
-  {1,0,1,0,1,0},  // o
-  {1,1,1,1,0,0},  // p
-  {1,1,1,1,1,0},  // q
-  {1,1,1,0,1,0},  // r
-  {0,1,1,1,0,0},  // s
-  {0,1,1,1,1,0},  // t
-  {1,0,1,0,0,1},  // u
-  {1,1,1,0,0,1},  // v
-  {0,1,0,1,1,1},  // w
-  {1,0,1,1,0,1},  // x
-  {1,0,1,1,1,1},  // y
-  {1,0,1,0,1,1},  // z
+  {1,0,0,0,0,0},  
+  {1,1,0,0,0,0},  
+  {1,0,0,1,0,0},  
+  {1,0,0,1,1,0},  
+  {1,0,0,0,1,0},  
+  {1,1,0,1,0,0},  
+  {1,1,0,1,1,0},  
+  {1,1,0,0,1,0},  
+  {0,1,0,1,0,0},  
+  {0,1,0,1,1,0},  
+  {1,0,1,0,0,0},  
+  {1,1,1,0,0,0},  
+  {1,0,1,1,0,0},  
+  {1,0,1,1,1,0},  
+  {1,0,1,0,1,0},  
+  {1,1,1,1,0,0},  
+  {1,1,1,1,1,0},  
+  {1,1,1,0,1,0},  
+  {0,1,1,1,0,0},  
+  {0,1,1,1,1,0},  
+  {1,0,1,0,0,1},  
+  {1,1,1,0,0,1},  
+  {0,1,0,1,1,1},  
+  {1,0,1,1,0,1},  
+  {1,0,1,1,1,1},  
+  {1,0,1,0,1,1},  
 };
 
-// Alphabet for character lookup
+
 char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 
-// Variables for button control and demo mode
+
 String currentWord = "hello";
 int currentLetterIndex = 0;
 bool buttonPressed = false;
@@ -45,12 +45,12 @@ unsigned long lastButtonPress = 0;
 const unsigned long debounceDelay = 200;
 bool demoMode = true;
 
-// Status LED control
+
 void setStatusLED(bool state) {
   digitalWrite(statusLED, state);
 }
 
-// Blink status LED
+
 void blinkStatusLED(int times, int delayMs = 200) {
   for (int i = 0; i < times; i++) {
     setStatusLED(true);
@@ -60,20 +60,20 @@ void blinkStatusLED(int times, int delayMs = 200) {
   }
 }
 
-// Update solenoids based on braille pattern
+
 void updateSolenoids(int pattern[6]) {
   Serial.print(">> Displaying pattern: ");
   
-  // Turn off all solenoids first (clean switching)
+  
   for (int i = 0; i < 6; i++) {
     digitalWrite(solenoidPins[i], LOW);
   }
-  delay(50); // Brief pause for clean switching
+  delay(50); 
   
-  // Activate solenoids based on pattern
+  
   for (int i = 0; i < 6; i++) {
     if (pattern[i] == 1) {
-      digitalWrite(solenoidPins[i], HIGH);  // HIGH = MOSFET on = solenoid extends DOWN
+      digitalWrite(solenoidPins[i], HIGH);  
       Serial.print("●");
     } else {
       Serial.print("○");
@@ -81,10 +81,10 @@ void updateSolenoids(int pattern[6]) {
   }
   Serial.println();
   
-  // Keep solenoids active for tactile feedback
-  delay(800);  // Hold for 800ms (same as web app timing)
   
-  // Turn off all solenoids (return to retracted position)
+  delay(800);  
+  
+  
   for (int i = 0; i < 6; i++) {
     digitalWrite(solenoidPins[i], LOW);
   }
@@ -92,14 +92,14 @@ void updateSolenoids(int pattern[6]) {
   Serial.println(">> All solenoids retracted");
 }
 
-// Display character by finding its index in alphabet
+
 void displayCharacter(char letter) {
-  // Convert to lowercase
+  
   if (letter >= 'A' && letter <= 'Z') {
     letter = letter + 32;
   }
   
-  // Find index of this letter in the alphabet
+  
   int index = -1;
   for (int j = 0; j < 26; j++) {
     if (letter == alphabet[j]) {
@@ -115,7 +115,7 @@ void displayCharacter(char letter) {
     return;
   }
   
-  // Print the letter and display it
+  
   Serial.print(">> Displaying letter: ");
   Serial.print(letter);
   Serial.print(" (dots: ");
@@ -127,11 +127,11 @@ void displayCharacter(char letter) {
   }
   Serial.println(")");
   
-  // Get the corresponding row from the braille array and display it
+  
   updateSolenoids(braille[index]);
 }
 
-// Display word letter by letter
+
 void displayWord(String word) {
   Serial.print(">> Displaying word: ");
   Serial.println(word);
@@ -143,7 +143,7 @@ void displayWord(String word) {
       delay(1000);
     } else if (letter >= 'a' && letter <= 'z') {
       displayCharacter(letter);
-      delay(500); // Brief pause between letters
+      delay(500); 
     } else if (letter >= 'A' && letter <= 'Z') {
       displayCharacter(letter);
       delay(500);
@@ -155,7 +155,7 @@ void displayWord(String word) {
   Serial.println(">> Word complete");
 }
 
-// Display raw pattern (0-63 represents 6-bit pattern)
+
 void displayPattern(int patternNumber) {
   if (patternNumber < 0 || patternNumber > 63) {
     Serial.println("Pattern must be 0-63");
@@ -168,7 +168,7 @@ void displayPattern(int patternNumber) {
   Serial.print(patternNumber, BIN);
   Serial.println(")");
   
-  // Convert number to 6-bit pattern
+  
   int pattern[6];
   for (int i = 0; i < 6; i++) {
     pattern[i] = (patternNumber >> i) & 1;
@@ -177,7 +177,7 @@ void displayPattern(int patternNumber) {
   updateSolenoids(pattern);
 }
 
-// Test all solenoids individually
+
 void testAllSolenoids() {
   Serial.println("=== TESTING ALL SOLENOIDS ===");
   Serial.println("Each solenoid will PUSH DOWN for 1 second");
@@ -213,13 +213,13 @@ void testAllSolenoids() {
   Serial.println("=== SOLENOID TEST COMPLETE ===");
 }
 
-// Process serial commands from web app or user
+
 void processSerialCommand(String command) {
-  command.trim(); // Remove whitespace
-  command.toLowerCase(); // Convert to lowercase
+  command.trim(); 
+  command.toLowerCase(); 
   
   if (command.startsWith("char:")) {
-  // Display single character: char:a
+  
     if (command.length() >= 6) {
       char letter = command.charAt(5);
       displayCharacter(letter);
@@ -229,40 +229,40 @@ void processSerialCommand(String command) {
     }
   }
   else if (command.startsWith("word:")) {
-    // Display word: word:hello
+    
     if (command.length() > 5) {
       String word = command.substring(5);
       displayWord(word);
-      demoMode = false; // Stop demo mode when receiving commands
+      demoMode = false; 
     } else {
       Serial.println("Usage: word:hello (where 'hello' is the word)");
     }
   }
   else if (command.startsWith("pattern:")) {
-    // Display raw pattern: pattern:3
+    
     if (command.length() > 8) {
       int pattern = command.substring(8).toInt();
       displayPattern(pattern);
-      demoMode = false; // Stop demo mode when receiving commands
+      demoMode = false; 
     } else {
       Serial.println("Usage: pattern:3 (where 3 is 0-63)");
     }
   }
   else if (command == "test") {
-    // Run test sequence
+    
     testAllSolenoids();
     Serial.println("Testing alphabet...");
     displayWord("abcdef");
     demoMode = false;
   }
   else if (command == "demo") {
-    // Enable demo mode
+    
     demoMode = true;
     currentLetterIndex = 0;
     Serial.println("Demo mode enabled - press button to cycle through letters");
   }
   else if (command == "help") {
-    // Show help
+    
     Serial.println("=== BRAILLE DISPLAY COMMANDS ===");
     Serial.println("char:a        → Display letter 'a'");
     Serial.println("word:hello    → Display word 'hello'");
@@ -293,14 +293,14 @@ void setup() {
   Serial.println("╚══════════════════════════════════════╝");
   Serial.println("");
   
-  // Initialize solenoid control pins (MOSFET gates)
+  
   for (int i = 0; i < 6; i++) {
     pinMode(solenoidPins[i], OUTPUT);
-    digitalWrite(solenoidPins[i], LOW);  // Start with all solenoids OFF (retracted UP)
+    digitalWrite(solenoidPins[i], LOW);  
   }
   
-  // Initialize button and LED
-  pinMode(buttonPin, INPUT_PULLUP);  // Use internal pullup resistor
+  
+  pinMode(buttonPin, INPUT_PULLUP);  
   pinMode(statusLED, OUTPUT);
   setStatusLED(false);
   
@@ -317,14 +317,14 @@ void setup() {
   Serial.println("   - LOW signal: MOSFET off → Solenoid RETRACTS UP");
   Serial.println("");
   
-  // Startup LED sequence
+  
   Serial.println("🚀 Starting up...");
   blinkStatusLED(5, 150);
   
-  // Test all solenoids on startup
+  
   testAllSolenoids();
   
-  // Ready status
+  
   Serial.println("🎉 READY FOR BRAILLE DISPLAY!");
   Serial.println("");
   Serial.println("💻 Web App Integration:");
@@ -337,24 +337,24 @@ void setup() {
   Serial.println("   - Send any command to exit demo mode");
   Serial.println("");
   
-  // Display first character in demo mode
+  
   if (currentWord.length() > 0) {
     displayCharacter(currentWord[0]);
   }
   
-  setStatusLED(true); // Solid LED when ready
+  setStatusLED(true); 
 }
 
 void loop() {
-  // Check for serial commands (from web app or Serial Monitor)
+  
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
     processSerialCommand(command);
   }
   
-  // Handle button press in demo mode
+  
   if (demoMode) {
-    bool currentButtonState = digitalRead(buttonPin) == LOW; // LOW = pressed (pullup)
+    bool currentButtonState = digitalRead(buttonPin) == LOW; 
     
     if (currentButtonState && !buttonPressed && 
         (millis() - lastButtonPress > debounceDelay)) {
@@ -362,31 +362,31 @@ void loop() {
       buttonPressed = true;
       lastButtonPress = millis();
       
-      // Move to next character in demo word
+      
       currentLetterIndex++;
       if (currentLetterIndex >= currentWord.length()) {
-        currentLetterIndex = 0; // Loop back to start
+        currentLetterIndex = 0; 
         Serial.println("=== DEMO WORD COMPLETE - RESTARTING ===");
       }
       
-      // Display current character
+      
       char currentChar = currentWord[currentLetterIndex];
       Serial.print("🔘 Button pressed! Next letter: ");
       displayCharacter(currentChar);
       
-      // Quick LED flash to acknowledge button press
+      
       setStatusLED(false);
       delay(100);
       setStatusLED(true);
     }
     
-    // Reset button state when released
+    
     if (!currentButtonState && buttonPressed) {
       buttonPressed = false;
     }
   }
   
-  // Heartbeat blink when idle (shows Arduino is alive)
+  
   static unsigned long lastHeartbeat = 0;
   if (millis() - lastHeartbeat > 5000) {
     blinkStatusLED(1, 50);
@@ -399,5 +399,5 @@ void loop() {
     }
   }
   
-  delay(50); // Small delay for stability
+  delay(50); 
 }

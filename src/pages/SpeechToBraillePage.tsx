@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Copy, RefreshCcw, Settings, FileDown as FileDown3D } from 'lucide-react';
+import { Download, Copy, Settings, FileDown as FileDown3D, Camera } from 'lucide-react';
 import SpeechRecognition from '../components/speech/SpeechRecognition';
 import BrailleWord from '../components/braille/BrailleWord';
 import BrailleModelViewer from '../components/braille/BrailleModelViewer';
+import BrailleImageAnalyzer from '../components/braille/BrailleImageAnalyzer';
 import { useAppContext } from '../context/AppContext';
 import { SpeechRecognitionResult, BrailleCell } from '../types/types';
 import { translateTextToBraille } from '../services/brailleTranslator';
@@ -12,16 +13,26 @@ import { generateBraillePdf, downloadPdf } from '../services/pdfGenerator';
 const SpeechToBraillePage: React.FC = () => {
   const { isArduinoConnected, sendBraillePattern } = useAppContext();
   const [recognizedText, setRecognizedText] = useState('');
-  const [isFinalResult, setIsFinalResult] = useState(false);
+  const [_isFinalResult, setIsFinalResult] = useState(false);
   const [brailleResult, setBrailleResult] = useState<BrailleCell[][]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPdfSettings, setShowPdfSettings] = useState(false);
-  const [pdfOptions, setPdfOptions] = useState({
+  const [showImageAnalyzer, setShowImageAnalyzer] = useState(false);
+  const [pdfOptions, setPdfOptions] = useState<{
+    title: string;
+    includeText: boolean;
+    doubleSided: boolean;
+    paperSize: 'letter' | 'a4' | 'legal';
+    is3D: boolean;
+    dotHeight: number;
+    dotDiameter: number;
+    baseThickness: number;
+  }>({
     title: 'Braille Document',
     includeText: true,
     doubleSided: false,
-    paperSize: 'letter' as const,
+    paperSize: 'letter',
     is3D: false,
     dotHeight: 0.5,
     dotDiameter: 1.5,
@@ -39,6 +50,14 @@ const SpeechToBraillePage: React.FC = () => {
     
     if (result.isFinal) {
       translateSpeechToBraille(result.transcript);
+    }
+  };
+
+  const handleImageAnalysisComplete = (_result: string, extractedText?: string) => {
+    // If text was extracted from the braille image, translate it
+    if (extractedText) {
+      setRecognizedText(extractedText);
+      translateSpeechToBraille(extractedText);
     }
   };
 
@@ -84,90 +103,119 @@ const SpeechToBraillePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 braille-bg">
+    <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-50 braille-bg">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-primary-700 to-primary-800 text-white py-12 relative">
+      <section className="bg-gradient-to-b from-green-500 to-blue-500 text-white py-12 relative rounded-b-3xl shadow-lg">
         <div className="absolute inset-0 braille-bg opacity-10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-3xl font-bold leading-tight mb-4">
-            Speech to Braille Converter
+          <h1 className="text-4xl font-extrabold leading-tight mb-4 flex items-center justify-center gap-2">
+            <span>🦉</span> Speech to Braille Converter
           </h1>
-          <p className="text-lg text-primary-100">
-            Speak into your microphone to convert speech to braille or send to your Arduino device
+          <p className="text-lg text-blue-100 font-medium">
+            Speak, type, or upload an image to convert to braille
           </p>
         </div>
       </section>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-lg border-2 border-gray-900 p-6 mb-8 mt-12">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Speak or Type
-          </h2>
-          
-          <div className="flex flex-col md:flex-row gap-6 mb-6">
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <SpeechRecognition
-                onResult={handleSpeechResult}
-                onError={(errorMsg) => setError(errorMsg)}
-                stopAfterResult={false}
-                continuous={true}
-              />
-            </div>
-            
-            <div className="flex-1">
-              <label htmlFor="manual-text" className="block text-sm font-medium text-gray-700 mb-1">
-                Or type text manually:
-              </label>
-              <textarea
-                id="manual-text"
-                value={recognizedText}
-                onChange={(e) => setRecognizedText(e.target.value)}
-                className="w-full h-32 border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Type text to convert to braille..."
-              ></textarea>
-              
-              <div className="flex justify-end space-x-2 mt-2">
-                <button
-                  onClick={handleClear}
-                  className="px-3 py-1 bg-gray-200 rounded-md text-gray-700 text-sm hover:bg-gray-300"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={handleManualTranslate}
-                  className="px-3 py-1 bg-blue-600 rounded-md text-white text-sm hover:bg-blue-700"
-                  disabled={!recognizedText.trim()}
-                >
-                  Translate
-                </button>
+        {/* Input Mode Toggle */}
+        <div className="flex justify-center gap-4 mt-8 mb-4">
+          <button
+            onClick={() => setShowImageAnalyzer(false)}
+            className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
+              !showImageAnalyzer
+                ? 'bg-green-500 text-white shadow-lg'
+                : 'bg-white text-green-700 border-2 border-green-300 hover:bg-green-50'
+            }`}
+          >
+            🎤 Speech/Text
+          </button>
+          <button
+            onClick={() => setShowImageAnalyzer(true)}
+            className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
+              showImageAnalyzer
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-white text-blue-700 border-2 border-blue-300 hover:bg-blue-50'
+            }`}
+          >
+            <Camera className="w-5 h-5" /> Image Analysis
+          </button>
+        </div>
+
+        {/* Image Analyzer Section */}
+        {showImageAnalyzer && (
+          <div className="mb-8">
+            <BrailleImageAnalyzer onAnalysisComplete={handleImageAnalysisComplete} />
+          </div>
+        )}
+
+        {/* Speech/Text Input Section */}
+        {!showImageAnalyzer && (
+          <div className="bg-white rounded-3xl shadow-xl border-2 border-green-400 p-8 mb-8">
+            <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+              <span>🎤</span> Speak or Type
+            </h2>
+            <div className="flex flex-col md:flex-row gap-8 mb-6">
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <SpeechRecognition
+                  onResult={handleSpeechResult}
+                  onError={(errorMsg) => setError(errorMsg)}
+                  stopAfterResult={false}
+                  continuous={true}
+                />
+              </div>
+              <div className="flex-1">
+                <label htmlFor="manual-text" className="block text-sm font-semibold text-green-700 mb-1">
+                  Or type text manually:
+                </label>
+                <textarea
+                  id="manual-text"
+                  value={recognizedText}
+                  onChange={(e) => setRecognizedText(e.target.value)}
+                  className="w-full h-32 border-2 border-green-300 rounded-xl shadow-md p-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Type text to convert to braille..."
+                ></textarea>
+                <div className="flex justify-end space-x-2 mt-2">
+                  <button
+                    onClick={handleClear}
+                    className="px-3 py-1 bg-green-100 rounded-full text-green-700 text-sm hover:bg-green-200 font-semibold"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleManualTranslate}
+                    className="px-3 py-1 bg-green-500 rounded-full text-white text-sm hover:bg-green-600 font-bold shadow-lg"
+                    disabled={!recognizedText.trim()}
+                  >
+                    Translate
+                  </button>
+                </div>
               </div>
             </div>
+            {error && (
+              <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-xl mb-4 font-semibold">
+                {error}
+              </div>
+            )}
           </div>
-          
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
-              {error}
-            </div>
-          )}
-        </div>
+        )}
         
         <div className="bg-white rounded-xl shadow-lg border-2 border-gray-900 p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Braille Output
+            <h2 className="text-2xl font-bold text-green-700 flex items-center gap-2">
+              <span>⠿</span> Braille Output
             </h2>
-            
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowPdfSettings(!showPdfSettings)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                className="p-2 text-green-500 hover:text-green-700 hover:bg-green-100 rounded-full"
                 title="PDF Settings"
               >
                 <Settings size={18} />
               </button>
               <button
                 onClick={handleCopyBraille}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                className="p-2 text-green-500 hover:text-green-700 hover:bg-green-100 rounded-full"
                 title="Copy to clipboard"
               >
                 <Copy size={18} />
@@ -180,7 +228,7 @@ const SpeechToBraillePage: React.FC = () => {
                   });
                   downloadPdf(pdfUrl, `${pdfOptions.title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
                 }}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                className="p-2 text-green-500 hover:text-green-700 hover:bg-green-100 rounded-full"
                 title="Download PDF"
                 disabled={brailleResult.length === 0}
               >
@@ -194,7 +242,7 @@ const SpeechToBraillePage: React.FC = () => {
                   });
                   downloadPdf(stlUrl, `${pdfOptions.title.toLowerCase().replace(/\s+/g, '-')}.stl`);
                 }}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+                className="p-2 text-green-500 hover:text-green-700 hover:bg-green-100 rounded-full"
                 title="Download 3D Model"
                 disabled={brailleResult.length === 0}
               >
@@ -204,68 +252,64 @@ const SpeechToBraillePage: React.FC = () => {
           </div>
 
           {showPdfSettings && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-900 shadow-md">
-              <h3 className="font-medium text-gray-900 mb-3">PDF Settings</h3>
+            <div className="mb-4 p-4 bg-green-50 rounded-2xl border-2 border-green-400 shadow-lg">
+              <h3 className="font-bold text-green-700 mb-3">PDF Settings</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-green-700 mb-1">
                     Document Title
                   </label>
                   <input
                     type="text"
                     value={pdfOptions.title}
                     onChange={(e) => setPdfOptions({ ...pdfOptions, title: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border-2 border-green-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
-                
                 <div className="flex items-center">
                   <input
                     type="checkbox"
                     id="includeText"
                     checked={pdfOptions.includeText}
                     onChange={(e) => setPdfOptions({ ...pdfOptions, includeText: e.target.checked })}
-                    className="rounded text-blue-600"
+                    className="rounded text-green-600"
                   />
-                  <label htmlFor="includeText" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="includeText" className="ml-2 text-sm text-green-700 font-semibold">
                     Include text alongside braille
                   </label>
                 </div>
-                
                 <div className="flex items-center">
                   <input
                     type="checkbox"
                     id="is3D"
                     checked={pdfOptions.is3D}
                     onChange={(e) => setPdfOptions({ ...pdfOptions, is3D: e.target.checked })}
-                    className="rounded text-blue-600"
+                    className="rounded text-green-600"
                   />
-                  <label htmlFor="is3D" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="is3D" className="ml-2 text-sm text-green-700 font-semibold">
                     Generate 3D braille dots
                   </label>
                 </div>
-                
                 <div className="flex items-center">
                   <input
                     type="checkbox"
                     id="doubleSided"
                     checked={pdfOptions.doubleSided}
                     onChange={(e) => setPdfOptions({ ...pdfOptions, doubleSided: e.target.checked })}
-                    className="rounded text-blue-600"
+                    className="rounded text-green-600"
                   />
-                  <label htmlFor="doubleSided" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="doubleSided" className="ml-2 text-sm text-green-700 font-semibold">
                     Double-sided printing
                   </label>
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-green-700 mb-1">
                     Paper Size
                   </label>
                   <select
                     value={pdfOptions.paperSize}
                     onChange={(e) => setPdfOptions({ ...pdfOptions, paperSize: e.target.value as 'letter' | 'a4' | 'legal' })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border-2 border-green-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   >
                     <option value="letter">Letter (8.5" x 11")</option>
                     <option value="a4">A4</option>
@@ -279,11 +323,11 @@ const SpeechToBraillePage: React.FC = () => {
           {loading ? (
             <div className="flex justify-center items-center py-10">
               <LoadingSpinner />
-              <span className="ml-2 text-gray-600">Translating to braille...</span>
+              <span className="ml-2 text-green-700 font-semibold">Translating to braille...</span>
             </div>
           ) : brailleResult.length > 0 ? (
             <div>
-              <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+              <div className="border-2 border-green-200 rounded-2xl p-6 bg-green-50 shadow-lg">
                 <div className="overflow-x-auto">
                   <div className="flex flex-wrap gap-8 p-4 justify-center">
                     {brailleResult.map((wordCells, wordIndex) => (
@@ -299,8 +343,7 @@ const SpeechToBraillePage: React.FC = () => {
                     ))}
                   </div>
                 </div>
-                
-                <div className="mt-4 text-center text-sm text-gray-500">
+                <div className="mt-4 text-center text-sm text-green-700 font-semibold">
                   {brailleResult.reduce((total, word) => total + word.length, 0)} braille cells generated
                   {isArduinoConnected && brailleResult.length > 0 && (
                     <span className="block text-blue-600 mt-1">
@@ -309,10 +352,9 @@ const SpeechToBraillePage: React.FC = () => {
                   )}
                 </div>
               </div>
-
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  3D Preview
+                <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                  <span>🧩</span> 3D Preview
                 </h3>
                 <BrailleModelViewer 
                   cells={brailleResult}
@@ -320,13 +362,13 @@ const SpeechToBraillePage: React.FC = () => {
                   dotDiameter={pdfOptions.dotDiameter}
                   baseThickness={pdfOptions.baseThickness}
                 />
-                <p className="mt-2 text-sm text-gray-500 text-center">
+                <p className="mt-2 text-sm text-green-700 text-center font-semibold">
                   Click and drag to rotate. Scroll to zoom.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-green-700 font-semibold">
               {recognizedText ? 
                 'Click Translate to convert your text to braille' : 
                 'Speak or type text to see the braille representation'

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Settings, BookOpen, Mic, Home, Volume2, VolumeX } from 'lucide-react';
+import { Menu, X, User, Settings, BookOpen, Home, Volume2, VolumeX, Award, MapPin } from 'lucide-react';
 import { useAudio } from '../../context/AudioContext';
 import { useMockAuth } from '../../context/MockAuthContext';
 import { MockAuthModal } from '../MockAuthModal';
@@ -8,12 +8,26 @@ import { UserProfileDropdown } from '../UserProfileDropdown';
 import Logo from '../common/Logo';
 
 const Header: React.FC = () => {
+  // header render log removed for cleaner console
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [_showMoreDropdown, setShowMoreDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
   const { user } = useMockAuth();
   const location = useLocation();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMoreDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -58,18 +72,28 @@ const Header: React.FC = () => {
             >
               Practice
             </Link>
+
             <Link 
-              to="/speech-to-braille" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/speech-to-braille')}`}
+              to="/braillequest" 
+              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/braillequest')}`}
             >
-              Speech to Braille
+              Missions
             </Link>
+
+            <Link 
+              to="/achievements" 
+              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/achievements')}`}
+            >
+              Achievements
+            </Link>
+
             <Link 
               to="/class-hub" 
               className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/class-hub')}`}
             >
               Class Hub
             </Link>
+
             <div className="flex items-center space-x-4 ml-4">
               <button
                 onClick={toggleAudio}
@@ -167,16 +191,29 @@ const Header: React.FC = () => {
                 Practice
               </div>
             </Link>
+
             <Link
-              to="/speech-to-braille"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/speech-to-braille')}`}
+              to="/braillequest"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/braillequest')}`}
               onClick={closeMenu}
             >
               <div className="flex items-center">
-                <Mic size={20} className="mr-2" />
-                Speech to Braille
+                <MapPin size={20} className="mr-2" />
+                Missions
               </div>
             </Link>
+
+            <Link
+              to="/achievements"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/achievements')}`}
+              onClick={closeMenu}
+            >
+              <div className="flex items-center">
+                <Award size={20} className="mr-2" />
+                Achievements
+              </div>
+            </Link>
+
             <Link
               to="/class-hub"
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/class-hub')}`}
@@ -187,6 +224,7 @@ const Header: React.FC = () => {
                 Class Hub
               </div>
             </Link>
+
             <div className="pt-4 pb-3 border-t border-gray-200">
               {user ? (
                 <div className="px-3">

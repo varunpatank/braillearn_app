@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Github, Twitter, Mail, Heart } from 'lucide-react';
 
 const Footer: React.FC = () => {
+  // footer render log removed for cleaner console
   return (
     <footer className="bg-gray-800 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -28,10 +29,9 @@ const Footer: React.FC = () => {
           <div className="col-span-1">
             <h3 className="text-sm font-semibold mb-4 uppercase tracking-wider">Resources</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white text-sm">Documentation</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white text-sm">Braille Reference</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white text-sm">Hardware Guide</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white text-sm">FAQs</a></li>
+              <li><Link to="/statistics" className="text-gray-300 hover:text-white text-sm">Statistics & Impact</Link></li>
+              <li><Link to="/achievements" className="text-gray-300 hover:text-white text-sm">Achievements</Link></li>
+              <li><Link to="/accessibility" className="text-gray-300 hover:text-white text-sm">Accessibility</Link></li>
             </ul>
           </div>
           

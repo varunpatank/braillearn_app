@@ -1111,7 +1111,303 @@ const generateExtendedLessons = (): Lesson[] => {
   return extendedLessons;
 };
 
-export const lessons: Lesson[] = [...baseLessons, ...generateExtendedLessons()];
+// Generate themed adventure lessons for more engaging learning
+const generateThemedAdventureLessons = (): Lesson[] => {
+  const adventureLessons: Lesson[] = [];
+  
+  // Space Explorer Theme (Levels 1-5)
+  const spaceTheme = [
+    {
+      title: '🚀 Space Launch: Letter Training',
+      description: 'Prepare for your space mission by learning astronaut alphabet codes!',
+      story: 'You are a trainee astronaut learning to read space communication codes.',
+      words: ['STAR', 'MOON', 'SUN', 'SHIP', 'MARS'],
+      level: 1
+    },
+    {
+      title: '🌟 Constellation Mapper',
+      description: 'Map the stars by reading their braille coordinates!',
+      story: 'Navigate through the galaxy by reading star names in braille.',
+      words: ['ORION', 'DRACO', 'LYRA', 'VEGA', 'ARIES'],
+      level: 2
+    },
+    {
+      title: '👽 Alien Messages',
+      description: 'Decode messages from friendly aliens using braille!',
+      story: 'Aliens communicate using braille patterns - can you understand them?',
+      words: ['HELLO', 'PEACE', 'FRIEND', 'EARTH', 'LIFE'],
+      level: 3
+    },
+    {
+      title: '🛸 Mission Control',
+      description: 'Become a mission controller and read critical flight data!',
+      story: 'Lives depend on your ability to read braille commands accurately.',
+      words: ['LAUNCH', 'ORBIT', 'FUEL', 'OXYGEN', 'LAND'],
+      level: 4
+    },
+    {
+      title: '🌌 Galaxy Explorer Badge',
+      description: 'Complete your space training with this final challenge!',
+      story: 'Earn your Galaxy Explorer badge by mastering all space vocabulary.',
+      words: ['COSMOS', 'NEBULA', 'COMET', 'PLANET', 'ROCKET'],
+      level: 5
+    }
+  ];
+
+  // Ocean Adventure Theme (Levels 1-5)
+  const oceanTheme = [
+    {
+      title: '🐠 Coral Reef Explorer',
+      description: 'Discover sea creatures by reading their braille names!',
+      story: 'Dive deep into the coral reef and identify marine life.',
+      words: ['FISH', 'CORAL', 'CRAB', 'SEAL', 'EEL'],
+      level: 1
+    },
+    {
+      title: '🦈 Shark Researcher',
+      description: 'Study sharks and ocean predators through braille research notes!',
+      story: 'You are a marine biologist documenting shark species.',
+      words: ['SHARK', 'WHALE', 'SQUID', 'ORCA', 'RAY'],
+      level: 2
+    },
+    {
+      title: '🐢 Sea Turtle Tracker',
+      description: 'Follow sea turtles on their migration by reading tracking data!',
+      story: 'Track endangered sea turtles across the Pacific Ocean.',
+      words: ['TURTLE', 'BEACH', 'NEST', 'SHELL', 'WAVE'],
+      level: 3
+    },
+    {
+      title: '🏝️ Treasure Island',
+      description: 'Find hidden treasure by reading ancient braille maps!',
+      story: 'Decode a pirate\'s braille treasure map to find gold.',
+      words: ['ISLAND', 'GOLD', 'CHEST', 'SHIP', 'SAIL'],
+      level: 4
+    },
+    {
+      title: '🐙 Deep Sea Master',
+      description: 'Explore the deepest ocean trenches and discover mysteries!',
+      story: 'Descend to the Mariana Trench in your submarine.',
+      words: ['DEEP', 'DARK', 'GIANT', 'ABYSS', 'GLOW'],
+      level: 5
+    }
+  ];
+
+  // Safari Adventure Theme (Levels 1-5)
+  const safariTheme = [
+    {
+      title: '🦁 Safari Starter',
+      description: 'Begin your African safari by learning animal names!',
+      story: 'Embark on a thrilling safari adventure in the savanna.',
+      words: ['LION', 'ZEBRA', 'GIRAFFE', 'HIPPO', 'RHINO'],
+      level: 1
+    },
+    {
+      title: '🐘 Elephant Tracker',
+      description: 'Follow elephant herds and read tracking signs!',
+      story: 'Help researchers track elephant migrations across Africa.',
+      words: ['HERD', 'TRUNK', 'TUSK', 'CALF', 'WATERING'],
+      level: 2
+    },
+    {
+      title: '🦒 Savanna Explorer',
+      description: 'Navigate the vast savanna with braille guidebooks!',
+      story: 'Identify all the wildlife in the African grasslands.',
+      words: ['SAVANNA', 'GRASS', 'SUNSET', 'DUST', 'HORIZON'],
+      level: 3
+    },
+    {
+      title: '🐆 Night Safari',
+      description: 'Spot nocturnal animals using braille night vision guides!',
+      story: 'The most exciting animals come out at night.',
+      words: ['LEOPARD', 'OWL', 'BAT', 'HYENA', 'STARS'],
+      level: 4
+    },
+    {
+      title: '🏆 Safari Champion',
+      description: 'Complete your safari certification exam!',
+      story: 'Prove your wildlife expertise to become a certified ranger.',
+      words: ['WILDLIFE', 'PROTECT', 'NATURE', 'CONSERVE', 'WILD'],
+      level: 5
+    }
+  ];
+
+  // Superhero Academy Theme (Levels 3-7)
+  const superheroTheme = [
+    {
+      title: '⚡ Hero Academy Orientation',
+      description: 'Begin your superhero training at the academy!',
+      story: 'Welcome to Hero Academy - learn to read your hero manual.',
+      words: ['HERO', 'POWER', 'CAPE', 'MASK', 'SAVE'],
+      level: 3
+    },
+    {
+      title: '🦸 Power Training',
+      description: 'Learn the names of different superpowers!',
+      story: 'Discover what powers you might develop.',
+      words: ['FLIGHT', 'SPEED', 'STRENGTH', 'VISION', 'MIND'],
+      level: 4
+    },
+    {
+      title: '🎯 Mission Briefing',
+      description: 'Read mission briefings to save the city!',
+      story: 'The city needs you! Read your mission objectives carefully.',
+      words: ['RESCUE', 'DANGER', 'CITIZEN', 'ALERT', 'ACTION'],
+      level: 5
+    },
+    {
+      title: '🛡️ Team Training',
+      description: 'Work with your superhero team using coded messages!',
+      story: 'Heroes work together - communicate with your team.',
+      words: ['TEAM', 'UNITE', 'TRUST', 'SHIELD', 'DEFEND'],
+      level: 6
+    },
+    {
+      title: '🏅 Hero Graduation',
+      description: 'Graduate from Hero Academy with honors!',
+      story: 'Complete your final exam to become a certified hero.',
+      words: ['JUSTICE', 'HONOR', 'BRAVE', 'LEGEND', 'VICTORY'],
+      level: 7
+    }
+  ];
+
+  // Wizard School Theme (Levels 5-10)
+  const wizardTheme = [
+    {
+      title: '🧙 Wizard School Welcome',
+      description: 'Learn magical words at the Wizard Academy!',
+      story: 'You have been accepted to the School of Magic.',
+      words: ['WAND', 'SPELL', 'MAGIC', 'POTION', 'ROBE'],
+      level: 5
+    },
+    {
+      title: '📖 Spellbook Reading',
+      description: 'Master your first spells from the ancient spellbook!',
+      story: 'The spellbook is written in magical braille - learn to read it.',
+      words: ['FIRE', 'WATER', 'WIND', 'EARTH', 'LIGHT'],
+      level: 6
+    },
+    {
+      title: '🔮 Crystal Ball Visions',
+      description: 'Read prophecies in the crystal ball!',
+      story: 'The crystal ball reveals secrets in braille patterns.',
+      words: ['FUTURE', 'VISION', 'DREAM', 'DESTINY', 'FATE'],
+      level: 7
+    },
+    {
+      title: '🐉 Dragon Taming',
+      description: 'Learn the names of magical creatures to tame them!',
+      story: 'Dragons can only be tamed by those who know their true names.',
+      words: ['DRAGON', 'PHOENIX', 'GRIFFIN', 'UNICORN', 'FAIRY'],
+      level: 8
+    },
+    {
+      title: '⚗️ Potion Mastery',
+      description: 'Read potion recipes to create magical brews!',
+      story: 'Follow recipes carefully or the potion might explode!',
+      words: ['BREW', 'MIX', 'HERB', 'CAULDRON', 'BUBBLES'],
+      level: 9
+    },
+    {
+      title: '🎓 Grand Wizard Exam',
+      description: 'Pass the final exam to become a Grand Wizard!',
+      story: 'The ultimate test of your magical reading abilities.',
+      words: ['WISDOM', 'ANCIENT', 'POWER', 'MASTER', 'LEGEND'],
+      level: 10
+    }
+  ];
+
+  // Detective Agency Theme (Levels 8-15)
+  const detectiveTheme = [
+    {
+      title: '🔍 Detective Training',
+      description: 'Begin your detective career by reading case files!',
+      story: 'Join the Detective Agency and solve your first case.',
+      words: ['CLUE', 'CASE', 'SOLVE', 'FIND', 'SEARCH'],
+      level: 8
+    },
+    {
+      title: '📋 Case Files',
+      description: 'Read confidential case files to crack the mystery!',
+      story: 'Every detail in the file could be important.',
+      words: ['SECRET', 'HIDDEN', 'MYSTERY', 'SUSPECT', 'WITNESS'],
+      level: 9
+    },
+    {
+      title: '🔐 Code Breaker',
+      description: 'Decode secret messages left by criminals!',
+      story: 'The criminal left coded messages - can you decode them?',
+      words: ['CODE', 'CIPHER', 'DECODE', 'MESSAGE', 'UNLOCK'],
+      level: 10
+    },
+    {
+      title: '🕵️ Undercover Mission',
+      description: 'Read undercover mission briefings carefully!',
+      story: 'Go undercover to gather evidence.',
+      words: ['DISGUISE', 'IDENTITY', 'COVER', 'STEALTH', 'BLEND'],
+      level: 11
+    },
+    {
+      title: '⚖️ Court Evidence',
+      description: 'Present evidence in court by reading legal documents!',
+      story: 'Your evidence reading skills will prove innocence or guilt.',
+      words: ['EVIDENCE', 'COURT', 'JUDGE', 'JURY', 'TRUTH'],
+      level: 12
+    },
+    {
+      title: '🏆 Master Detective',
+      description: 'Solve the ultimate mystery and become a Master Detective!',
+      story: 'The biggest case of your career awaits.',
+      words: ['BRILLIANT', 'DEDUCTION', 'REVEAL', 'JUSTICE', 'SOLVED'],
+      level: 15
+    }
+  ];
+
+  // Combine all themed lessons
+  const allThemes = [...spaceTheme, ...oceanTheme, ...safariTheme, ...superheroTheme, ...wizardTheme, ...detectiveTheme];
+  
+  allThemes.forEach((theme, index) => {
+    const lessonId = `adventure-${index + 1}`;
+    const exercises: Exercise[] = theme.words.map((word, wordIndex) => ({
+      id: `${lessonId}-ex-${wordIndex + 1}`,
+      type: 'braille-to-text' as const,
+      question: `Read this word from your ${theme.title.split(' ')[0]} adventure:`,
+      correctAnswer: word,
+      braillePattern: word.split('').map(char => ({
+        dots: braillePatterns[char.toUpperCase()] || [],
+        char: char.toUpperCase()
+      })),
+      points: 15 + (theme.level * 2)
+    }));
+
+    // Add story context exercise
+    exercises.push({
+      id: `${lessonId}-story`,
+      type: 'multiple-choice' as const,
+      question: `In this adventure, you are: "${theme.story.substring(0, 50)}..."`,
+      options: ['An explorer', 'A student', 'A hero', 'All of the above!'],
+      correctAnswer: 'All of the above!',
+      braillePattern: [],
+      points: 10
+    });
+
+    adventureLessons.push({
+      id: lessonId,
+      title: theme.title,
+      description: theme.description,
+      level: theme.level,
+      category: theme.level <= 5 ? 'basics' : theme.level <= 10 ? 'words' : theme.level <= 15 ? 'sentences' : 'contractions',
+      duration: 20 + (theme.level * 2),
+      exercises,
+      prerequisites: index > 0 ? [`adventure-${index}`] : ['lesson-1']
+    });
+  });
+
+  return adventureLessons;
+};
+
+// Export all lessons combined
+export const lessons: Lesson[] = [...baseLessons, ...generateExtendedLessons(), ...generateThemedAdventureLessons()];
 
 // Helper function to get lesson by ID
 export const getLessonById = (id: string): Lesson | undefined => {

@@ -2,15 +2,52 @@
 import { useState, useEffect } from 'react'
 import { Coins, ArrowUpRight, ArrowDownRight, Gift, Loader } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  getUserByEmail,
-  getRewardTransactions,
-  createTransaction,
-  redeemReward
-} from '@/utils/db/actions'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { useRouter } from 'next/navigation'
+
+async function getUserByEmail(email: string) {
+  const { data } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+  return data as any;
+}
+
+async function getRewardTransactions(userId: number) {
+  try {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+    return data || [];
+  } catch (err) {
+    // If `transactions` table doesn't exist in Supabase, return empty array as fallback
+    return [];
+  }
+}
+
+async function createTransaction(userId: number, type: string, amount: number, description: string) {
+  try {
+    const { error } = await supabase.from('transactions').insert([{ user_id: userId, type, amount, description }]);
+    if (error) console.warn('Failed to write transaction to Supabase:', error);
+  } catch (err) {
+    console.warn('createTransaction fallback error', err);
+  }
+}
+
+async function adjustUserPoints(userId: number, delta: number) {
+  try {
+    // Update user's total_points in Supabase users table
+    const { data: user } = await supabase.from('users').select('total_points').eq('id', userId).maybeSingle();
+    const current = (user?.total_points as number) || 0;
+    const newTotal = Math.max(0, current + delta);
+    await supabase.from('users').update({ total_points: newTotal }).eq('id', userId);
+  } catch (err) {
+    console.warn('Failed to adjust user points in Supabase', err);
+  }
+}
 
 /* Custom Preset Rewards – each reward has its own unique name, description (including location), cost, and website */
 const presetRewards = [

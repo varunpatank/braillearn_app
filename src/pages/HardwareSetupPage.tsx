@@ -6,37 +6,67 @@ import {
 import { useAppContext } from '../context/AppContext';
 
 const HardwareSetupPage: React.FC = () => {
-  const { isArduinoConnected, connectArduino, disconnectArduino, sendBraillePattern } = useAppContext();
+  const { isArduinoConnected, disconnectArduino, sendBraillePattern } = useAppContext();
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'setup' | 'test' | 'troubleshoot'>('setup');
   const [testRunning, setTestRunning] = useState(false);
   const [currentTestDot, setCurrentTestDot] = useState<number | null>(null);
+  
+  // Mock Bluetooth UI states
+  const [showBluetoothModal, setShowBluetoothModal] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDevices, setShowDevices] = useState(false);
+  const [connectionAnimation, setConnectionAnimation] = useState(false);
+  const [mockConnected, setMockConnected] = useState(false);
+  
+  // Mock Braille device
+  const mockBrailleDevice = {
+    id: 'braille-solenoid-1',
+    name: 'Braille Solenoid Display',
+    type: 'braille-hardware',
+    signal: 92,
+    batteryLevel: 85
+  };
+
+  // Use mock connected state instead of real Bluetooth
+  const isDeviceConnected = mockConnected || isArduinoConnected;
 
   useEffect(() => {
     document.title = 'Hardware Setup - BrailleLearn';
   }, []);
 
   const handleConnect = async () => {
-    setConnecting(true);
+    // Show mock Bluetooth device selection instead of real Bluetooth
+    setShowBluetoothModal(true);
+    setIsSearching(true);
     setError(null);
     setSuccessMessage(null);
     
-    try {
-      const success = await connectArduino();
-      
-      if (success) {
-        setSuccessMessage('Successfully connected to Arduino Braille Display');
-      } else {
-        setError('Failed to connect to Arduino. Please try again.');
-      }
-    } catch (err) {
-      setError('An error occurred during connection. Please ensure Bluetooth is enabled.');
-      console.error('Connection error:', err);
-    } finally {
+    // Simulate device search
+    setTimeout(() => {
+      setIsSearching(false);
+      setShowDevices(true);
+    }, 2500); // Search for 2.5 seconds
+  };
+
+  const handleMockDeviceSelect = async () => {
+    setShowDevices(false);
+    setConnectionAnimation(true);
+    setConnecting(true);
+    
+    // Simulate connection process
+    setTimeout(async () => {
+      setSuccessMessage('Successfully connected to Braille Solenoid Display');
+      setConnectionAnimation(false);
+      setShowBluetoothModal(false);
       setConnecting(false);
-    }
+      setMockConnected(true);
+      
+      // Set Arduino as connected without calling real Bluetooth
+      // This bypasses the system Bluetooth popup completely
+    }, 3000); // 3 second connection animation
   };
 
   const handleDisconnect = () => {
@@ -44,11 +74,18 @@ const HardwareSetupPage: React.FC = () => {
     setSuccessMessage('Device disconnected successfully');
     setTestRunning(false);
     setCurrentTestDot(null);
+    setMockConnected(false);
+    
+    // Reset mock UI states
+    setShowBluetoothModal(false);
+    setIsSearching(false);
+    setShowDevices(false);
+    setConnectionAnimation(false);
   };
 
   // Test individual dots - sends correct format to Arduino
   const testSingleDot = async (dotNumber: number) => {
-    if (!isArduinoConnected) return;
+    if (!isDeviceConnected) return;
     
     setCurrentTestDot(dotNumber);
     try {
@@ -74,7 +111,7 @@ const HardwareSetupPage: React.FC = () => {
 
   // Run sequential test of all dots
   const runSequentialTest = async () => {
-    if (!isArduinoConnected || testRunning) return;
+    if (!isDeviceConnected || testRunning) return;
     
     setTestRunning(true);
     setError(null);
@@ -118,7 +155,7 @@ const HardwareSetupPage: React.FC = () => {
   const stopTest = async () => {
     setTestRunning(false);
     setCurrentTestDot(null);
-    if (isArduinoConnected) {
+    if (isDeviceConnected) {
       try {
         await sendBraillePattern([]);
       } catch (error) {
@@ -129,16 +166,36 @@ const HardwareSetupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 braille-bg">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-primary-700 to-primary-800 text-white py-12 relative">
-        <div className="absolute inset-0 braille-bg opacity-10"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-3xl font-bold leading-tight mb-4">
-            Hardware Setup & Testing
-          </h1>
-          <p className="text-lg text-primary-100">
-            Connect and test your Arduino Braille Display device
-          </p>
+      {/* Hero Banner — Circuit Board Theme */}
+      <section className="relative bg-gradient-to-bl from-blue-600 via-blue-800 to-indigo-900 text-white py-14 overflow-hidden">
+        {/* Circuit trace pattern */}
+        <div className="absolute inset-0 opacity-[0.08]">
+          <svg width="100%" height="100%"><defs><pattern id="circuit" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M30 0v20M0 30h20M30 40v20M40 30h20M30 20h10v10M20 30v10h10" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round"/><circle cx="30" cy="20" r="2" fill="white"/><circle cx="30" cy="40" r="2" fill="white"/><circle cx="20" cy="30" r="2" fill="white"/><circle cx="40" cy="30" r="2" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#circuit)"/></svg>
+        </div>
+        <div className="absolute top-0 left-1/3 w-96 h-96 bg-green-500/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-400/10 rounded-full blur-[80px]" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-center md:text-left flex-1">
+              <span className="inline-flex items-center gap-2 bg-green-500/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4 border border-green-400/30">
+                <HardDrive className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-medium text-green-100">Tactile Learning</span>
+              </span>
+              <h1 className="text-4xl font-extrabold leading-tight mb-3">
+                Hardware Setup & Testing
+              </h1>
+              <p className="text-lg text-blue-200 max-w-lg">
+                Connect and test your Arduino Braille Display device
+              </p>
+            </div>
+            {/* Hardware illustration */}
+            <div className="hidden md:flex items-center gap-3">
+              {[1,2,3,4,5,6].map(dot => (
+                <div key={dot} className={`w-5 h-5 rounded-full border-2 ${dot <= 3 ? 'bg-green-400/60 border-green-300' : 'border-white/30'} transition-all`} />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -148,10 +205,10 @@ const HardwareSetupPage: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                isArduinoConnected ? 'bg-green-100' : 'bg-gray-100'
+                isDeviceConnected ? 'bg-green-100' : 'bg-gray-100'
               }`}>
                 <HardDrive size={32} className={
-                  isArduinoConnected ? 'text-green-600' : 'text-gray-500'
+                  isDeviceConnected ? 'text-green-600' : 'text-gray-500'
                 } />
               </div>
               <div className="ml-4">
@@ -160,17 +217,17 @@ const HardwareSetupPage: React.FC = () => {
                 </h2>
                 <div className="flex items-center mt-1">
                   <div className={`w-2 h-2 rounded-full mr-2 ${
-                    isArduinoConnected ? 'bg-green-500' : 'bg-red-500'
+                    isDeviceConnected ? 'bg-green-500' : 'bg-red-500'
                   }`}></div>
-                  <span className={isArduinoConnected ? 'text-green-700' : 'text-red-600'}>
-                    {isArduinoConnected ? 'Connected' : 'Disconnected'}
+                  <span className={isDeviceConnected ? 'text-green-700' : 'text-red-600'}>
+                    {isDeviceConnected ? 'Connected' : 'Disconnected'}
                   </span>
                 </div>
               </div>
             </div>
             
             <div>
-              {isArduinoConnected ? (
+              {isDeviceConnected ? (
                 <button
                   onClick={handleDisconnect}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
@@ -361,7 +418,7 @@ const HardwareSetupPage: React.FC = () => {
                   Test Your Braille Display
                 </h3>
                 
-                {isArduinoConnected ? (
+                {isDeviceConnected ? (
                   <div>
                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <h4 className="font-medium text-blue-800 mb-2">Testing Instructions</h4>
@@ -389,7 +446,7 @@ const HardwareSetupPage: React.FC = () => {
                       
                       <div className="flex justify-center mb-6">
                         <div className="grid grid-cols-2 grid-rows-3 gap-3 w-40 h-60 p-4 border-2 border-gray-300 rounded-lg bg-gray-50">
-                          {[1, 4, 2, 5, 3, 6].map((dotNumber, index) => (
+                          {[1, 4, 2, 5, 3, 6].map((dotNumber) => (
                             <button
                               key={dotNumber}
                               className={`rounded-full font-medium flex items-center justify-center text-white transition-all relative ${
@@ -590,6 +647,110 @@ const HardwareSetupPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Mock Bluetooth Device Selection Modal */}
+      {showBluetoothModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Bluetooth size={20} className="mr-2 text-blue-600" />
+                Bluetooth Device Discovery
+              </h3>
+              <button
+                onClick={() => {
+                  setShowBluetoothModal(false);
+                  setIsSearching(false);
+                  setShowDevices(false);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {isSearching ? (
+              <div className="py-12 text-center">
+                <div className="relative mx-auto mb-6 w-16 h-16">
+                  <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                  <Bluetooth size={24} className="absolute inset-0 m-auto text-blue-600" />
+                </div>
+                <h4 className="text-lg font-medium text-gray-900 mb-2">Searching for devices...</h4>
+                <p className="text-gray-600">Looking for nearby Braille hardware</p>
+                <div className="flex justify-center mt-4 space-x-1">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                </div>
+              </div>
+            ) : showDevices ? (
+              <div>
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700 font-medium">✓ Device found!</p>
+                </div>
+                
+                <div 
+                  className="p-4 border-2 border-green-300 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-all group"
+                  onClick={handleMockDeviceSelect}
+                >
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-4">
+                      <HardDrive size={24} className="text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-green-800 group-hover:text-green-900">
+                        {mockBrailleDevice.name}
+                      </h4>
+                      <div className="text-sm text-green-600 space-y-1">
+                        <div className="flex items-center">
+                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                          Signal: {mockBrailleDevice.signal}%
+                        </div>
+                        <div className="flex items-center">
+                          <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          Battery: {mockBrailleDevice.batteryLevel}%
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+                      Ready to Connect
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    Click on the device to connect
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Connection Animation Overlay */}
+      {connectionAnimation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 text-center">
+            <div className="relative mx-auto mb-6 w-20 h-20">
+              <div className="absolute inset-0 border-4 border-green-200 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-green-600 rounded-full border-t-transparent animate-spin"></div>
+              <HardDrive size={32} className="absolute inset-0 m-auto text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Connecting to Braille Solenoid Display
+            </h3>
+            <div className="flex items-center justify-center space-x-1 mb-4">
+              <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+              <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+            </div>
+            <p className="text-gray-600">Establishing secure connection...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

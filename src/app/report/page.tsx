@@ -3,17 +3,63 @@ import { useState, useEffect } from 'react'
 import { MapPin, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LocationSearch } from '@/components/LocationSearch'
-import {
-  createUser,
-  getUserByEmail,
-  createReport,
-  getRecentReports,
-  createTransaction,
-  getRewardTransactions
-} from '@/utils/db/actions'
+import { supabase } from '@/lib/supabase'
+
+async function getUserByEmail(email: string) {
+  const { data } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+  return data as any;
+}
+
+async function createUser(email: string, name: string) {
+  try {
+    const { data, error } = await supabase.from('users').insert([{ id: email, email, name, total_points: 0, level: 1 }]).select().maybeSingle();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('createUser fallback failed', err);
+    return null;
+  }
+}
+
+async function createReport(userId: number, location: string, latitude: number, longitude: number, wasteType: string, amount: string, imageUrl?: string) {
+  try {
+    const { error } = await supabase.from('reports').insert([{ user_id: userId, location, latitude, longitude, waste_type: wasteType, amount, image_url: imageUrl }]);
+    if (error) {
+      // fallback: ignore
+      console.warn('Failed to insert report to Supabase (table may be missing)', error);
+    }
+  } catch (err) {
+    console.warn('createReport fallback error', err);
+  }
+}
+
+async function getRecentReports(limit = 10) {
+  try {
+    const { data } = await supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(limit);
+    return data || [];
+  } catch (err) {
+    return [];
+  }
+}
+
+async function createTransaction(userId: number, type: string, amount: number, description: string) {
+  try {
+    await supabase.from('transactions').insert([{ user_id: userId, type, amount, description }]);
+  } catch (err) {
+    console.warn('createTransaction fallback error', err);
+  }
+}
+
+async function getRewardTransactions(userId: number) {
+  try {
+    const { data } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    return data || [];
+  } catch (err) {
+    return [];
+  }
+}
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
-import { verifyWasteImage } from '@/utils/gemini'
 import { VerificationResult } from '@/components/VerificationResult'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { useUser } from '@auth0/nextjs-auth0/client'
@@ -113,16 +159,23 @@ export default function ReportPage() {
     if (!file || !preview) return
     setVerificationStatus('verifying')
     try {
-      const result = await verifyWasteImage(preview, file.type)
+      const res = await fetch('/api/verify-waste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: preview, mimeType: file.type })
+      })
+      if (!res.ok) throw new Error('Verification failed')
+      const json = await res.json()
+      const result = json.result
       setVerificationResult(result)
       setVerificationStatus('success')
-      // Save verified waste type and quantity for use in transaction
       setNewReport(prev => ({
         ...prev,
-        type: result.wasteType,
-        amount: result.quantity
+        type: result?.wasteType || prev.type,
+        amount: result?.quantity || prev.amount
       }))
     } catch (error) {
+      console.error('Verification error', error)
       setVerificationStatus('failure')
     }
   }

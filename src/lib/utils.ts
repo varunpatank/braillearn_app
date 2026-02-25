@@ -1,6 +1,33 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+// Lightweight `cn` helper (small, dependency-free substitute for `clsx` + `tailwind-merge`).
+// This avoids bundling `clsx` / `tailwind-merge` in the dev server while remaining
+// compatible with the project's `cn(...)` usage.
+
+type ClassValue = string | number | null | undefined | Record<string, any> | Array<ClassValue>;
+
+function simpleClsx(...inputs: ClassValue[]): string {
+  const res: string[] = [];
+  const push = (val: any) => { if (val || val === 0) res.push(String(val)); };
+
+  const handle = (val: ClassValue) => {
+    if (!val) return;
+    if (typeof val === 'string' || typeof val === 'number') {
+      push(val);
+    } else if (Array.isArray(val)) {
+      val.forEach(handle);
+    } else if (typeof val === 'object') {
+      for (const k in val) {
+        if (Object.prototype.hasOwnProperty.call(val, k) && (val as any)[k]) push(k);
+      }
+    }
+  };
+
+  inputs.forEach(handle);
+  return res.join(' ');
+}
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  // For now we don't perform sophisticated `twMerge` conflicts resolution; return
+  // the class string produced by `simpleClsx`. This is enough for dev + most UI cases.
+  return simpleClsx(...inputs);
 }
+

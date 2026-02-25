@@ -9,6 +9,7 @@ import {
 import { useAudio } from '../context/AudioContext';
 import { useAppContext } from '../context/AppContext';
 import { geminiService } from '../services/geminiService';
+import { openRouterService } from '../services/openRouterService';
 import BrailleCell from '../components/braille/BrailleCell';
 import BrailleKeyboard from '../components/braille/BrailleKeyboard';
 import Logo from '../components/common/Logo';
@@ -700,8 +701,16 @@ const PracticePage: React.FC = () => {
     setChatLoading(true);
     
     try {
-      const context = `The student is practicing ${selectedMode} mode with ${selectedDifficulty} difficulty.`;
-      const response = await geminiService.askInstructor(chatInput, context);
+      // Try OpenRouter first (Gemma 3 4B), fallback to Gemini
+      const context = `The student is practicing ${selectedMode} mode with ${selectedDifficulty} difficulty. Current score: ${score}, streak: ${streak}.`;
+      let response: string;
+      
+      try {
+        response = await openRouterService.askInstructor(chatInput, context);
+      } catch (openRouterError) {
+        console.warn('OpenRouter failed, trying Gemini:', openRouterError);
+        response = await geminiService.askInstructor(chatInput, context);
+      }
       
       const aiMessage = {
         id: (Date.now() + 1).toString(),
@@ -843,16 +852,53 @@ const PracticePage: React.FC = () => {
       </AnimatePresence>
       
       <div className="min-h-screen bg-gray-50 braille-bg">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-b from-primary-700 to-primary-800 text-white py-12 relative">
-          <div className="absolute inset-0 braille-bg opacity-10"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-            <h1 className="text-3xl font-bold leading-tight mb-4">
+        {/* Hero Banner — Target Ring Theme */}
+        <section className="relative bg-gradient-to-b from-blue-700 via-indigo-700 to-blue-800 text-white overflow-hidden">
+          {/* Concentric ring pattern */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="absolute rounded-full border-2 border-white" style={{ width: `${i * 200}px`, height: `${i * 200}px` }} />
+            ))}
+          </div>
+          {/* Crosshair lines */}
+          <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white" />
+            <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
+          </div>
+          <div className="absolute top-10 right-10 w-72 h-72 bg-orange-500/10 rounded-full blur-[80px]" />
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative z-10 text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <motion.span 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring' }}
+                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-4"
+              >
+                <Flame className="w-4 h-4 text-orange-400" />
+                <span className="text-sm font-medium">Advanced Training</span>
+              </motion.span>
+            </motion.div>
+            <motion.h1 
+              className="text-4xl font-extrabold leading-tight mb-4"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
               🎯 Practice Sessions
-            </h1>
-            <p className="text-lg text-primary-100">
+            </motion.h1>
+            <motion.p 
+              className="text-lg text-blue-200"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               Challenge yourself with interactive braille practice games
-            </p>
+            </motion.p>
           </div>
         </section>
 

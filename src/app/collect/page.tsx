@@ -4,12 +4,35 @@ import { useEffect, useState, useCallback } from 'react'
 import { Trash2, MapPin, CheckCircle, Loader, Camera, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
-import {
-  getUserByEmail,
-  updateWasteLocationStatus,
-  createTransaction
-} from '@/utils/db/actions'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { supabase } from '@/lib/supabase'
+
+async function getUserByEmail(email: string) {
+  const { data } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+  return data as any;
+}
+
+async function createTransaction(userId: number, type: string, amount: number, description: string) {
+  try {
+    await supabase.from('transactions').insert([{ user_id: userId, type, amount, description }]);
+  } catch (err) {
+    console.warn('Failed to insert transaction into Supabase', err);
+  }
+}
+
+async function updateWasteLocationStatus(userId: number, status: string, verificationResult: any) {
+  try {
+    const points = Math.max(0, Math.floor((parseFloat(verificationResult.quantity) || 0) * (verificationResult.multiplier || 1)));
+    await createTransaction(userId, 'earned_collect', points, 'Completed waste collection task');
+    // update user points
+    const { data: user } = await supabase.from('users').select('total_points').eq('id', userId).maybeSingle();
+    const current = (user?.total_points as number) || 0;
+    await supabase.from('users').update({ total_points: current + points }).eq('id', userId);
+    // add notification (if table exists)
+    try { await supabase.from('notifications').insert([{ user_id: userId, message: `You've earned ${points} points for collecting waste!`, type: 'reward' }]); } catch(_){}
+  } catch (err) {
+    console.warn('updateWasteLocationStatus failed', err);
+  }
+}
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { useRouter } from 'next/navigation'
 
@@ -34,7 +57,7 @@ const Popup = dynamic(
 // Import useMap hook to access the map instance.
 import { useMap } from 'react-leaflet'
 
-const geminiApiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY
+// Gemini API is called server-side via /api/verify-waste — do not use process.env in client code
 
 // 50 real-life waste collection challenge locations with added countryCode.
 const realLocations = [
@@ -773,67 +796,42 @@ export default function CollectPage() {
     setVerificationStatus('verifying')
     
     try {
-      const genAI = new GoogleGenerativeAI(geminiApiKey!)
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+      // Call server-side verification API so keys and SDK stay on the server
+      const res = await fetch('/api/verify-waste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: verificationImage, mimeType: 'image/jpeg', wasteType: selectedLocation.wasteType, difficulty: selectedLocation.difficulty })
+      })
+      if (!res.ok) throw new Error('Verification API failed')
+      const json = await res.json()
+      const parsedResult = json.result || json
 
-      const base64Data = verificationImage.split(',')[1]
-      const imageParts = [{ inlineData: { data: base64Data, mimeType: 'image/jpeg' } }]
-
-      // Strict prompt: The response must verify that the image shows the exact location (matching the address)
-      // and that the waste type exactly matches the expected waste type.
-      const prompt = `You are a waste verification expert. Analyze the attached image and verify the following:
-1. The image shows waste collection or cleanup at the location: "${selectedLocation.address}".
-2. The waste type present in the image somewhat matches the expected waste type: "${selectedLocation.wasteType}".
-3. Provide an estimate of the quantity of waste, only in kilograms (e.g., "2.5 kg").
-4. Confirm that the cleanup effort aligns with the challenge difficulty: "${selectedLocation.difficulty}".
-Respond ONLY with a JSON object in the exact format below (with no additional text):
-{
-  "verified": true/false,
-  "confidence": number between 0 and 1,
-  "quantity": "string indicating quantity (e.g., '2.5 kg')",
-  "matchesDifficulty": true/false,
-  "assessment": "brief explanation"
-}`
-
-      const result = await model.generateContent([prompt, ...imageParts])
-      const response = await result.response
-      const text = response.text()
+      setVerificationResult(parsedResult)
       
-      try {
-        const cleanJson = text.replace(/```json\s*|\s*```/g, '').trim()
-        const parsedResult = JSON.parse(cleanJson)
-
-        setVerificationResult(parsedResult)
+      if (parsedResult.verified && parsedResult.confidence > 0.6) {
+        await updateWasteLocationStatus(selectedLocation.id, dbUser.id, 'completed', parsedResult)
         
-        if (parsedResult.verified && parsedResult.confidence > 0.6) {
-          await updateWasteLocationStatus(selectedLocation.id, dbUser.id, 'completed', parsedResult)
-          
-          await createTransaction(
-            dbUser.id,
-            'earned_collect',
-            selectedLocation.points, 
-            `Collected waste at ${selectedLocation.title}`
-          )
+        await createTransaction(
+          dbUser.id,
+          'earned_collect',
+          selectedLocation.points, 
+          `Collected waste at ${selectedLocation.title}`
+        )
 
-          setVerificationStatus('success')
-          toast.success(`Verification successful! You've earned ${selectedLocation.points} points!`, {
-            duration: 5000,
-            icon: '🎉'
-          })
-          
-          setSelectedLocation(null)
-          setVerificationImage(undefined)
-        } else {
-          setVerificationStatus('failure')
-          toast.error(`Verification failed: ${parsedResult.assessment}`, {
-            duration: 5000,
-            icon: '❌'
-          })
-        }
-      } catch (error) {
-        console.error('Failed to parse verification result:', error)
+        setVerificationStatus('success')
+        toast.success(`Verification successful! You've earned ${selectedLocation.points} points!`, {
+          duration: 5000,
+          icon: '🎉'
+        })
+        
+        setSelectedLocation(null)
+        setVerificationImage(undefined)
+      } else {
         setVerificationStatus('failure')
-        toast.error('Failed to verify waste. Please try again with a clearer image.')
+        toast.error(`Verification failed: ${parsedResult.assessment}`, {
+          duration: 5000,
+          icon: '❌'
+        })
       }
     } catch (error) {
       console.error('Error verifying waste:', error)

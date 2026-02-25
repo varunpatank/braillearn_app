@@ -1,3 +1,4 @@
+"use client"
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -5,8 +6,9 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { Leaf } from 'lucide-react'
 import ContractInteraction from './ContractInteraction'
+import { supabase } from '@/lib/supabase'
 import { encryptWasteData, submitEncryptedWasteData, performDataAnalysis } from '@/utils/litProtocol'
-import { useSessionSigs } from '@/hooks/useSessionSigs'
+import { useSessionSigs } from '@/hooks/useSessionSigs' 
 
 // Custom leaf icon
 const leafIcon = new L.Icon({
@@ -22,7 +24,13 @@ const leafIcon = new L.Icon({
 export default function Map() {
   const [encryptedWastePoints, setEncryptedWastePoints] = useState([]);
   const [insights, setInsights] = useState(null);
+  const [missionPins, setMissionPins] = useState<any[]>([]);
   const sessionSigs = useSessionSigs();
+
+  const missionIcon = new L.DivIcon({
+    html: '<div style="background:#2563eb;border-radius:9999px;width:14px;height:14px;border:2px solid #fff;box-shadow:0 0 0 4px rgba(37,99,235,0.12)"></div>',
+    className: ''
+  });
 
   useEffect(() => {
     const fetchEncryptedWastePoints = async () => {
@@ -30,6 +38,29 @@ export default function Map() {
     };
 
     fetchEncryptedWastePoints();
+
+    const fetchMissionPins = async () => {
+      try {
+        const res: any = await supabase
+          .from('mission_submissions')
+          .select('id, image_url, latitude, longitude, score, mission_id, created_at')
+          .eq('status', 'verified')
+          .not('latitude', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(200);
+
+        const { data, error } = res || { data: [], error: null };
+        if (error) {
+          console.warn('fetchMissionPins supabase error', error);
+          return;
+        }
+        if (Array.isArray(data) && data.length) setMissionPins(data);
+      } catch (err) {
+        console.warn('fetchMissionPins failed', err);
+      }
+    };
+
+    fetchMissionPins();
   }, []);
 
   const handleWasteReport = async (location, quantity) => {
@@ -64,6 +95,18 @@ export default function Map() {
               </Popup>
             </Marker>
           ))}
+
+          {missionPins && missionPins.map((s, idx) => (
+            <Marker key={`mission-${s.id}`} position={[s.latitude, s.longitude]} icon={missionIcon}>
+              <Popup>
+                <div style={{ width: 220 }}>
+                  <img src={s.image_url} alt="submission" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
+                  <div style={{ marginTop: 8, fontSize: 13 }}>{s.mission_id ? `Mission: ${s.mission_id}` : 'Mission submission'}</div>
+                  <div style={{ fontSize: 12, color: '#666' }}>Score: {s.score ?? '—'}</div>
+                </div>
+              </Popup>
+            </Marker>
+          ))} 
         </MapContainer>
       </div>
       <div className="w-1/4 p-4 overflow-y-auto">

@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// gemini ai service for braille learning
-const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY;
+// Direct Gemini API key
+const API_KEY = 'AIzaSyCCZPE80G0FqZ5Elz5qVEJcdERnelN4lyU';
 
 class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -9,13 +9,9 @@ class GeminiService {
   private isInitialized = false;
 
   constructor() {
-    if (!API_KEY) {
-      throw new Error('Gemini API key is required. Please check your .env file.');
-    }
-    
     this.genAI = new GoogleGenerativeAI(API_KEY);
     this.model = this.genAI.getGenerativeModel({ 
-      model: "gemini-1.5-pro",
+      model: "gemini-2.0-flash",
       generationConfig: {
         temperature: 0.7,
         topP: 0.8,
@@ -67,7 +63,8 @@ class GeminiService {
       const result = await this.model.generateContent('Hello, respond with just "OK" if you can hear me.');
       const response = await result.response;
       const text = response.text();
-      return true;
+      // return true only if model responded with OK (helps detect actual connectivity)
+      return !!text && String(text).trim().toUpperCase().startsWith('OK');
     } catch (error) {
       return false;
     }
@@ -241,47 +238,187 @@ class GeminiService {
     }
   }
 
-  async askInstructor(question: string, context: string = '') {
-    console.log('💬 AI Instructor Request:', { question, context });
-    console.log('🔑 API Key status:', { 
-      exists: !!API_KEY, 
-      preview: API_KEY ? `${API_KEY.substring(0, 10)}...` : 'No key',
-      length: API_KEY?.length || 0
-    });
-    
-    // Temporary: Skip AI entirely and provide smart educational responses
-    console.log('🎓 Using educational AI response (bypassing API issues)...');
-    return this.generateEducationalResponse(question, context);
+  // Unified chat method — prefers server-side Hack Club proxy, falls back to Google client SDK
+  private async callHackClubProxy(payload: Record<string, any>) {
+    try {
+      const res = await fetch('/api/hackclub', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HackClub proxy error: ${res.status} ${text}`);
+      }
+
+      // return response as text — caller decides how to parse
+      return await res.text();
+    } catch (err) {
+      console.warn('HackClub proxy unavailable or failed:', err instanceof Error ? err.message : err);
+      throw err;
+    }
   }
 
-  private generateEducationalResponse(question: string, context: string): string {
-    // Smart braille educational responses based on context
-    const lowerQuestion = question.toLowerCase();
-    const lowerContext = context.toLowerCase();
-    
-    // Analyze the question to provide specific help
-    if (lowerQuestion.includes('help') || lowerQuestion.includes('stuck')) {
-      return "I'm here to help! Braille can be challenging at first, but with practice it becomes natural. Each braille character uses a unique combination of raised dots in a 2×3 cell. Take your time to feel each pattern carefully and don't rush. What specific part would you like to work on?";
+  private async chatWithModel(messages: Array<{ role: string; content: string }>, opts?: { model?: string; temperature?: number }) {
+    // Try server-side Hack Club proxy first (keeps keys secret)
+    const payload = {
+      model: opts?.model || 'google/gemini-3-flash-preview',
+      messages,
+      temperature: opts?.temperature ?? 0.7
+    };
+
+    try {
+      const hc = await this.callHackClubProxy(payload);
+
+      // Hack Club proxy returns JSON-compatible string from the upstream model
+      try {
+        const parsed = JSON.parse(hc);
+        // common shape for chat completion responses: choices[0].message.content
+        if (parsed?.choices && parsed.choices[0]?.message?.content) {
+          return parsed.choices[0].message.content;
+        }
+
+        // if response is direct text
+        return typeof parsed === 'string' ? parsed : hc;
+      } catch (e) {
+        // not JSON — return raw text
+        return hc;
+      }
+    } catch (_) {
+      // Fallback to client-side GoogleGenerativeAI (existing behaviour)
+      try {
+        const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        return response.text();
+      } catch (err) {
+        console.warn('Both HackClub proxy and local Gemini client failed:', err instanceof Error ? err.message : err);
+        throw err;
+      }
     }
-    
-    if (lowerQuestion.includes('pattern') || lowerQuestion.includes('dots')) {
-      return "Great question about braille patterns! Each braille character uses up to 6 dots arranged in 2 columns and 3 rows. The key is learning how each combination represents a different letter or symbol. Start with simple letters like 'A' (dot 1) and 'B' (dots 1,2) and build from there!";
+  }
+
+  /**
+   * Create an AI-managed study plan (agentic scheduling + customization).
+   * - returns a StudyPlan-shaped object (will validate/parse JSON from model)
+   */
+  async generateAgentStudyPlan(
+    userId: string,
+    currentLevel: number,
+    focusAreas: string[],
+    learningStyle: string,
+    dailyMinutes: number,
+    options?: { targetWeeks?: number; allowReschedule?: boolean; model?: string }
+  ) {
+    const model = options?.model || 'google/gemini-3-flash-preview';
+
+    const systemMsg = {
+      role: 'system',
+      content: 'You are an expert braille tutor and study-planner. Produce structured JSON matching the StudyPlan schema used by the BrailleLearn app.'
+    };
+
+    const userMsg = {
+      role: 'user',
+      content: `Create an AI-managed study plan for userId=${userId} with: currentLevel=${currentLevel}, focusAreas=${focusAreas.join(',')}, learningStyle=${learningStyle}, dailyMinutes=${dailyMinutes}, targetWeeks=${options?.targetWeeks ?? 12}, allowReschedule=${String(options?.allowReschedule ?? true)}.`
+    };
+
+    const reply = await this.chatWithModel([systemMsg, userMsg], { model });
+
+    // Attempt to extract/parse JSON the same way generatePersonalizedStudyPlan does
+    let cleanText = (reply || '').trim();
+    cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    const firstBrace = cleanText.indexOf('{');
+    if (firstBrace > 0) cleanText = cleanText.substring(firstBrace);
+    const lastBrace = cleanText.lastIndexOf('}');
+    if (lastBrace !== -1 && lastBrace < cleanText.length - 1) cleanText = cleanText.substring(0, lastBrace + 1);
+
+    // sanitize common issues
+    cleanText = cleanText
+      .replace(/\/\/.*$/gm, '')
+      .replace(/,\s*([}\]])/g, '$1')
+      .replace(/\n\s*\n/g, '\n')
+      .replace(/\.{3}/g, '')
+      .replace(/,\s*,/g, ',');
+
+    try {
+      const parsed = JSON.parse(cleanText);
+      return parsed;
+    } catch (parseError) {
+      console.warn('AI study plan parse failed — returning raw text for inspection', parseError);
+      return { raw: cleanText, text: reply };
     }
-    
-    if (lowerQuestion.includes('difficult') || lowerQuestion.includes('hard')) {
-      return "Braille can feel challenging, but you're doing great by practicing! Remember that every expert was once a beginner. Focus on accuracy over speed - it's better to get the patterns right slowly than to rush and make mistakes. Your muscle memory will develop with consistent practice!";
+  }
+
+  /** Optimize / reschedule an existing StudyPlan using the model */
+  async optimizeStudyPlan(existingPlan: any, userFeedback: string) {
+    const systemMsg = { role: 'system', content: 'You are an AI scheduler for braille learning plans.' };
+    const userMsg = { role: 'user', content: `Optimize this study plan based on feedback: ${userFeedback}\n\nPlan:${JSON.stringify(existingPlan)}` };
+    const reply = await this.chatWithModel([systemMsg, userMsg]);
+
+    // Model should return a JSON patch or full updated plan — attempt parse
+    try {
+      const json = JSON.parse(reply);
+      return { success: true, updatedPlan: json };
+    } catch (e) {
+      return { success: false, message: 'Model did not return JSON', raw: reply };
     }
-    
-    if (lowerContext.includes('scientific') || lowerContext.includes('notation')) {
-      return "Scientific notation in braille uses special symbols and formatting. The key is understanding how numbers, exponents, and mathematical symbols are represented. Practice the basic number patterns first, then work on the special symbols for exponents and scientific notation. Take it step by step!";
+  }
+
+  /** Return feature ideas and implementation suggestions (static + AI enhanced if available) */
+  async suggestFeatureIdeas(partner?: string) {
+    const ideas = [
+      'Adaptive daily micro-lessons that change length based on recent user accuracy',
+      'Agent that auto-reschedules missed lessons and notifies users with suggested catch-up sessions',
+      'AI-generated printable braille worksheets and answer keys (PDF export)',
+      'Speech-to-braille conversational tutor for pronunciation and reading fluency practice',
+      'Integrate classroom/teacher dashboard for shared student progress and assignments',
+      'Accessibility-first UIs with partner-branded onboarding and resources'
+    ];
+
+    // If partner is provided, add partner-specific ideas
+    if (partner?.toLowerCase().includes('washington')) {
+      ideas.unshift('Washington State School for the Blind co-branded lesson packs and teacher guides');
     }
-    
-    if (lowerContext.includes('level') && lowerContext.includes('lesson')) {
-      return "You're making great progress through the lessons! Each level builds on the previous one, so take your time to master each pattern. If you're struggling with a particular character, practice it separately until it feels natural, then return to the full lesson. Consistent practice is key!";
+
+    // Try to ask the model for additional ideas (non-blocking)
+    try {
+      const systemMsg = { role: 'system', content: 'You are a product strategist for accessible education apps.' };
+      const userMsg = { role: 'user', content: `Suggest 6 concrete feature ideas we can implement for a braille-learning app${partner ? ` (partner: ${partner})` : ''}. Return a JSON array of {id,title,description,effort}.` };
+      const aiReply = await this.chatWithModel([systemMsg, userMsg]);
+      const parsed = JSON.parse(aiReply);
+      return { static: ideas, ai: parsed };
+    } catch (e) {
+      return { static: ideas, ai: null };
     }
-    
-    // Default helpful response
-    return "Excellent question! Braille is all about muscle memory and pattern recognition. Each character has its own unique 'feel' using the 6-dot system. The most important tip is to practice regularly - even 10-15 minutes daily is better than longer, infrequent sessions. You're developing an important skill that will serve you well!";
+  }
+
+  /** Small helper to return partner branding metadata (logo path, color) */
+  getPartnerBranding(partnerId: string) {
+    if (!partnerId) return null;
+
+    const lower = partnerId.toLowerCase();
+    if (lower.includes('washington') || lower.includes('wssb') || lower.includes('school for the blind')) {
+      return {
+        id: 'wssb',
+        name: 'Washington State School for the Blind',
+        logo: '/partners/wssb.svg',
+        color: '#004E98'
+      };
+    }
+
+    return { id: partnerId, name: partnerId, logo: '/partners/partner-placeholder.svg', color: '#333' };
+  }
+
+  async askInstructor(question: string, context: string = '') {
+    console.log('💬 AI Instructor Request:', { question, context });
+
+    // Prefer server-side proxy -> try model chat; fallback to in-app educational responses
+    const systemMsg = { role: 'system', content: 'You are an empathetic braille instructor. Answer concisely.' };
+    const userMsg = { role: 'user', content: `${question}\nContext: ${context}` };
+    const ai = await this.chatWithModel([systemMsg, userMsg]);
+    if (ai && ai.length > 0) return ai;
+    throw new Error('Empty response from AI model');
   }
 
   private generateFallbackPlan(currentLevel: number, focusAreas: string[], learningStyle: string, timeAvailable: number) {
@@ -297,7 +434,7 @@ class GeminiService {
       for (let j = 0; j < lessonsPerLevel; j++) {
         lessons.push({
           id: `level-${i}-lesson-${j + 1}`,
-          title: `${levelInfo.title} - ${this.getLessonTitle(i, j + 1, focusAreas)}`,
+          title: `${this.getLessonTitle(i, j + 1, focusAreas)}`,
           description: `${this.getLessonDescription(i, j + 1, learningStyle, focusAreas)}`,
           duration: 15 + (i * 2) + (j * 5),
           category: this.getLevelCategory(i),
@@ -308,10 +445,11 @@ class GeminiService {
       
       levels.push({
         level: i,
-        title: `Level ${i} - ${levelInfo.title}`,
+        title: `${this.getLevelTitle(i)} (Level ${i})`,
         description: levelInfo.description,
         estimatedHours: 2 + (i * 0.5),
-        lessons: lessons
+        lessons: lessons,
+        completed: i <= currentLevel
       });
     }
 
@@ -320,6 +458,7 @@ class GeminiService {
       estimatedWeeks: Math.ceil(30 * timeAvailable / (7 * timeAvailable)),
       learningStyle: learningStyle,
       dailyTimeCommitment: timeAvailable,
+      currentLevel: currentLevel,
       levels: levels,
       roadmap: [
         { phase: "Foundation", weeks: "Weeks 1-4", focus: "Basic alphabet and numbers", milestone: "Read simple words" },
@@ -392,7 +531,7 @@ class GeminiService {
     };
     
     const titles = focusTitles[focusArea as keyof typeof focusTitles] || focusTitles.letters;
-    return titles[(lessonNumber - 1) % titles.length];
+    return `${titles[(lessonNumber - 1) % titles.length]} (L${level})`;
   }
 
   private getLessonDescription(level: number, lessonNumber: number, learningStyle: string, focusAreas: string[]): string {
@@ -406,13 +545,12 @@ class GeminiService {
     };
     
     const baseDescription = styleDescriptions[learningStyle as keyof typeof styleDescriptions] || styleDescriptions.mixed;
-    return `${baseDescription} focused on ${focusArea} for level ${level}`;
+    return `${baseDescription} focused on ${focusArea} for level ${level}, lesson ${lessonNumber}.`;
   }
 
   private generateLessonExercises(level: number, lessonNumber: number, focusAreas: string[]) {
     const focusArea = focusAreas[0] || 'letters';
     const exerciseTypes = ['multiple-choice', 'braille-to-text', 'text-to-braille', 'match', 'speech-to-braille'] as const;
-    const exerciseType = exerciseTypes[(lessonNumber - 1) % exerciseTypes.length];
     
     // Generate multiple exercises per lesson for better content
     const exercises = [];
@@ -479,7 +617,8 @@ class GeminiService {
           'writing': `Form the braille pattern for this character`,
           'technology': `Identify this technical braille symbol`
         };
-        return focusQuestions[focusArea as keyof typeof focusQuestions] || `What does this braille pattern represent?`;
+        const base = focusQuestions[focusArea as keyof typeof focusQuestions] || `What does this braille pattern represent?`;
+        return `${base} (exercise ${exerciseIndex + 1})`;
       };
     
       const getOptions = (exerciseIndex: number): string[] | undefined => {

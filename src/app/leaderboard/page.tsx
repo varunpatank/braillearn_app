@@ -1,10 +1,34 @@
 'use client'
 import { useState, useEffect } from 'react'
-import {
-  getAllRewards,
-  getUserByEmail,
-  getRewardTransactions
-} from '@/utils/db/actions'
+import { supabase } from '@/lib/supabase'
+
+async function getUserByEmail(email: string) {
+  const { data } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+  return data as any;
+}
+
+async function getAllRewards() {
+  try {
+    const { data, error } = await supabase.from('rewards').select('id, user_id, points, level, created_at, name');
+    if (!error && data && data.length) return data;
+
+    const { data: users } = await supabase.from('users').select('id, name, total_points').order('total_points', { ascending: false }).limit(50);
+    return (users || []).map((u: any) => ({ userId: u.id, points: u.total_points, userName: u.name }));
+  } catch (err) {
+    console.warn('getAllRewards fallback error', err);
+    return [];
+  }
+}
+
+async function getRewardTransactions(userId: number) {
+  try {
+    const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  } catch (err) {
+    return [];
+  }
+}
 import { Loader, Award, User, Trophy, Crown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useUser } from '@auth0/nextjs-auth0/client'

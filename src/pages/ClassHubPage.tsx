@@ -2,16 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from '@/components/motion';
 import { ClassDashboard } from '@/components/ClassDashboard';
 import {
-  MapPin, Star, Users, BookOpen, Video, MessageCircle,
-  Plus, Search, Calendar, Award, Globe, Heart,
+  MapPin, Star, Users, BookOpen, Video,
+  Plus, Search, Calendar, Globe,
   Play, ExternalLink, Clock, Youtube, X, FileText,
-  LinkIcon, Upload, Trash, Save, CheckCircle, BarChart
+  LinkIcon, Upload, Trash, Save, BarChart, TrendingUp,
+  Activity, Target, Brain, ArrowUpRight, Eye, Flame
 } from 'lucide-react';
 import { showSuccessConfetti } from '@/utils/confetti';
 import { toast } from '@/components/ui/use-toast';
 import { useMockAuth } from '@/context/MockAuthContext';
 import { ClassService } from '@/services/classService';
-import { BrailleClass, Chapter, Resource } from '@/types/classTypes';
+import { BrailleClass } from '@/types/classTypes';
 
 interface TutorResource {
   id: string;
@@ -82,6 +83,7 @@ const LeafletMap: React.FC<{
       }
 
       // Create map centered on Washington State
+      if (!mapRef.current) return;
       const map = L.map(mapRef.current, {
         zoomControl: true,
         scrollWheelZoom: true,
@@ -228,7 +230,7 @@ const LeafletMap: React.FC<{
         });
 
         // Handle popup close event properly
-        marker.on('popupclose', (e) => {
+        marker.on('popupclose', (_e) => {
           // Reset selected center when popup is closed, but avoid infinite loops
           if (selectedCenter?.id === center.id) {
             onCenterSelect(null);
@@ -452,7 +454,6 @@ const ClassHubPage: React.FC = () => {
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [selectedClass, setSelectedClass] = useState<BrailleClass | null>(null);
   const [selectedCenter, setSelectedCenter] = useState<BrailleCenter | null>(null);
-  const [mapZoom, setMapZoom] = useState(7);
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showClassStats, setShowClassStats] = useState(false);
   const [showAddResource, setShowAddResource] = useState(false);
@@ -731,7 +732,7 @@ const ClassHubPage: React.FC = () => {
     }
   ]);
 
-  const [centers, setCenters] = useState<BrailleCenter[]>([
+  const [centers] = useState<BrailleCenter[]>([
     {
       id: '1',
       name: 'Seattle Braille Institute',
@@ -850,7 +851,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user1', 'user2', 'user3'],
-      creatorId: 'tutor1'
+      creatorId: 'tutor1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['literacy', 'beginner']
     },
     {
       id: '2',
@@ -877,7 +881,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user4', 'user5'],
-      creatorId: 'tutor2'
+      creatorId: 'tutor2',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['math', 'advanced']
     },
     {
       id: '3',
@@ -904,7 +911,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user6', 'user7', 'user8', 'user9'],
-      creatorId: 'tutor3'
+      creatorId: 'tutor3',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['music', 'intermediate']
     },
     {
       id: '4',
@@ -931,7 +941,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user10', 'user11'],
-      creatorId: 'tutor4'
+      creatorId: 'tutor4',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['programming', 'advanced']
     },
     {
       id: '5',
@@ -958,7 +971,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user12', 'user13', 'user14'],
-      creatorId: 'tutor5'
+      creatorId: 'tutor5',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['science', 'intermediate']
     },
     {
       id: '6',
@@ -985,7 +1001,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user15', 'user16', 'user17', 'user18'],
-      creatorId: 'tutor6'
+      creatorId: 'tutor6',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['language', 'intermediate']
     },
     {
       id: '7',
@@ -1012,7 +1031,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user19', 'user20'],
-      creatorId: 'tutor7'
+      creatorId: 'tutor7',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['technology', 'intermediate']
     },
     {
       id: '8',
@@ -1039,7 +1061,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user21', 'user22', 'user23'],
-      creatorId: 'tutor8'
+      creatorId: 'tutor8',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['music', 'advanced']
     },
     {
       id: '9',
@@ -1066,7 +1091,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user24', 'user25', 'user26', 'user27'],
-      creatorId: 'tutor9'
+      creatorId: 'tutor9',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['business', 'intermediate']
     },
     {
       id: '10',
@@ -1093,7 +1121,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user28', 'user29', 'user30'],
-      creatorId: 'tutor10'
+      creatorId: 'tutor10',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['family', 'beginner']
     },
     {
       id: '11',
@@ -1120,7 +1151,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user31', 'user32'],
-      creatorId: 'tutor11'
+      creatorId: 'tutor11',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['creative', 'intermediate']
     },
     {
       id: '12',
@@ -1147,7 +1181,10 @@ const ClassHubPage: React.FC = () => {
         }
       ],
       enrolledStudents: ['user33', 'user34', 'user35'],
-      creatorId: 'tutor12'
+      creatorId: 'tutor12',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: ['medical', 'advanced']
     }
   ]);
 
@@ -1350,11 +1387,11 @@ const ClassHubPage: React.FC = () => {
     const newResource = {
       id: Date.now().toString(),
       title: resourceForm.title,
-      type: resourceForm.type,
-      duration: resourceForm.duration || undefined,
+      type: resourceForm.type as string,
+      duration: resourceForm.duration || '',
       description: resourceForm.description,
       url: resourceForm.url,
-      embedUrl: resourceForm.type === 'video' ? resourceForm.url.replace('watch?v=', 'embed/') : undefined,
+      embedUrl: resourceForm.type === 'video' ? resourceForm.url.replace('watch?v=', 'embed/') : '',
       thumbnail: resourceForm.thumbnail || 'https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?w=400&h=225',
       category: resourceForm.category
     };
@@ -1381,7 +1418,7 @@ const ClassHubPage: React.FC = () => {
     setShowAddResource(false);
   };
 
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1424,7 +1461,8 @@ const ClassHubPage: React.FC = () => {
             url: resource.url
           }))
         })),
-        tags: []
+        tags: [],
+        creatorId: user?.id || 'anonymous'
       };
 
       console.log('Sending class data to service:', classData);
@@ -1527,158 +1565,108 @@ const ClassHubPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
       {/* Header is handled by App.tsx */}
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-primary-700 to-primary-800 text-white py-12 relative">
-        <div className="absolute inset-0 braille-bg opacity-10"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-3xl font-bold leading-tight mb-4 text-white drop-shadow-lg">
-            🎓 Class Hub
-          </h1>
-          <p className="text-lg text-white drop-shadow-lg">
-            Connect with volunteer tutors and join live braille learning sessions
-          </p>
-          
-          <div className="max-w-lg mx-auto relative">
+      {/* Hero Banner */}
+      <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-16 overflow-hidden">
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            {/* Left: Title & Description */}
+            <motion.div
+              className="text-center lg:text-left flex-1"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <motion.span 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
+                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-4"
+              >
+                <Users className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-medium">Community Learning</span>
+              </motion.span>
+              
+              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-3">
+                🎓 Class Hub
+              </h1>
+              <p className="text-lg text-blue-200 max-w-lg">
+                Connect with volunteer tutors, join live classes, and find braille learning centers near you
+              </p>
+            </motion.div>
+            
+            {/* Right: Quick Stats */}
+            <motion.div className="grid grid-cols-2 gap-3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+              {[
+                { value: tutors.length, label: 'Tutors', color: 'text-green-400' },
+                { value: classes.length, label: 'Classes', color: 'text-yellow-400' },
+                { value: centers.length, label: 'Centers', color: 'text-purple-400' },
+                { value: '⭐ 4.9', label: 'Rating', color: 'text-white' },
+              ].map((stat, i) => (
+                <motion.div 
+                  key={stat.label}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/15 text-center"
+                  initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3 + i * 0.1, type: 'spring' }}
+                >
+                  <div className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</div>
+                  <div className="text-xs text-blue-200">{stat.label}</div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+            
+          {/* Search Bar */}
+          <motion.div 
+            className="max-w-xl mx-auto lg:mx-0 mt-6 relative"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
             <input
               type="text"
               placeholder="Search tutors, classes, or topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-12 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 mt-6"
+              className="w-full px-6 py-3.5 pl-14 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur-sm focus:ring-2 focus:ring-white/50 focus:border-white/50 text-white placeholder-white/60 text-base font-medium"
             />
-            <Search className="absolute left-4 top-9 text-gray-400" size={20} />
-          </div>
+            <Search className="absolute left-5 top-3.5 text-white/60" size={22} />
+          </motion.div>
         </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-900 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-900 shadow-md">
-              <Users className="w-7 h-7 text-blue-600" />
-            </div>
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 shadow-sm border-2 border-gray-900 mb-3">
-              <h3 className="text-lg font-bold text-gray-900">Active Tutors</h3>
-            </div>
-            <p className="text-3xl font-bold text-blue-600 mb-1">{tutors.length}</p>
-            <p className="text-sm text-gray-500 font-medium">Available now</p>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-900 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-900 shadow-md">
-              <Calendar className="w-7 h-7 text-green-600" />
-            </div>
-            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 shadow-sm border-2 border-gray-900 mb-3">
-              <h3 className="text-lg font-bold text-gray-900">Live Classes</h3>
-            </div>
-            <p className="text-3xl font-bold text-green-600 mb-1">{classes.length}</p>
-            <p className="text-sm text-gray-500 font-medium">This week</p>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-900 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-900 shadow-md">
-              <Star className="w-7 h-7 text-purple-600" />
-            </div>
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-3 shadow-sm border-2 border-gray-900 mb-3">
-              <h3 className="text-lg font-bold text-gray-900">Avg Rating</h3>
-            </div>
-            <p className="text-3xl font-bold text-purple-600 mb-1">4.9</p>
-            <p className="text-sm text-gray-500 font-medium">Out of 5 stars</p>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-900 text-center hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-900 shadow-md">
-              <Globe className="w-7 h-7 text-orange-600" />
-            </div>
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-3 shadow-sm border-2 border-gray-900 mb-3">
-              <h3 className="text-lg font-bold text-gray-900">Languages</h3>
-            </div>
-            <p className="text-3xl font-bold text-orange-600 mb-1">12</p>
-            <p className="text-sm text-gray-500 font-medium">Supported</p>
-          </div>
-        </div>
-
-        
-        {/* Getting Started */}
-        <div className="bg-white rounded-xl shadow-sm p-8">
-          <div className="text-center mb-6">
-            <div className="bg-primary-50 rounded-xl p-4 inline-block">
-              <h2 className="text-2xl font-bold text-gray-900">
-                🚀 Ready to Get Started?
-              </h2>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="text-center bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-900 hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-gray-900 shadow-md">
-                <Users className="w-10 h-10 text-primary-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Find a Tutor
-              </h3>
-              <p className="text-gray-600 mb-6 font-medium">
-                Browse our community of experienced braille instructors and find the perfect match for your learning style and schedule.
-              </p>
-              <button 
-                onClick={() => setActiveTab('tutors')}
-                className="px-8 py-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-bold shadow-lg border-2 border-gray-900 hover:shadow-xl"
-              >
-                Browse Tutors
-              </button>
-            </div>
-            
-            <div className="text-center bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-900 hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-gray-900 shadow-md">
-                <Calendar className="w-10 h-10 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Join a Class
-              </h3>
-              <p className="text-gray-600 mb-6 font-medium">
-                Participate in live group sessions, practice with peers, and learn from expert instructors in real-time.
-              </p>
-              <button 
-                onClick={() => setActiveTab('classes')}
-                className="px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold shadow-lg border-2 border-gray-900 hover:shadow-xl"
-              >
-                View Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Horizontal Tabs */}
-        <div className="mb-8 mt-8">
-          <div className="bg-white rounded-xl shadow-lg border-2 border-gray-900 overflow-hidden">
-            <div className="flex">
-              {[
-                { id: 'tutors', label: 'Find Tutors', icon: Users },
-                { id: 'classes', label: 'Live Classes', icon: BookOpen },
-                { id: 'centers', label: 'Centers Nearby', icon: MapPin },
-                { id: 'dashboard', label: 'Class Statistics', icon: BarChart },
-                { id: 'resources', label: 'Online Resources', icon: Video }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 px-6 py-4 font-bold transition-all flex items-center justify-center space-x-2 border-b-4 ${
-                    activeTab === tab.id
-                      ? 'border-primary-600 text-primary-600 bg-gradient-to-t from-primary-50 to-white shadow-inner'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gradient-to-t hover:from-gray-50 hover:to-white hover:border-gray-300'
-                  }`}
-                >
-                  <tab.icon size={20} />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Tab Navigation - Missions Style */}
+        <motion.div 
+          className="bg-white rounded-2xl shadow-xl p-1.5 mb-8 border-2 border-blue-100 flex flex-wrap gap-1"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {[
+            { id: 'tutors', label: 'Find Tutors', icon: Users, color: 'blue' },
+            { id: 'classes', label: 'Live Classes', icon: BookOpen, color: 'green' },
+            { id: 'centers', label: 'Learning Centers', icon: MapPin, color: 'purple' },
+            { id: 'dashboard', label: 'Analytics', icon: BarChart, color: 'orange' },
+            { id: 'resources', label: 'Resources', icon: Video, color: 'indigo' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg' 
+                  : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          ))}
+        </motion.div>
 
         {/* Content */}
         <AnimatePresence mode="wait">
@@ -1689,21 +1677,37 @@ const ClassHubPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
-              <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-                <div className="flex justify-between items-center mb-6">
+              {/* Tutor Stats Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {[
+                  { label: 'Active Tutors', value: tutors.length, icon: '🎓', color: 'from-blue-500 to-blue-600' },
+                  { label: 'Avg Rating', value: `${(tutors.reduce((a, t) => a + t.rating, 0) / tutors.length).toFixed(1)}⭐`, icon: '⭐', color: 'from-yellow-500 to-amber-500' },
+                  { label: 'Total Reviews', value: tutors.reduce((a, t) => a + t.reviewCount, 0), icon: '💬', color: 'from-green-500 to-emerald-600' },
+                  { label: 'Specialties', value: new Set(tutors.flatMap(t => t.specialties)).size, icon: '📚', color: 'from-purple-500 to-purple-600' },
+                ].map((stat, i) => (
+                  <motion.div key={stat.label} className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} whileHover={{ scale: 1.03, y: -3 }}>
+                    <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.color} opacity-10 rounded-bl-full`} />
+                    <div className="text-2xl mb-1">{stat.icon}</div>
+                    <div className="text-2xl font-extrabold text-gray-900">{stat.value}</div>
+                    <div className="text-xs font-medium text-gray-500">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Find Expert Tutors</h2>
-                    <p className="text-gray-600 mt-2">Connect with experienced volunteer tutors to start your braille journey</p>
+                    <p className="text-gray-600 mt-1">Connect with experienced volunteer tutors to start your braille journey</p>
                   </div>
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => setShowAddTutor(true)}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Plus size={18} />
-                      <span>Become a Tutor</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setShowAddTutor(true)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg font-bold whitespace-nowrap"
+                  >
+                    <Plus size={18} />
+                    Become a Tutor
+                  </button>
                 </div>
               </div>
               
@@ -1727,20 +1731,20 @@ const ClassHubPage: React.FC = () => {
                 {filteredTutors.map((tutor, index) => (
                   <motion.div
                     key={tutor.id}
-                    className="group bg-white rounded-2xl p-6 shadow-sm border-2 border-gray-900 hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer relative overflow-hidden"
+                    className="group bg-white rounded-3xl p-6 shadow-lg border-2 border-blue-100 hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer relative overflow-hidden"
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                     onClick={() => setSelectedTutor(tutor)}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative">
                       <div className="flex items-center space-x-4 mb-4">
                         <div className="relative">
                           <img
                             src={tutor.avatar}
                             alt={tutor.name}
-                            className="w-16 h-16 rounded-full object-cover border-4 border-primary-100 group-hover:border-primary-200 transition-colors"
+                            className="w-16 h-16 rounded-full object-cover border-4 border-blue-100 group-hover:border-blue-200 transition-colors"
                           />
                           {tutor.verified && (
                             <div className="absolute -right-1 -bottom-1 w-6 h-6 bg-green-100 rounded-full border-2 border-white flex items-center justify-center">
@@ -1749,7 +1753,7 @@ const ClassHubPage: React.FC = () => {
                           )}
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-gray-900 text-lg group-hover:text-primary-600 transition-colors">{tutor.name}</h3>
+                          <h3 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors">{tutor.name}</h3>
                           <div className="flex items-center text-sm text-gray-600 mb-1">
                             <MapPin size={14} className="mr-1" />
                             <span>{tutor.location}</span>
@@ -1770,7 +1774,7 @@ const ClassHubPage: React.FC = () => {
                         {tutor.specialties.slice(0, 3).map((specialty) => (
                           <span
                             key={specialty}
-                            className="px-3 py-1 bg-primary-50 text-primary-700 text-xs rounded-full font-medium group-hover:bg-primary-100 transition-colors"
+                            className="px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full font-medium group-hover:bg-blue-100 transition-colors"
                           >
                             {specialty}
                           </span>
@@ -1804,18 +1808,55 @@ const ClassHubPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
-              <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-                <div className="flex justify-between items-center">
+              {/* Class Analytics Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {[
+                  { label: 'Total Classes', value: classes.length, icon: '📚', color: 'from-blue-500 to-blue-600', sub: `${classes.filter(c => c.isPublic).length} public` },
+                  { label: 'Total Students', value: classes.reduce((acc, cls) => acc + cls.enrolledStudents.length, 0), icon: '👥', color: 'from-green-500 to-emerald-600', sub: 'enrolled' },
+                  { label: 'Avg Class Size', value: classes.length > 0 ? Math.round(classes.reduce((acc, cls) => acc + cls.enrolledStudents.length, 0) / classes.length) : 0, icon: '📊', color: 'from-orange-500 to-amber-600', sub: 'students/class' },
+                  { label: 'Categories', value: new Set(classes.map(c => c.category)).size, icon: '🏷️', color: 'from-purple-500 to-purple-600', sub: 'unique topics' },
+                ].map((stat, i) => (
+                  <motion.div key={stat.label} className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} whileHover={{ scale: 1.03, y: -3 }}>
+                    <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.color} opacity-10 rounded-bl-full`} />
+                    <div className="text-2xl mb-1">{stat.icon}</div>
+                    <div className="text-2xl font-extrabold text-gray-900">{stat.value}</div>
+                    <div className="text-xs font-medium text-gray-500">{stat.label}</div>
+                    <div className="text-[10px] text-gray-400">{stat.sub}</div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Level Distribution Mini Chart */}
+              <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 mb-6">
+                <div className="flex items-center gap-6">
+                  <span className="text-sm font-bold text-gray-700">Level Split:</span>
+                  {['beginner', 'intermediate', 'advanced'].map((level) => {
+                    const count = classes.filter(c => c.level === level).length;
+                    const pct = classes.length > 0 ? Math.round((count / classes.length) * 100) : 0;
+                    const colors: Record<string, string> = { beginner: 'bg-green-500', intermediate: 'bg-blue-500', advanced: 'bg-purple-500' };
+                    return (
+                      <div key={level} className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${colors[level]}`} />
+                        <span className="text-xs text-gray-600 capitalize">{level}: <span className="font-bold">{pct}%</span></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Live Classes</h2>
-                    <p className="text-gray-600 mt-2">Join interactive braille learning sessions with certified instructors</p>
+                    <p className="text-gray-600 mt-1">Join interactive braille learning sessions with certified instructors</p>
                   </div>
                   <button
                     onClick={() => setShowCreateClass(true)}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
+                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg font-bold whitespace-nowrap"
                   >
                     <Plus size={18} />
-                    <span>Create Class</span>
+                    Create Class
                   </button>
                 </div>
               </div>
@@ -1840,7 +1881,7 @@ const ClassHubPage: React.FC = () => {
                 {filteredClasses.map((classItem) => (
                   <motion.div
                     key={classItem.id}
-                    className="bg-white rounded-2xl shadow-lg border-2 border-gray-900 p-6 hover:shadow-xl transition-all hover:scale-105 cursor-pointer"
+                    className="bg-white rounded-3xl shadow-lg border-2 border-blue-100 p-6 hover:shadow-xl transition-all hover:scale-105 cursor-pointer"
                     whileHover={{ y: -3 }}
                     onClick={() => setSelectedClass(classItem)}
                   >
@@ -1855,7 +1896,7 @@ const ClassHubPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="aspect-video rounded-lg overflow-hidden mb-4 border-2 border-gray-900">
+                    <div className="aspect-video rounded-xl overflow-hidden mb-4 border-2 border-blue-100">
                       <img
                         src={classItem.imageUrl || '/braille-pattern.svg'}
                         alt={classItem.title}
@@ -1877,7 +1918,7 @@ const ClassHubPage: React.FC = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Globe size={16} className="mr-2 text-green-600" />
-                        <a href={classItem.meetingLink} target="_blank" rel="noopener noreferrer" className="hover:text-primary-600">
+                        <a href={classItem.meetingLink} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
                           Join Meeting
                         </a>
                       </div>
@@ -1919,18 +1960,30 @@ const ClassHubPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
-              <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-                <div className="flex justify-between items-center mb-6">
+              <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Braille Centers Nearby</h2>
-                    <p className="text-gray-600 mt-2">Find braille learning centers and resources in Washington State</p>
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      📍 Braille Centers Nearby
+                    </h2>
+                    <p className="text-gray-600 mt-1">Find braille learning centers and resources in Washington State</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-50 rounded-xl px-4 py-2 border border-purple-100 text-center">
+                      <div className="text-lg font-extrabold text-purple-700">{centers.length}</div>
+                      <div className="text-[10px] text-purple-500 font-medium">Centers</div>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl px-4 py-2 border border-blue-100 text-center">
+                      <div className="text-lg font-extrabold text-blue-700">{new Set(centers.map(c => c.city)).size}</div>
+                      <div className="text-[10px] text-blue-500 font-medium">Cities</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Leaflet Interactive Map */}
-              <div className="mb-8 bg-white rounded-xl shadow-lg border-2 border-gray-900 overflow-hidden">
-                <div className="bg-gradient-to-b from-primary-700 to-primary-800 p-4 text-white">
+              <div className="mb-8 bg-white rounded-3xl shadow-xl border-2 border-blue-100 overflow-hidden">
+                <div className="bg-gradient-to-b from-blue-700 to-blue-800 p-4 text-white">
                   <h3 className="text-lg font-bold text-white drop-shadow-lg">📍 Washington State Braille Centers</h3>
                   <p className="text-sm text-white drop-shadow-lg opacity-90">Click on markers to view center details • Interactive map with zoom and pan</p>
                 </div>
@@ -1944,7 +1997,7 @@ const ClassHubPage: React.FC = () => {
                 {centers.map((center) => (
                   <motion.div
                     key={center.id}
-                    className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-900 hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    className="bg-white rounded-3xl p-6 shadow-lg border-2 border-blue-100 hover:shadow-xl transition-all duration-300 hover:scale-105"
                     whileHover={{ y: -2 }}
                   >
                     <div className="flex items-start justify-between mb-4">
@@ -2011,51 +2064,252 @@ const ClassHubPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Class Statistics</h2>
-                <p className="text-gray-600">
-                  View analytics and progress for all available classes
-                </p>
+              {/* Key Metrics Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {[
+                  { label: 'Retention Rate', value: '94%', icon: '🔄', color: 'from-teal-500 to-teal-600', change: '+2.3% vs last month' },
+                  { label: 'Completion Rate', value: '87%', icon: '✅', color: 'from-indigo-500 to-indigo-600', change: 'Above average' },
+                  { label: 'Avg Session', value: '47m', icon: '⏱️', color: 'from-pink-500 to-rose-600', change: '+5min this week' },
+                  { label: 'Growth Rate', value: '+23%', icon: '🚀', color: 'from-cyan-500 to-cyan-600', change: 'MoM increase' },
+                ].map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    className="bg-white rounded-2xl shadow-lg border border-orange-100 p-5 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    whileHover={{ scale: 1.03, y: -3 }}
+                  >
+                    <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.color} opacity-10 rounded-bl-full`} />
+                    <div className="text-3xl mb-2">{stat.icon}</div>
+                    <div className="text-3xl font-extrabold text-gray-900">{stat.value}</div>
+                    <div className="text-sm font-medium text-gray-600">{stat.label}</div>
+                    <div className="text-xs text-green-600 mt-1 font-medium">{stat.change}</div>
+                  </motion.div>
+                ))}
               </div>
 
-              {/* Display all classes with statistics, regardless of enrollment */}
-              {classes.map(cls => (
-                <div key={cls.id} className="mb-8 bg-white rounded-2xl shadow-lg border-2 border-gray-900 p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{cls.title}</h3>
-                      <p className="text-gray-600">{cls.description}</p>
-                      {user && cls.enrolledStudents.includes(user.id) && (
-                        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full font-medium mt-2">
-                          You're enrolled
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedClass(cls);
-                        setShowClassStats(true);
-                      }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors border-2 border-gray-900 shadow-md"
-                    >
-                      View Details
-                    </button>
+              {/* Weekly Engagement + Student Growth Side by Side */}
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                {/* Weekly Engagement */}
+                <motion.div
+                  className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-blue-600" />
+                      Weekly Engagement
+                    </h3>
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
+                      <TrendingUp className="w-3 h-3" /> +18%
+                    </span>
                   </div>
-                  <ClassDashboard 
-                    classData={cls} 
-                    onClose={() => {}}
-                    mockUsers={mockUsers}
-                    currentUserId={user?.id}
-                  />
-                </div>
-              ))}
+                  <div className="flex items-end gap-2 h-36">
+                    {[
+                      { day: 'Mon', value: 65, sessions: 12 },
+                      { day: 'Tue', value: 82, sessions: 18 },
+                      { day: 'Wed', value: 45, sessions: 8 },
+                      { day: 'Thu', value: 90, sessions: 22 },
+                      { day: 'Fri', value: 72, sessions: 15 },
+                      { day: 'Sat', value: 95, sessions: 24 },
+                      { day: 'Sun', value: 58, sessions: 10 },
+                    ].map((item, i) => (
+                      <div key={item.day} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="text-xs font-bold text-gray-600">{item.sessions}</div>
+                        <motion.div
+                          className="w-full rounded-lg bg-gradient-to-t from-blue-600 to-blue-400 relative group cursor-pointer"
+                          style={{ height: `${item.value}%` }}
+                          initial={{ height: 0 }}
+                          animate={{ height: `${item.value}%` }}
+                          transition={{ duration: 0.6, delay: 0.4 + i * 0.06 }}
+                          whileHover={{ scale: 1.08 }}
+                        >
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {item.sessions} sessions
+                          </div>
+                        </motion.div>
+                        <div className="text-xs font-medium text-gray-400">{item.day}</div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
 
-              {classes.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-2xl shadow-lg border-2 border-gray-900">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No classes available</h3>
-                  <p className="text-gray-600">Check back later for new classes!</p>
+                {/* Student Growth */}
+                <motion.div
+                  className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      Student Growth (6mo)
+                    </h3>
+                    <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                      <ArrowUpRight className="w-3 h-3" /> +156%
+                    </span>
+                  </div>
+                  <div className="flex items-end gap-3 h-36">
+                    {[
+                      { month: 'Jul', value: 25, students: 12 },
+                      { month: 'Aug', value: 38, students: 19 },
+                      { month: 'Sep', value: 55, students: 28 },
+                      { month: 'Oct', value: 68, students: 35 },
+                      { month: 'Nov', value: 82, students: 42 },
+                      { month: 'Dec', value: 100, students: 51 },
+                    ].map((item, i) => (
+                      <div key={item.month} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="text-xs font-bold text-gray-600">{item.students}</div>
+                        <motion.div
+                          className="w-full rounded-lg bg-gradient-to-t from-green-600 to-emerald-400 relative group cursor-pointer"
+                          initial={{ height: 0 }}
+                          animate={{ height: `${item.value}%` }}
+                          transition={{ duration: 0.6, delay: 0.5 + i * 0.08 }}
+                          whileHover={{ scale: 1.08 }}
+                        >
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {item.students} new
+                          </div>
+                        </motion.div>
+                        <div className="text-xs font-medium text-gray-400">{item.month}</div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Circular Gauges Row */}
+              <div className="grid md:grid-cols-3 gap-6 mb-6">
+                {[
+                  { label: 'Student Retention', value: 94, color: '#14b8a6', icon: Eye, iconColor: 'text-teal-600', change: '+2.3% from last month' },
+                  { label: 'Course Completion', value: 87, color: '#6366f1', icon: Target, iconColor: 'text-indigo-600', change: '+5.1% from last month' },
+                  { label: 'Engagement Score', value: 91, color: '#f97316', icon: Flame, iconColor: 'text-orange-600', change: 'Top 10% globally' },
+                ].map((gauge, i) => (
+                  <motion.div
+                    key={gauge.label}
+                    className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 flex items-center gap-5"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + i * 0.1 }}
+                  >
+                    <div className="relative w-24 h-24 shrink-0">
+                      <svg className="w-24 h-24 -rotate-90" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+                        <motion.circle
+                          cx="60" cy="60" r="52" fill="none" stroke={gauge.color} strokeWidth="10"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(gauge.value / 100) * 327} ${327}`}
+                          initial={{ strokeDasharray: '0 327' }}
+                          animate={{ strokeDasharray: `${(gauge.value / 100) * 327} ${327}` }}
+                          transition={{ duration: 1.2, delay: 0.7 + i * 0.1 }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-xl font-extrabold text-gray-900">{gauge.value}{gauge.value < 100 ? '%' : ''}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-600 flex items-center gap-1.5 mb-1">
+                        <gauge.icon className={`w-4 h-4 ${gauge.iconColor}`} />
+                        {gauge.label}
+                      </h4>
+                      <div className="text-xs text-green-600 font-medium flex items-center gap-1">
+                        <ArrowUpRight className="w-3 h-3" /> {gauge.change}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* AI Insights */}
+              <motion.div
+                className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-bold flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      Performance Insights
+                    </h3>
+                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium">
+                      Updated just now
+                    </span>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {[
+                      { title: '🎯 Recommendation', text: 'Schedule more beginner classes on weekends — Saturday shows 40% higher engagement from new students.' },
+                      { title: '📈 Growth Opportunity', text: 'Music Braille has the highest completion rate (96%). Consider expanding this category with advanced courses.' },
+                      { title: '⚡ Quick Win', text: '3 tutors have availability gaps on Thursdays. Matching them with waitlisted students could add 15 enrollments.' },
+                      { title: '🏆 Achievement', text: 'Student retention improved 12% after implementing progress tracking. Keep monitoring the "Introduction to Literary Braille" class.' },
+                    ].map((insight, i) => (
+                      <motion.div
+                        key={i}
+                        className="bg-white/10 backdrop-blur-sm rounded-xl p-4 hover:bg-white/15 transition-colors"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.7 + i * 0.08 }}
+                      >
+                        <h4 className="font-bold text-sm mb-1">{insight.title}</h4>
+                        <p className="text-xs text-blue-100 leading-relaxed">{insight.text}</p>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </motion.div>
+
+              {/* Quick Actions */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <motion.button
+                  onClick={() => setShowCreateClass(true)}
+                  className="p-5 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl shadow-lg flex items-center gap-4 hover:from-blue-700 hover:to-blue-800 transition-all"
+                  whileHover={{ scale: 1.03, y: -3 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">Create New Class</div>
+                    <div className="text-xs text-blue-200">Set up a new learning session</div>
+                  </div>
+                </motion.button>
+                <motion.button
+                  onClick={() => setShowAddTutor(true)}
+                  className="p-5 bg-gradient-to-br from-green-600 to-emerald-700 text-white rounded-2xl shadow-lg flex items-center gap-4 hover:from-green-700 hover:to-emerald-800 transition-all"
+                  whileHover={{ scale: 1.03, y: -3 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">Become a Tutor</div>
+                    <div className="text-xs text-green-200">Volunteer to teach braille</div>
+                  </div>
+                </motion.button>
+                <motion.button
+                  onClick={() => setShowAddResource(true)}
+                  className="p-5 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-2xl shadow-lg flex items-center gap-4 hover:from-purple-700 hover:to-purple-800 transition-all"
+                  whileHover={{ scale: 1.03, y: -3 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                    <Video className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold">Add Resource</div>
+                    <div className="text-xs text-purple-200">Share learning materials</div>
+                  </div>
+                </motion.button>
+              </div>
             </motion.div>
           )}
 
@@ -2066,79 +2320,122 @@ const ClassHubPage: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
-              <div className="mb-6 flex justify-between items-start">
+              {/* Resource Analytics Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {[
+                  { label: 'Total Resources', value: onlineResources.length, icon: '📦', color: 'from-indigo-500 to-indigo-600', sub: 'Videos & articles' },
+                  { label: 'Video Tutorials', value: onlineResources.filter(r => r.type === 'video').length, icon: '🎬', color: 'from-red-500 to-rose-600', sub: 'Watch & learn' },
+                  { label: 'Categories', value: new Set(onlineResources.map(r => r.category)).size, icon: '🏷️', color: 'from-purple-500 to-purple-600', sub: 'Topic areas' },
+                  { label: 'Avg Duration', value: (() => { const durations = onlineResources.filter(r => r.duration && r.duration !== 'Live').map(r => parseInt(r.duration || '0')); return durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) + 'm' : 'N/A'; })(), icon: '⏱️', color: 'from-cyan-500 to-cyan-600', sub: 'Per resource' },
+                ].map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    className="bg-white rounded-2xl shadow-lg border border-indigo-100 p-4 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    whileHover={{ scale: 1.03, y: -3 }}
+                  >
+                    <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.color} opacity-10 rounded-bl-full`} />
+                    <div className="text-2xl mb-1">{stat.icon}</div>
+                    <div className="text-2xl font-extrabold text-gray-900">{stat.value}</div>
+                    <div className="text-xs font-medium text-gray-600">{stat.label}</div>
+                    <div className="text-xs text-indigo-500 mt-0.5">{stat.sub}</div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Header */}
+              <div className="bg-white rounded-2xl shadow-lg border border-indigo-100 p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Online Learning Resources</h2>
-                  <p className="text-gray-600">
-                    Access free educational videos, tutorials, and external resources to supplement your braille learning.
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Video className="w-5 h-5 text-indigo-600" />
+                    Learning Resources
+                  </h2>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Free videos, tutorials, and articles to supplement your braille learning journey.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddResource(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors border-2 border-gray-900 shadow-md flex items-center space-x-2"
+                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg flex items-center gap-2 font-bold text-sm whitespace-nowrap"
                 >
-                  <Plus size={18} />
-                  <span>Add Resource</span>
+                  <Plus size={16} />
+                  Add Resource
                 </button>
               </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {['All', ...Array.from(new Set(onlineResources.map(r => r.category)))].map((cat) => (
+                  <button
+                    key={cat}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      cat === 'All' 
+                        ? 'bg-indigo-600 text-white shadow-md' 
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {onlineResources.map((resource) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {onlineResources.map((resource, i) => (
                   <motion.div
                     key={resource.id}
-                    className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all hover:scale-105"
-                    whileHover={{ y: -3 }}
+                    className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group"
+                    whileHover={{ y: -4 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06 }}
                   >
-                    {/* Thumbnail/Preview */}
+                    {/* Thumbnail */}
                     <div className="aspect-video relative overflow-hidden">
                       <img
                         src={resource.thumbnail}
                         alt={resource.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
-                          // Fallback image if thumbnail fails to load
                           (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?w=400&h=225';
                         }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                        {resource.type === 'video' ? (
-                          <Play className="w-12 h-12 text-white" />
-                        ) : (
-                          <ExternalLink className="w-12 h-12 text-white" />
-                        )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl">
+                          {resource.type === 'video' ? (
+                            <Play className="w-7 h-7 text-indigo-600 ml-1" />
+                          ) : (
+                            <ExternalLink className="w-6 h-6 text-indigo-600" />
+                          )}
+                        </div>
                       </div>
                       {resource.duration && (
-                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
+                        <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-0.5 rounded-md text-xs font-medium backdrop-blur-sm">
                           {resource.duration}
                         </div>
                       )}
-                    </div>
-                    
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`px-3 py-1 text-sm rounded-full font-medium ${
-                          resource.category === 'Beginner' ? 'bg-green-100 text-green-700' :
-                          resource.category === 'Advanced' ? 'bg-red-100 text-red-700' :
-                          resource.category === 'Specialized' ? 'bg-purple-100 text-purple-700' :
-                          resource.category === 'Live' ? 'bg-red-100 text-red-700' :
-                          resource.category === 'Technology' ? 'bg-blue-100 text-blue-700' :
-                          'bg-blue-100 text-blue-700'
+                      <div className="absolute top-2 left-2">
+                        <span className={`px-2.5 py-1 text-xs rounded-full font-bold backdrop-blur-sm ${
+                          resource.category === 'Beginner' ? 'bg-green-500/90 text-white' :
+                          resource.category === 'Advanced' ? 'bg-red-500/90 text-white' :
+                          resource.category === 'Specialized' ? 'bg-purple-500/90 text-white' :
+                          resource.category === 'Live' ? 'bg-red-500/90 text-white' :
+                          resource.category === 'Technology' ? 'bg-blue-500/90 text-white' :
+                          'bg-blue-500/90 text-white'
                         }`}>
                           {resource.category}
                         </span>
-                        {resource.duration && resource.duration !== 'Live' && (
-                          <span className="text-sm text-gray-500 flex items-center">
-                            <Clock size={14} className="mr-1" />
-                            {resource.duration}
-                          </span>
-                        )}
                       </div>
-                      
-                      <h3 className="font-bold text-gray-900 text-lg mb-2">
+                    </div>
+                    
+                    <div className="p-5">
+                      <h3 className="font-bold text-gray-900 mb-1.5 line-clamp-2 leading-snug">
                         {resource.title}
                       </h3>
                       
-                      <p className="text-sm text-gray-600 mb-4">
+                      <p className="text-sm text-gray-500 mb-4 line-clamp-2">
                         {resource.description}
                       </p>
                       
@@ -2146,7 +2443,7 @@ const ClassHubPage: React.FC = () => {
                         href={resource.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm w-full justify-center"
+                        className="inline-flex items-center justify-center w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all text-sm font-bold shadow-md hover:shadow-lg"
                       >
                         {resource.type === 'video' ? (
                           <>
@@ -2178,7 +2475,7 @@ const ClassHubPage: React.FC = () => {
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-3xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto border-2 border-blue-100 shadow-2xl"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
@@ -2188,7 +2485,7 @@ const ClassHubPage: React.FC = () => {
                     <img
                       src={selectedTutor.avatar}
                       alt={selectedTutor.name}
-                      className="w-20 h-20 rounded-full object-cover border-4 border-primary-100"
+                      className="w-20 h-20 rounded-full object-cover border-4 border-blue-100"
                     />
                     <div>
                       <h3 className="text-2xl font-bold text-gray-900">{selectedTutor.name}</h3>
@@ -2223,7 +2520,7 @@ const ClassHubPage: React.FC = () => {
                           {selectedTutor.specialties.map((specialty) => (
                             <span
                               key={specialty}
-                              className="px-3 py-1 bg-primary-100 text-primary-700 text-sm rounded-full"
+                              className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
                             >
                               {specialty}
                             </span>
@@ -2297,7 +2594,7 @@ const ClassHubPage: React.FC = () => {
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="bg-white rounded-2xl p-6 w-full max-w-3xl my-8 relative"
+                className="bg-white rounded-3xl p-6 w-full max-w-3xl my-8 relative border-2 border-blue-100 shadow-2xl"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
@@ -2341,7 +2638,7 @@ const ClassHubPage: React.FC = () => {
                     </div>
                     <div className="flex items-center text-gray-600">
                       <Globe size={18} className="mr-3 text-orange-600" />
-                      <a href={selectedClass.meetingLink} target="_blank" rel="noopener noreferrer" className="hover:text-primary-600">
+                      <a href={selectedClass.meetingLink} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
                         Join Meeting Link
                       </a>
                     </div>
@@ -2380,7 +2677,7 @@ const ClassHubPage: React.FC = () => {
                                     href={resource.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="hover:text-primary-600"
+                                    className="hover:text-blue-600"
                                   >
                                     {resource.title}
                                   </a>
@@ -2496,7 +2793,7 @@ const ClassHubPage: React.FC = () => {
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="bg-white rounded-2xl p-6 w-full max-w-2xl my-8 relative"
+                className="bg-white rounded-3xl p-6 w-full max-w-2xl my-8 relative border-2 border-blue-100 shadow-2xl"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
@@ -2528,7 +2825,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={tutorForm.name}
                         onChange={(e) => setTutorForm({...tutorForm, name: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Your full name"
                         required
                       />
@@ -2542,7 +2839,7 @@ const ClassHubPage: React.FC = () => {
                         type="email"
                         value={tutorForm.email}
                         onChange={(e) => setTutorForm({...tutorForm, email: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="your.email@example.com"
                         required
                       />
@@ -2558,7 +2855,7 @@ const ClassHubPage: React.FC = () => {
                         type="url"
                         value={tutorForm.avatar}
                         onChange={(e) => setTutorForm({...tutorForm, avatar: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="https://example.com/your-photo.jpg"
                       />
                       <p className="text-sm text-gray-500">
@@ -2576,7 +2873,7 @@ const ClassHubPage: React.FC = () => {
                         type="number"
                         value={tutorForm.experience_years}
                         onChange={(e) => setTutorForm({...tutorForm, experience_years: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="5"
                         required
                       />
@@ -2590,7 +2887,7 @@ const ClassHubPage: React.FC = () => {
                     <textarea
                       value={tutorForm.bio}
                       onChange={(e) => setTutorForm({...tutorForm, bio: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       rows={4}
                       placeholder="Tell us about your experience and approach to teaching braille..."
                       required
@@ -2606,7 +2903,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={tutorForm.location}
                         onChange={(e) => setTutorForm({...tutorForm, location: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="City, State"
                         required
                       />
@@ -2620,7 +2917,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={tutorForm.specialties}
                         onChange={(e) => setTutorForm({...tutorForm, specialties: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Beginner Braille, Advanced Reading"
                         required
                       />
@@ -2636,7 +2933,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={tutorForm.languages}
                         onChange={(e) => setTutorForm({...tutorForm, languages: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="English, Spanish, French"
                         required
                       />
@@ -2650,7 +2947,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={tutorForm.availability}
                         onChange={(e) => setTutorForm({...tutorForm, availability: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Monday, Wednesday, Friday"
                         required
                       />
@@ -2667,7 +2964,7 @@ const ClassHubPage: React.FC = () => {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                      className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-bold"
                     >
                       Join as Volunteer Tutor
                     </button>
@@ -2688,7 +2985,7 @@ const ClassHubPage: React.FC = () => {
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="bg-white rounded-2xl p-6 w-full max-w-4xl my-8 relative"
+                className="bg-white rounded-3xl p-6 w-full max-w-4xl my-8 relative border-2 border-blue-100 shadow-2xl"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
@@ -2727,7 +3024,7 @@ const ClassHubPage: React.FC = () => {
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="bg-white rounded-2xl p-6 w-full max-w-4xl my-8 relative"
+                className="bg-white rounded-3xl p-6 w-full max-w-4xl my-8 relative border-2 border-blue-100 shadow-2xl"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
@@ -2752,7 +3049,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={classForm.title}
                         onChange={(e) => setClassForm({...classForm, title: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Introduction to Braille Reading"
                         required
                       />
@@ -2766,7 +3063,7 @@ const ClassHubPage: React.FC = () => {
                         type="text"
                         value={classForm.category}
                         onChange={(e) => setClassForm({...classForm, category: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="e.g., Beginner Braille, Math Notation"
                         required
                       />
@@ -2780,7 +3077,7 @@ const ClassHubPage: React.FC = () => {
                     <textarea
                       value={classForm.description}
                       onChange={(e) => setClassForm({...classForm, description: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       rows={3}
                       placeholder="Describe what students will learn in this class..."
                       required
@@ -2793,7 +3090,7 @@ const ClassHubPage: React.FC = () => {
                     </label>
                     <div
                       onClick={() => document.getElementById('classImageInput')?.click()}
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-primary-500 transition-colors"
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-colors"
                     >
                       {classForm.imageFile ? (
                         <div className="relative">
@@ -2845,7 +3142,7 @@ const ClassHubPage: React.FC = () => {
                           ...prev,
                           level: e.target.value as typeof classForm.level
                         }))}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                       >
                         <option value="beginner">Beginner</option>
@@ -2867,7 +3164,7 @@ const ClassHubPage: React.FC = () => {
                           ...prev,
                           maxStudents: parseInt(e.target.value)
                         }))}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                       />
                     </div>
@@ -2882,7 +3179,7 @@ const ClassHubPage: React.FC = () => {
                           ...prev,
                           schedule: { ...prev.schedule, duration: parseInt(e.target.value) }
                         }))}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                       >
                         <option value="30">30 minutes</option>
@@ -2915,7 +3212,7 @@ const ClassHubPage: React.FC = () => {
                             }}
                             className={`px-3 py-1 rounded-full text-sm font-medium ${
                               classForm.schedule.days.includes(day)
-                                ? 'bg-primary-100 text-primary-700'
+                                ? 'bg-blue-100 text-blue-700'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                           >
@@ -2930,7 +3227,7 @@ const ClassHubPage: React.FC = () => {
                           ...prev,
                           schedule: { ...prev.schedule, time: e.target.value }
                         }))}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                       />
                     </div>
@@ -2947,7 +3244,7 @@ const ClassHubPage: React.FC = () => {
                         ...prev,
                         meetingLink: e.target.value
                       }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="https://zoom.us/..."
                       required
                     />
@@ -2965,7 +3262,7 @@ const ClassHubPage: React.FC = () => {
                             { title: '', content: '', resources: [] }
                           ]
                         }))}
-                        className="px-3 py-1 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors flex items-center space-x-1"
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center space-x-1"
                       >
                         <Plus size={16} />
                         <span>Add Chapter</span>
@@ -2987,7 +3284,7 @@ const ClassHubPage: React.FC = () => {
                                 };
                                 setClassForm(prev => ({ ...prev, chapters: newChapters }));
                               }}
-                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 mr-2"
+                              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mr-2"
                               placeholder="Chapter Title"
                               required
                             />
@@ -3013,7 +3310,7 @@ const ClassHubPage: React.FC = () => {
                               };
                               setClassForm(prev => ({ ...prev, chapters: newChapters }));
                             }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 mb-4"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
                             rows={3}
                             placeholder="Chapter Content"
                             required
@@ -3054,7 +3351,7 @@ const ClassHubPage: React.FC = () => {
                                       };
                                       setClassForm(prev => ({ ...prev, chapters: newChapters }));
                                     }}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required
                                   >
                                     <option value="video">Video</option>
@@ -3073,7 +3370,7 @@ const ClassHubPage: React.FC = () => {
                                       };
                                       setClassForm(prev => ({ ...prev, chapters: newChapters }));
                                     }}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Resource Title"
                                     required
                                   />
@@ -3089,7 +3386,7 @@ const ClassHubPage: React.FC = () => {
                                       };
                                       setClassForm(prev => ({ ...prev, chapters: newChapters }));
                                     }}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Resource URL"
                                     required
                                   />
@@ -3123,7 +3420,7 @@ const ClassHubPage: React.FC = () => {
                           ...prev,
                           isPublic: e.target.checked
                         }))}
-                        className="rounded text-primary-600 focus:ring-primary-500"
+                        className="rounded text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">
                         Make this class public
@@ -3144,7 +3441,7 @@ const ClassHubPage: React.FC = () => {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2 relative"
+                      className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 relative"
                       onClick={(e) => {
                         if (!classForm.title || !classForm.description || !classForm.category || classForm.schedule.days.length === 0 || !classForm.schedule.time || !classForm.meetingLink) {
                           e.preventDefault();
@@ -3183,7 +3480,7 @@ const ClassHubPage: React.FC = () => {
               exit={{ opacity: 0 }}
             >
               <motion.div
-                className="bg-white rounded-2xl p-6 w-full max-w-2xl my-8 relative border-2 border-gray-900 shadow-xl"
+                className="bg-white rounded-3xl p-6 w-full max-w-2xl my-8 relative border-2 border-blue-100 shadow-2xl"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
