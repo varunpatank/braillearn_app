@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Direct Gemini API key
-const API_KEY = 'AIzaSyCCZPE80G0FqZ5Elz5qVEJcdERnelN4lyU';
+// Use Gemini API key from environment variables only
+const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 
 class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -11,7 +11,7 @@ class GeminiService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(API_KEY);
     this.model = this.genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
         temperature: 0.7,
         topP: 0.8,

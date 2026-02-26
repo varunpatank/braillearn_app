@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
             <h3 className="text-sm font-semibold mb-4 uppercase tracking-wider">Resources</h3>
             <ul className="space-y-2">
               <li><Link to="/statistics" className="text-gray-300 hover:text-white text-sm">Statistics & Impact</Link></li>
-              <li><Link to="/achievements" className="text-gray-300 hover:text-white text-sm">Achievements</Link></li>
+              <li><Link to="/braillequest" className="text-gray-300 hover:text-white text-sm">Achievements & Missions</Link></li>
               <li><Link to="/accessibility" className="text-gray-300 hover:text-white text-sm">Accessibility</Link></li>
             </ul>
           </div>

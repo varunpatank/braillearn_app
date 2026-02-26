@@ -778,20 +778,59 @@ const baseLessons: Lesson[] = [
     duration: 45,
     exercises: [
       {
-        id: 'paragraph-reading',
+        id: 'paragraph-reading-1',
         type: 'braille-to-text',
-        question: 'Read this complete paragraph:',
-        correctAnswer: 'The cat sat on the mat. It was a sunny day. The children were playing in the park.',
+        question: 'Read this sentence:',
+        correctAnswer: 'THE CAT SAT',
         braillePattern: [
-          // This would be a long array representing the entire paragraph
           { dots: braillePatterns['THE'], char: 'THE' },
           { dots: [], char: ' ' },
           { dots: braillePatterns['C'], char: 'C' },
           { dots: braillePatterns['A'], char: 'A' },
           { dots: braillePatterns['T'], char: 'T' },
-          // ... (abbreviated for brevity)
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['S'], char: 'S' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['T'], char: 'T' }
         ],
-        points: 60
+        points: 30
+      },
+      {
+        id: 'paragraph-reading-2',
+        type: 'braille-to-text',
+        question: 'Read the next line:',
+        correctAnswer: 'ON THE MAT',
+        braillePattern: [
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['N'], char: 'N' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['THE'], char: 'THE' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['M'], char: 'M' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['T'], char: 'T' }
+        ],
+        points: 30
+      },
+      {
+        id: 'paragraph-reading-3',
+        type: 'braille-to-text',
+        question: 'Read the final line:',
+        correctAnswer: 'A SUNNY DAY',
+        braillePattern: [
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['S'], char: 'S' },
+          { dots: braillePatterns['U'], char: 'U' },
+          { dots: braillePatterns['N'], char: 'N' },
+          { dots: braillePatterns['N'], char: 'N' },
+          { dots: braillePatterns['Y'], char: 'Y' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['D'], char: 'D' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['Y'], char: 'Y' }
+        ],
+        points: 30
       }
     ],
     prerequisites: ['lesson-39']
@@ -809,12 +848,57 @@ const baseLessons: Lesson[] = [
       {
         id: 'speed-reading-1',
         type: 'braille-to-text',
-        question: 'Read this passage as quickly as possible:',
-        correctAnswer: 'Quick brown fox jumps over lazy dog.',
+        question: 'Speed-read this common phrase:',
+        correctAnswer: 'THE QUICK FOX',
         braillePattern: [
-          // Speed reading passage
+          { dots: braillePatterns['THE'], char: 'THE' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['Q'], char: 'Q' },
+          { dots: braillePatterns['U'], char: 'U' },
+          { dots: braillePatterns['I'], char: 'I' },
+          { dots: braillePatterns['C'], char: 'C' },
+          { dots: braillePatterns['K'], char: 'K' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['F'], char: 'F' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['X'], char: 'X' }
         ],
         points: 30
+      },
+      {
+        id: 'speed-reading-2',
+        type: 'braille-to-text',
+        question: 'Read this sentence quickly:',
+        correctAnswer: 'JUMP OVER',
+        braillePattern: [
+          { dots: braillePatterns['J'], char: 'J' },
+          { dots: braillePatterns['U'], char: 'U' },
+          { dots: braillePatterns['M'], char: 'M' },
+          { dots: braillePatterns['P'], char: 'P' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['V'], char: 'V' },
+          { dots: braillePatterns['E'], char: 'E' },
+          { dots: braillePatterns['R'], char: 'R' }
+        ],
+        points: 25
+      },
+      {
+        id: 'speed-reading-3',
+        type: 'braille-to-text',
+        question: 'Quickly read this word:',
+        correctAnswer: 'LAZY DOG',
+        braillePattern: [
+          { dots: braillePatterns['L'], char: 'L' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['Z'], char: 'Z' },
+          { dots: braillePatterns['Y'], char: 'Y' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['D'], char: 'D' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['G'], char: 'G' }
+        ],
+        points: 25
       }
     ],
     prerequisites: ['lesson-40']
@@ -932,12 +1016,49 @@ const baseLessons: Lesson[] = [
     duration: 50,
     exercises: [
       {
-        id: 'poetry-reading',
+        id: 'poetry-reading-1',
         type: 'braille-to-text',
         question: 'Read this line of poetry:',
-        correctAnswer: 'Roses are red, violets are blue.',
+        correctAnswer: 'ROSES ARE RED',
         braillePattern: [
-          // Poetry line in braille
+          { dots: braillePatterns['R'], char: 'R' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['S'], char: 'S' },
+          { dots: braillePatterns['E'], char: 'E' },
+          { dots: braillePatterns['S'], char: 'S' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['R'], char: 'R' },
+          { dots: braillePatterns['E'], char: 'E' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['R'], char: 'R' },
+          { dots: braillePatterns['E'], char: 'E' },
+          { dots: braillePatterns['D'], char: 'D' }
+        ],
+        points: 40
+      },
+      {
+        id: 'poetry-reading-2',
+        type: 'braille-to-text',
+        question: 'Continue reading the poem:',
+        correctAnswer: 'VIOLETS ARE BLUE',
+        braillePattern: [
+          { dots: braillePatterns['V'], char: 'V' },
+          { dots: braillePatterns['I'], char: 'I' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['L'], char: 'L' },
+          { dots: braillePatterns['E'], char: 'E' },
+          { dots: braillePatterns['T'], char: 'T' },
+          { dots: braillePatterns['S'], char: 'S' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['R'], char: 'R' },
+          { dots: braillePatterns['E'], char: 'E' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['B'], char: 'B' },
+          { dots: braillePatterns['L'], char: 'L' },
+          { dots: braillePatterns['U'], char: 'U' },
+          { dots: braillePatterns['E'], char: 'E' }
         ],
         points: 40
       }
@@ -993,14 +1114,60 @@ const baseLessons: Lesson[] = [
     duration: 60,
     exercises: [
       {
-        id: 'master-assessment',
+        id: 'master-letters',
         type: 'braille-to-text',
-        question: 'Read this complex passage demonstrating all your skills:',
-        correctAnswer: 'Congratulations! You have mastered braille reading. This achievement opens doors to literacy and independence.',
+        question: 'Read these letters:',
+        correctAnswer: 'BRAILLE',
         braillePattern: [
-          // Complex passage using all learned elements
+          { dots: braillePatterns['B'], char: 'B' },
+          { dots: braillePatterns['R'], char: 'R' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['I'], char: 'I' },
+          { dots: braillePatterns['L'], char: 'L' },
+          { dots: braillePatterns['L'], char: 'L' },
+          { dots: braillePatterns['E'], char: 'E' }
         ],
-        points: 100
+        points: 30
+      },
+      {
+        id: 'master-numbers',
+        type: 'braille-to-text',
+        question: 'Read this number:',
+        correctAnswer: '42',
+        braillePattern: [
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['4'], char: '4' },
+          { dots: braillePatterns['2'], char: '2' }
+        ],
+        points: 20
+      },
+      {
+        id: 'master-sentence',
+        type: 'braille-to-text',
+        question: 'Read this congratulatory message:',
+        correctAnswer: 'YOU DID IT',
+        braillePattern: [
+          { dots: braillePatterns['Y'], char: 'Y' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['U'], char: 'U' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['D'], char: 'D' },
+          { dots: braillePatterns['I'], char: 'I' },
+          { dots: braillePatterns['D'], char: 'D' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['I'], char: 'I' },
+          { dots: braillePatterns['T'], char: 'T' }
+        ],
+        points: 30
+      },
+      {
+        id: 'master-contraction',
+        type: 'multiple-choice',
+        question: 'What word does this contraction represent?',
+        options: ['KNOWLEDGE', 'THROUGH', 'CHILDREN', 'ABOUT'],
+        correctAnswer: 'CHILDREN',
+        braillePattern: [{ dots: [1, 6], char: 'CHILDREN' }],
+        points: 20
       }
     ],
     prerequisites: ['lesson-49']

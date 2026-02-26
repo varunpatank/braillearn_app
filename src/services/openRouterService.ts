@@ -11,8 +11,8 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Direct Gemini API key
-const GEMINI_API_KEY = 'AIzaSyCCZPE80G0FqZ5Elz5qVEJcdERnelN4lyU';
+// Use Gemini API key from environment variables only
+const GEMINI_API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 interface StudyPlanLevel {
@@ -64,7 +64,7 @@ class OpenRouterService {
    */
   async testConnection(): Promise<boolean> {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const result = await model.generateContent('Say "OK" if you can hear me.');
       const response = await result.response;
       const text = response.text();
@@ -86,7 +86,7 @@ class OpenRouterService {
   ): Promise<string> {
     try {
       const model = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: {
           temperature: options?.temperature ?? 0.7,
           maxOutputTokens: options?.maxTokens ?? 2048,
@@ -141,7 +141,7 @@ class OpenRouterService {
       }
 
       const model = genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         systemInstruction: systemPrompt,
       });
 
@@ -198,51 +198,40 @@ class OpenRouterService {
   ): Promise<StudyPlan> {
     const systemPrompt = `You are an expert braille education curriculum designer. Create comprehensive, structured study plans that help students learn braille effectively. Always respond with valid JSON only — no markdown, no explanations, no code fences.`;
 
-    const userPrompt = `Create a personalized 30-level braille learning study plan with:
+    const userPrompt = `Create a personalized braille learning study plan with:
 - Current Level: ${currentLevel}
 - Focus Areas: ${focusAreas.join(', ')}
 - Learning Style: ${learningStyle}
 - Daily Time Available: ${dailyMinutes} minutes
 ${customPrompt ? `- Additional Requirements: ${customPrompt}` : ''}
 
-Generate a comprehensive JSON plan with this EXACT structure:
+Generate a JSON plan with this structure (keep it compact, max 5 levels with 3 lessons each):
 {
+  "title": "Plan title",
+  "description": "Short plan description",
   "totalLessons": number,
   "estimatedWeeks": number,
-  "learningStyle": "${learningStyle}",
-  "dailyTimeCommitment": ${dailyMinutes},
-  "currentLevel": ${currentLevel},
+  "weeklyGoal": 3,
+  "focusAreas": ["basics"],
+  "difficultyProgression": "gradual",
   "levels": [
     {
       "level": 1,
       "title": "Level title",
-      "description": "What this level teaches",
-      "estimatedHours": number,
       "lessons": [
-        {
-          "id": "unique-id",
-          "title": "Lesson title",
-          "description": "What this lesson covers",
-          "duration": 15,
-          "category": "basics|words|sentences|contractions|advanced",
-          "prerequisites": [],
-          "exercises": []
-        }
+        {"id": "plan-1", "title": "Lesson title", "description": "Brief desc", "duration": 15, "category": "basics"}
       ]
     }
   ],
   "roadmap": [
-    {"phase": "Phase name", "weeks": "Week range", "focus": "Focus area", "milestone": "Goal"}
-  ],
-  "weeklySchedule": [
-    {"week": 1, "focus": "Weekly focus", "practiceTime": number, "lessons": ["lesson ids"]}
+    {"phase": "Phase name", "weeks": "1-4", "focus": "Focus", "milestone": "Goal"}
   ]
 }
 
-Return ONLY valid JSON, no markdown or explanations.`;
+Return ONLY valid JSON, no markdown. Keep levels to 5 max with 2-4 lessons each.`;
 
     try {
-      const response = await this.chat(systemPrompt, userPrompt, { maxTokens: 4096 });
+      const response = await this.chat(systemPrompt, userPrompt, { maxTokens: 3000 });
       const cleanedJson = this.cleanJsonResponse(response);
       const plan = JSON.parse(cleanedJson);
       return plan;

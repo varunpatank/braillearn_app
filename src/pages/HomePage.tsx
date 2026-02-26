@@ -428,7 +428,7 @@ const HomePage: React.FC = () => {
               View Impact Statistics
             </Link>
             <Link
-              to="/achievements"
+              to="/braillequest"
               className="inline-flex items-center px-6 py-3 bg-white text-primary-700 rounded-lg font-medium border-2 border-primary-200 hover:border-primary-300 transition-colors"
             >
               Explore Achievements

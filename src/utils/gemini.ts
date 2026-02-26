@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Direct Gemini API key for vision/image verification
-const GEMINI_API_KEY = 'AIzaSyCCZPE80G0FqZ5Elz5qVEJcdERnelN4lyU';
+// Use Gemini API key from environment variables only
+const GEMINI_API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function verifyWasteImage(
@@ -11,7 +11,7 @@ export async function verifyWasteImage(
   difficulty?: string
 ) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const imageParts = [{
       inlineData: {
@@ -78,7 +78,7 @@ export async function verifyBrailleImage(
   expectedText?: string
 ) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const imageParts = [{
       inlineData: {

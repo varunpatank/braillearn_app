@@ -5,12 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { parseExifGps } from '@/utils/exif'
+import { openRouterService } from '@/services/openRouterService'
 import {
   MapPin, Camera, Trophy, Star, CheckCircle,
   X, Upload, Target, Award, Globe, Lock,
   Share2, BarChart, Brain,
   Flame, Map as MapIcon,
-  Eye
+  Eye, BookOpen, Zap, Crown, Medal, Shield,
+  Heart, Sparkles
 } from 'lucide-react'
 
 interface Mission {
@@ -35,7 +37,7 @@ interface LeaderboardEntry {
   streak: number
 }
 
-type SidebarTab = 'leaderboard' | 'activity' | 'badges' | 'share'
+type SidebarTab = 'leaderboard' | 'activity' | 'badges' | 'share' | 'achievements' | 'rewards'
 type CategoryFilter = 'all' | Mission['category']
 
 export default function BrailleQuestPage() {
@@ -98,6 +100,7 @@ export default function BrailleQuestPage() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'uploading' | 'verifying' | 'success' | 'failure'>('idle')
+  const [verifyReason, setVerifyReason] = useState<string>('')
   const [showMissionModal, setShowMissionModal] = useState(false)
   const [userStats, setUserStats] = useState({ xp: 1200, streak: 3, missions: 16, rank: 8, totalFinds: 42, citiesMapped: 2 })
   const [completedMissions, setCompletedMissions] = useState<string[]>(['m1', 'm2', 'm3', 'm6', 'm7'])
@@ -154,6 +157,68 @@ export default function BrailleQuestPage() {
     { icon: '📢', name: 'Advocate', earned: false, desc: 'Help a business learn about braille' },
   ]
 
+  // ─── Achievement System (merged from Achievements page) ───
+  interface AchievementItem {
+    id: string; title: string; description: string; icon: React.ElementType;
+    category: 'learning' | 'practice' | 'streak' | 'mastery' | 'special';
+    rarity: 'common' | 'rare' | 'epic' | 'legendary';
+    xpReward: number; requirement: string; progress: number; maxProgress: number;
+    unlocked: boolean; unlockedDate?: string;
+  }
+
+  const rarityColors: Record<string, { bg: string; border: string; text: string; gradient: string }> = {
+    common: { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-700', gradient: 'from-gray-400 to-gray-500' },
+    rare: { bg: 'bg-blue-100', border: 'border-blue-400', text: 'text-blue-700', gradient: 'from-blue-400 to-blue-600' },
+    epic: { bg: 'bg-purple-100', border: 'border-purple-400', text: 'text-purple-700', gradient: 'from-purple-400 to-purple-600' },
+    legendary: { bg: 'bg-yellow-100', border: 'border-yellow-500', text: 'text-yellow-700', gradient: 'from-yellow-400 to-orange-500' }
+  }
+
+  const achievementsList: AchievementItem[] = [
+    { id: 'first-lesson', title: 'First Steps', description: 'Complete your first braille lesson', icon: BookOpen, category: 'learning', rarity: 'common', xpReward: 50, requirement: 'Complete 1 lesson', progress: 1, maxProgress: 1, unlocked: true, unlockedDate: '2024-01-15' },
+    { id: 'alphabet-master', title: 'Alphabet Master', description: 'Learn all 26 letters of the braille alphabet', icon: Star, category: 'learning', rarity: 'rare', xpReward: 200, requirement: 'Complete all letter lessons', progress: 26, maxProgress: 26, unlocked: true, unlockedDate: '2024-02-01' },
+    { id: 'number-ninja', title: 'Number Ninja', description: 'Master all braille number patterns', icon: Target, category: 'learning', rarity: 'rare', xpReward: 150, requirement: 'Complete all number lessons', progress: 10, maxProgress: 10, unlocked: true, unlockedDate: '2024-02-10' },
+    { id: 'contraction-expert', title: 'Contraction Expert', description: 'Learn 50 braille contractions', icon: Brain, category: 'learning', rarity: 'epic', xpReward: 500, requirement: 'Learn 50 contractions', progress: 32, maxProgress: 50, unlocked: false },
+    { id: 'grade-2-graduate', title: 'Grade 2 Graduate', description: 'Complete all Grade 2 braille lessons', icon: Crown, category: 'learning', rarity: 'legendary', xpReward: 1000, requirement: 'Complete all Grade 2 lessons', progress: 15, maxProgress: 30, unlocked: false },
+    { id: 'practice-beginner', title: 'Practice Makes Perfect', description: 'Complete 10 practice sessions', icon: Zap, category: 'practice', rarity: 'common', xpReward: 75, requirement: 'Complete 10 practice sessions', progress: 10, maxProgress: 10, unlocked: true },
+    { id: 'speed-demon', title: 'Speed Demon', description: 'Achieve 100% accuracy in Speed Challenge', icon: Flame, category: 'practice', rarity: 'epic', xpReward: 300, requirement: 'Perfect score in Speed mode', progress: 1, maxProgress: 1, unlocked: true },
+    { id: 'memory-master', title: 'Memory Master', description: 'Complete Memory Champion mode without mistakes', icon: Brain, category: 'practice', rarity: 'epic', xpReward: 350, requirement: 'Perfect Memory game', progress: 0, maxProgress: 1, unlocked: false },
+    { id: 'all-rounder', title: 'All-Rounder', description: 'Complete all 8 practice game modes', icon: Medal, category: 'practice', rarity: 'rare', xpReward: 250, requirement: 'Play all game modes', progress: 6, maxProgress: 8, unlocked: false },
+    { id: 'week-warrior', title: 'Week Warrior', description: 'Maintain a 7-day learning streak', icon: Flame, category: 'streak', rarity: 'rare', xpReward: 200, requirement: '7 consecutive days', progress: 7, maxProgress: 7, unlocked: true },
+    { id: 'month-master', title: 'Month Master', description: 'Maintain a 30-day learning streak', icon: Trophy, category: 'streak', rarity: 'epic', xpReward: 500, requirement: '30 consecutive days', progress: 7, maxProgress: 30, unlocked: false },
+    { id: 'century-champion', title: 'Century Champion', description: 'Maintain a 100-day learning streak', icon: Crown, category: 'streak', rarity: 'legendary', xpReward: 1500, requirement: '100 consecutive days', progress: 7, maxProgress: 100, unlocked: false },
+    { id: 'perfect-score', title: 'Perfectionist', description: 'Score 100% on any lesson', icon: CheckCircle, category: 'mastery', rarity: 'common', xpReward: 100, requirement: 'Get 100% on a lesson', progress: 1, maxProgress: 1, unlocked: true },
+    { id: 'accuracy-ace', title: 'Accuracy Ace', description: 'Maintain 95%+ accuracy across 20 lessons', icon: Target, category: 'mastery', rarity: 'epic', xpReward: 400, requirement: '95%+ accuracy on 20 lessons', progress: 12, maxProgress: 20, unlocked: false },
+    { id: 'braille-sage', title: 'Braille Sage', description: 'Complete all lessons with 90%+ score', icon: Shield, category: 'mastery', rarity: 'legendary', xpReward: 2000, requirement: 'Master all content', progress: 34, maxProgress: 50, unlocked: false },
+    { id: 'hardware-hero', title: 'Hardware Hero', description: 'Connect and use Arduino braille display', icon: Sparkles, category: 'special', rarity: 'rare', xpReward: 300, requirement: 'Use hardware device', progress: 1, maxProgress: 1, unlocked: true },
+    { id: 'speech-star', title: 'Speech Star', description: 'Convert 100 words using speech-to-braille', icon: Star, category: 'special', rarity: 'rare', xpReward: 200, requirement: 'Convert 100 words', progress: 78, maxProgress: 100, unlocked: false },
+    { id: 'early-bird', title: 'Early Adopter', description: 'Join BrailleLearn in its first year', icon: Heart, category: 'special', rarity: 'legendary', xpReward: 500, requirement: 'Early signup', progress: 1, maxProgress: 1, unlocked: true }
+  ]
+
+  const rewardItems = [
+    { id: 'r1', name: 'Dark Theme', description: 'Unlock a sleek dark mode for the app', cost: 500, icon: '🌙', category: 'Themes', owned: false },
+    { id: 'r2', name: 'Golden Profile Frame', description: 'Show off with a golden border around your avatar', cost: 1000, icon: '🖼️', category: 'Profile', owned: false },
+    { id: 'r3', name: 'Custom Braille Font', description: 'Access unique braille display fonts', cost: 750, icon: '🔤', category: 'Customization', owned: false },
+    { id: 'r4', name: 'Streak Shield', description: 'Protect your streak for one missed day', cost: 300, icon: '🛡️', category: 'Power-ups', owned: true },
+    { id: 'r5', name: 'Double XP Weekend', description: 'Earn 2x XP for an entire weekend', cost: 800, icon: '⚡', category: 'Power-ups', owned: false },
+    { id: 'r6', name: 'Confetti Celebration', description: 'Extra confetti effects on achievements', cost: 200, icon: '🎊', category: 'Effects', owned: true },
+    { id: 'r7', name: 'Ocean Theme', description: 'A calming ocean-inspired color palette', cost: 600, icon: '🌊', category: 'Themes', owned: false },
+    { id: 'r8', name: 'Galaxy Badge', description: 'A rare galaxy-themed profile badge', cost: 1500, icon: '🌌', category: 'Profile', owned: false },
+  ]
+
+  const achievementCategories = [
+    { id: 'learning', name: 'Learning', emoji: '📖' },
+    { id: 'practice', name: 'Practice', emoji: '⚡' },
+    { id: 'streak', name: 'Streaks', emoji: '🔥' },
+    { id: 'mastery', name: 'Mastery', emoji: '🏆' },
+    { id: 'special', name: 'Special', emoji: '✨' }
+  ]
+
+  const [achievementCategoryFilter, setAchievementCategoryFilter] = useState<string | null>(null)
+  const filteredAchievements = achievementCategoryFilter
+    ? achievementsList.filter(a => a.category === achievementCategoryFilter)
+    : achievementsList
+  const unlockedAchievements = achievementsList.filter(a => a.unlocked).length
+
   useEffect(() => {
     if (!file) { setPreview(null); setFileCoords(null); return }
     const url = URL.createObjectURL(file)
@@ -180,10 +245,56 @@ export default function BrailleQuestPage() {
   async function handleSubmit() {
     if (!selectedMission || !file) return
     setVerifyStatus('uploading')
-    await new Promise(r => setTimeout(r, 1000))
+    
+    // Convert file to base64 data URL for AI analysis
+    let dataUrl: string
+    try {
+      dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+    } catch {
+      setVerifyStatus('failure')
+      return
+    }
+
     setVerifyStatus('verifying')
-    await new Promise(r => setTimeout(r, 2000))
-    const isSuccess = Math.random() > 0.3
+    
+    let isSuccess = false
+    try {
+      const aiResponse = await openRouterService.analyzeImage(
+        dataUrl,
+        `You are verifying a BrailleQuest mission submission. The mission is: "${selectedMission.title}" — ${selectedMission.description}.
+
+Analyze this photo and determine:
+1. Does this image contain braille text or braille-related signage/features?
+2. Is it relevant to the mission described above?
+
+Respond with a JSON object ONLY: {"verified": true/false, "reason": "brief explanation"}
+If you can clearly see braille patterns or braille-related accessibility features relevant to this mission, set verified to true. Be reasonably generous — if the photo shows any genuine braille or accessibility signage in context, verify it.`
+      )
+      
+      // Parse AI response
+      try {
+        const cleaned = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+        const result = JSON.parse(cleaned)
+        isSuccess = result.verified === true
+        setVerifyReason(result.reason || '')
+      } catch {
+        // If we can't parse JSON, check for positive keywords in response
+        const lower = aiResponse.toLowerCase()
+        isSuccess = (lower.includes('verified') && lower.includes('true')) ||
+                    lower.includes('braille') && !lower.includes('no braille') && !lower.includes('not') && !lower.includes('cannot')
+        setVerifyReason(aiResponse || '')
+      }
+    } catch (err) {
+      console.error('AI verification failed, using fallback:', err)
+      // Fallback: still give a chance if AI is unavailable
+      isSuccess = Math.random() > 0.4
+    }
+
     setVerifyStatus(isSuccess ? 'success' : 'failure')
     if (isSuccess) {
       setUserStats(prev => ({
@@ -200,6 +311,7 @@ export default function BrailleQuestPage() {
     setFile(null)
     setPreview(null)
     setVerifyStatus('idle')
+    setVerifyReason('')
     setShowMissionModal(false)
     setSelectedMission(null)
   }
@@ -506,20 +618,27 @@ export default function BrailleQuestPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             {/* Sidebar Tab Switcher */}
-            <div className="bg-white rounded-2xl shadow-lg p-1.5 border-2 border-blue-100 flex gap-1">
-              {[
-                { id: 'leaderboard' as SidebarTab, label: '🏆', title: 'Rankings' },
-                { id: 'activity' as SidebarTab, label: '🧠', title: 'Insights' },
-                { id: 'badges' as SidebarTab, label: '🎖️', title: 'Badges' },
-                { id: 'share' as SidebarTab, label: '📤', title: 'Share' },
-              ].map(tab => (
-                <button key={tab.id} onClick={() => setSidebarTab(tab.id)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                    sidebarTab === tab.id ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
-                  }`}>
-                  {tab.label} {tab.title}
-                </button>
-              ))}
+            <div className="bg-white rounded-2xl shadow-lg p-2 border-2 border-blue-100">
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'leaderboard' as SidebarTab, label: '🏆', title: 'Rankings' },
+                  { id: 'achievements' as SidebarTab, label: '🏅', title: 'Achieve' },
+                  { id: 'rewards' as SidebarTab, label: '🎁', title: 'Rewards' },
+                  { id: 'activity' as SidebarTab, label: '🧠', title: 'Insights' },
+                  { id: 'badges' as SidebarTab, label: '🎖️', title: 'Badges' },
+                  { id: 'share' as SidebarTab, label: '📤', title: 'Share' },
+                ].map(tab => (
+                  <button key={tab.id} onClick={() => setSidebarTab(tab.id)}
+                    className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-xs font-bold transition-all ${
+                      sidebarTab === tab.id
+                        ? 'bg-blue-600 text-white shadow-md scale-105'
+                        : 'text-gray-600 hover:bg-gray-100 hover:scale-105'
+                    }`}>
+                    <span className="text-base leading-none">{tab.label}</span>
+                    <span className="text-[10px] leading-tight">{tab.title}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <AnimatePresence mode="wait">
@@ -679,6 +798,122 @@ export default function BrailleQuestPage() {
                   </div>
                 </motion.div>
               )}
+
+              {/* Achievements Tab */}
+              {sidebarTab === 'achievements' && (
+                <motion.div key="achievements" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-5">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-3">
+                      <Trophy className="w-5 h-5 text-yellow-500" /> Achievements ({unlockedAchievements}/{achievementsList.length})
+                    </h3>
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {[
+                        { label: 'Unlocked', value: unlockedAchievements, icon: '✅' },
+                        { label: 'XP Earned', value: achievementsList.filter(a => a.unlocked).reduce((s, a) => s + a.xpReward, 0), icon: '⭐' },
+                        { label: 'In Progress', value: achievementsList.filter(a => !a.unlocked && a.progress > 0).length, icon: '🔄' },
+                      ].map(s => (
+                        <div key={s.label} className="bg-gray-50 rounded-xl p-2 text-center">
+                          <div className="text-sm">{s.icon}</div>
+                          <div className="text-sm font-extrabold text-gray-900">{s.value}</div>
+                          <div className="text-[10px] text-gray-500">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Category filter */}
+                    <div className="flex gap-1 flex-wrap mb-3">
+                      <button onClick={() => setAchievementCategoryFilter(null)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${!achievementCategoryFilter ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>All</button>
+                      {achievementCategories.map(cat => (
+                        <button key={cat.id} onClick={() => setAchievementCategoryFilter(cat.id)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${achievementCategoryFilter === cat.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                          {cat.emoji} {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Achievement list */}
+                    <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                      {filteredAchievements.map((a, i) => {
+                        const colors = rarityColors[a.rarity]
+                        const pct = (a.progress / a.maxProgress) * 100
+                        return (
+                          <motion.div key={a.id} className={`p-3 rounded-2xl border-2 transition-all ${a.unlocked ? colors.border + ' bg-white' : 'border-gray-200 opacity-75'}`}
+                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className={`p-1.5 rounded-lg ${a.unlocked ? `bg-gradient-to-br ${colors.gradient}` : 'bg-gray-200'}`}>
+                                {a.unlocked ? <a.icon className="w-4 h-4 text-white" /> : <Lock className="w-4 h-4 text-gray-400" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-bold text-xs text-gray-900 truncate">{a.title}</span>
+                                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${colors.bg} ${colors.text}`}>{a.rarity}</span>
+                                </div>
+                                <div className="text-[10px] text-gray-500">{a.description}</div>
+                              </div>
+                              <span className="text-[10px] font-bold text-yellow-600 whitespace-nowrap">+{a.xpReward}</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                              <div className={`h-1.5 rounded-full bg-gradient-to-r ${colors.gradient}`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="flex justify-between mt-0.5">
+                              <span className="text-[9px] text-gray-400">{a.requirement}</span>
+                              <span className="text-[9px] font-bold text-gray-600">{a.progress}/{a.maxProgress}</span>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Rewards Shop Tab */}
+              {sidebarTab === 'rewards' && (
+                <motion.div key="rewards" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-5">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-3">
+                      <Sparkles className="w-5 h-5 text-purple-500" /> Rewards Shop
+                    </h3>
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-3 text-white mb-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] text-blue-200">Your Balance</div>
+                        <div className="text-lg font-extrabold flex items-center gap-1"><Star className="w-4 h-4 text-yellow-400" /> {userStats.xp} XP</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="bg-white/10 rounded-lg px-2 py-1 text-center">
+                          <div className="text-sm font-bold">{rewardItems.filter(r => r.owned).length}</div>
+                          <div className="text-[9px] text-blue-200">Owned</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                      {rewardItems.map((item, i) => {
+                        const canAfford = userStats.xp >= item.cost
+                        return (
+                          <motion.div key={item.id} className={`p-3 rounded-2xl border-2 transition-all ${item.owned ? 'border-green-300 bg-green-50' : canAfford ? 'border-blue-200' : 'border-gray-200 opacity-60'}`}
+                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{item.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-bold text-xs text-gray-900">{item.name}</div>
+                                <div className="text-[10px] text-gray-500">{item.description}</div>
+                                <div className="text-[9px] text-gray-400">{item.category}</div>
+                              </div>
+                              {item.owned ? (
+                                <span className="flex items-center gap-0.5 text-[10px] font-bold text-green-600"><CheckCircle className="w-3 h-3" /> Owned</span>
+                              ) : (
+                                <button className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${canAfford ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`} disabled={!canAfford}>
+                                  {item.cost} XP
+                                </button>
+                              )}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
         </div>
@@ -783,7 +1018,7 @@ export default function BrailleQuestPage() {
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center py-8">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: [0, 1.2, 1] }} transition={{ duration: 0.5 }} className="text-7xl mb-4">🎉</motion.div>
                     <h3 className="text-2xl font-bold text-green-600 mb-2">Mission Complete!</h3>
-                    <p className="text-gray-600 mb-4">Great find!</p>
+                    <p className="text-gray-600 mb-4">{verifyReason || 'Great find!'}</p>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                       className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-2xl p-4 inline-block">
                       <div className="flex items-center gap-3">
@@ -806,7 +1041,7 @@ export default function BrailleQuestPage() {
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center py-8">
                     <div className="text-6xl mb-4">😅</div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">Not quite...</h3>
-                    <p className="text-gray-600 mb-4">We couldn't verify braille in this photo. Try again with a clearer image!</p>
+                    <p className="text-gray-600 mb-4">{verifyReason || "We couldn't verify braille in this photo. Try again with a clearer image!"}</p>
                     <div className="bg-blue-50 rounded-xl p-4 text-left mb-6">
                       <h4 className="font-bold text-blue-800 mb-2">Tips:</h4>
                       <ul className="space-y-1 text-sm text-blue-700">

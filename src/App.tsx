@@ -16,7 +16,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import AboutPage from './pages/AboutPage';
 import StatisticsPage from './pages/StatisticsPage';
 import AccessibilityPage from './pages/AccessibilityPage';
-import AchievementsPage from './pages/AchievementsPage';
+// AchievementsPage merged into BrailleQuestPage
 import { AppProvider } from './context/AppContext';
 import { AudioProvider } from './context/AudioContext';
 import { MockAuthProvider } from './context/MockAuthContext';
@@ -66,7 +66,7 @@ function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/statistics" element={<StatisticsPage />} />
                 <Route path="/accessibility" element={<AccessibilityPage />} />
-                <Route path="/achievements" element={<AchievementsPage />} />
+                <Route path="/achievements" element={<BrailleQuestPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>

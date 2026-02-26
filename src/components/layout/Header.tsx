@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Settings, BookOpen, Home, Volume2, VolumeX, Award, MapPin } from 'lucide-react';
+import { Menu, X, User, Settings, BookOpen, Home, Volume2, VolumeX, MapPin } from 'lucide-react';
 import { useAudio } from '../../context/AudioContext';
 import { useMockAuth } from '../../context/MockAuthContext';
 import { MockAuthModal } from '../MockAuthModal';
@@ -80,12 +80,7 @@ const Header: React.FC = () => {
               Missions
             </Link>
 
-            <Link 
-              to="/achievements" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/achievements')}`}
-            >
-              Achievements
-            </Link>
+
 
             <Link 
               to="/class-hub" 
@@ -203,16 +198,7 @@ const Header: React.FC = () => {
               </div>
             </Link>
 
-            <Link
-              to="/achievements"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/achievements')}`}
-              onClick={closeMenu}
-            >
-              <div className="flex items-center">
-                <Award size={20} className="mr-2" />
-                Achievements
-              </div>
-            </Link>
+
 
             <Link
               to="/class-hub"

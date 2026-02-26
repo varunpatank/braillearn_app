@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAudio } from '../context/AudioContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -10,10 +11,10 @@ import {
   Layers, Brain,
   X, ArrowRight, BarChart,
   Rocket, Search, Grid3X3, List,
-  Calendar, Plus, Trash2,
-  Play, GraduationCap, Users, Wand2,
-  ChevronRight, Sun, Moon, Coffee, Sunset,
-  CheckCircle, AlertTriangle, Info, Heart, MessageSquare
+  Calendar,
+  Play, Users, Wand2,
+  ChevronRight, Coffee,
+  CheckCircle, AlertTriangle, Info
 } from 'lucide-react';
 import LessonCard from '../components/lessons/LessonCard';
 import { openRouterService } from '../services/openRouterService';
@@ -68,7 +69,7 @@ type ViewMode = 'grid' | 'list';
 type FilterStatus = 'all' | 'completed' | 'in-progress' | 'locked';
 type FilterDifficulty = 'all' | 'beginner' | 'intermediate' | 'advanced';
 type WizardStep = 'level' | 'style' | 'focus' | 'schedule' | 'review';
-type DashboardTab = 'overview' | 'lessons' | 'community' | 'create';
+type DashboardTab = 'overview' | 'lessons';
 
 interface ScheduleBlock {
   id: string;
@@ -78,6 +79,7 @@ interface ScheduleBlock {
   type: 'lesson' | 'practice' | 'review' | 'break';
   description: string;
   lessonSuggestion?: string;
+  lessonId?: string;
 }
 
 interface DailySchedule {
@@ -88,39 +90,7 @@ interface DailySchedule {
   motivationalMessage: string;
 }
 
-interface CustomClass {
-  id: string;
-  name: string;
-  description: string;
-  level: string;
-  createdAt: string;
-  lessons: string[];
-  schedule: string[];
-  color: string;
-}
-
-interface AILesson {
-  id: string;
-  title: string;
-  description: string;
-  level: number;
-  category: string;
-  duration: number;
-  objectives?: string[];
-  content?: any;
-  exercises: any[];
-  prerequisites: string[];
-  isAIGenerated: boolean;
-}
-
-interface CommunityBrailleWord {
-  id: string;
-  dots: boolean[];
-  word: string;
-  description: string;
-  createdBy: string;
-  createdAt: string;
-}
+type WeeklySchedule = Record<string, DailySchedule>;
 
 const LearnPage: React.FC = () => {
   const { speak } = useAudio();
@@ -152,10 +122,12 @@ const LearnPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   // Schedule
-  const [dailySchedule, setDailySchedule] = useState<DailySchedule | null>(null);
-  const [generatingSchedule, setGeneratingSchedule] = useState(false);
-  const [scheduleHours, setScheduleHours] = useState(2);
-  const [preferredTime, setPreferredTime] = useState<string[]>(['morning']);
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule | null>(null);
+  const [selectedScheduleDay, setSelectedScheduleDay] = useState<string>(() => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[new Date().getDay()];
+  });
+  const [lessonViewMode, setLessonViewMode] = useState<'today' | 'all'>('all');
 
   // Schedule Customization Chat
   const [scheduleChatMessages, setScheduleChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'ai'; timestamp: Date }>>([]);
@@ -163,30 +135,8 @@ const LearnPage: React.FC = () => {
   const [scheduleChatLoading, setScheduleChatLoading] = useState(false);
   const scheduleChatEndRef = React.useRef<HTMLDivElement>(null);
 
-  // Create Class
-  const [myClasses, setMyClasses] = useState<CustomClass[]>([]);
-  const [newClassName, setNewClassName] = useState('');
-  const [newClassDesc, setNewClassDesc] = useState('');
-  const [newClassLevel, setNewClassLevel] = useState('beginner');
-  const [newClassColor, setNewClassColor] = useState('blue');
-
-  // Create Lesson
-  const [newLessonTopic, setNewLessonTopic] = useState('');
-  const [newLessonLevel, setNewLessonLevel] = useState(1);
-  const [newLessonDuration, setNewLessonDuration] = useState(15);
-  const [newLessonStyle, setNewLessonStyle] = useState('visual');
-  const [creatingLesson, setCreatingLesson] = useState(false);
-  const [aiLessons, setAILessons] = useState<AILesson[]>([]);
-
-  // Braille Dot Creator
-  const [selectedDots, setSelectedDots] = useState<boolean[]>([false, false, false, false, false, false]);
-  const [dotWordName, setDotWordName] = useState('');
-  const [dotWordDescription, setDotWordDescription] = useState('');
-  const [communityWords, setCommunityWords] = useState<CommunityBrailleWord[]>([]);
-
   // Toast Notifications & Confirmations
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const addToast = useCallback((type: Toast['type'], title: string, message: string) => {
     const id = `toast-${Date.now()}`;
@@ -225,26 +175,8 @@ const LearnPage: React.FC = () => {
           setScheduleConfirmed(true);
           setUseCustomPlan(true);
         }
-        const savedClasses = localStorage.getItem('braillearn-classes');
-        if (savedClasses) setMyClasses(JSON.parse(savedClasses));
-        const savedAILessons = localStorage.getItem('braillearn-ai-lessons');
-        if (savedAILessons) setAILessons(JSON.parse(savedAILessons));
-        const savedSchedule = localStorage.getItem('braillearn-daily-schedule');
-        if (savedSchedule) setDailySchedule(JSON.parse(savedSchedule));
-        const savedCommunityWords = localStorage.getItem('braillearn-community-words');
-        if (savedCommunityWords) {
-          setCommunityWords(JSON.parse(savedCommunityWords));
-        } else {
-          const seedWords: CommunityBrailleWord[] = [
-            { id: 'seed-1', dots: [true, false, false, false, false, false], word: 'Letter A', description: 'The first letter — just dot 1', createdBy: 'BrailleBot', createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-            { id: 'seed-2', dots: [true, true, false, false, false, false], word: 'Letter B', description: 'Dots 1-2 make the letter B', createdBy: 'Sarah_T', createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-            { id: 'seed-3', dots: [true, false, false, true, false, false], word: 'Letter C', description: 'Two top dots together', createdBy: 'Alex_M', createdAt: new Date(Date.now() - 86400000).toISOString() },
-            { id: 'seed-4', dots: [true, false, false, true, true, false], word: 'Letter D', description: 'Three dots in an L shape', createdBy: 'Jordan_K', createdAt: new Date(Date.now() - 43200000).toISOString() },
-            { id: 'seed-5', dots: [true, false, false, false, true, false], word: 'Letter E', description: 'Dots 1 and 5', createdBy: 'Taylor_R', createdAt: new Date().toISOString() },
-          ];
-          setCommunityWords(seedWords);
-          localStorage.setItem('braillearn-community-words', JSON.stringify(seedWords));
-        }
+        const savedWeekly = localStorage.getItem('braillearn-weekly-schedule');
+        if (savedWeekly) setWeeklySchedule(JSON.parse(savedWeekly));
 
         if (user) {
           const { data: progress } = await supabase
@@ -260,6 +192,75 @@ const LearnPage: React.FC = () => {
     };
     init();
   }, [user, speak]);
+
+  // ─── Schedule Generation Helpers ───
+  const formatScheduleTime = (minutes: number): string => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+    return `${displayH}:${m.toString().padStart(2, '0')} ${period}`;
+  };
+
+  const getTodayName = (): string => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[new Date().getDay()];
+  };
+
+  const buildWeeklySchedule = (plan: StudyPlan, dailyMinutes: number): WeeklySchedule => {
+    const availDays = plan.preferences?.availableDays || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const maxPerDay = plan.preferences?.maxLessonsPerDay || 3;
+    const unfinished = (plan.scheduledLessons || []).filter(l => !l.isCompleted);
+    const weekly: WeeklySchedule = {};
+    let idx = 0;
+    const startHour = 9; // 9 AM default
+
+    availDays.forEach(day => {
+      const blocks: ScheduleBlock[] = [];
+      let t = startHour * 60;
+      const dayLessonCount = Math.min(maxPerDay, Math.max(1, Math.ceil(unfinished.length / availDays.length)));
+
+      // Review block
+      blocks.push({ id: `${day}-review`, time: formatScheduleTime(t), duration: 15, activity: '📖 Review', type: 'review', description: 'Warm up with previous material' });
+      t += 15;
+
+      // Lesson blocks
+      for (let i = 0; i < dayLessonCount && idx < unfinished.length; i++) {
+        const les = unfinished[idx];
+        const dur = Math.min(les.duration || 20, Math.max(15, Math.floor(dailyMinutes / (dayLessonCount + 2))));
+        blocks.push({
+          id: `${day}-lesson-${i}`,
+          time: formatScheduleTime(t),
+          duration: dur,
+          activity: `✨ ${les.title}`,
+          type: 'lesson',
+          description: les.description || 'Continue learning',
+          lessonId: les.id,
+          lessonSuggestion: les.title
+        });
+        t += dur;
+        idx++;
+        if (i < dayLessonCount - 1) {
+          blocks.push({ id: `${day}-break-${i}`, time: formatScheduleTime(t), duration: 10, activity: '☕ Break', type: 'break', description: 'Rest your eyes and fingers' });
+          t += 10;
+        }
+      }
+
+      // Practice block
+      blocks.push({ id: `${day}-practice`, time: formatScheduleTime(t), duration: 15, activity: '⚡ Practice', type: 'practice', description: 'Build speed and accuracy' });
+
+      const totalUsed = blocks.reduce((s, b) => s + b.duration, 0);
+      weekly[day] = {
+        date: day,
+        totalMinutes: totalUsed,
+        blocks,
+        tips: ['Focus on accuracy before speed', 'Review yesterday\'s material first'],
+        motivationalMessage: 'Consistency is the key to mastery! 🌟'
+      };
+    });
+
+    return weekly;
+  };
 
   // Generate study plan
   const generateStudyPlan = (form: typeof customForm): StudyPlan => {
@@ -345,13 +346,104 @@ const LearnPage: React.FC = () => {
 
     let plan: StudyPlan;
     try {
-      plan = await openRouterService.generateStudyPlan(
+      const aiRaw = await openRouterService.generateStudyPlan(
         customForm.currentLevel,
         [customForm.focusAreas],
         customForm.learningStyle,
         parseInt(customForm.dailyTime) || 30,
         customForm.customPrompt
-      ) as unknown as StudyPlan;
+      ) as any;
+
+      // Normalize AI response → proper StudyPlan with scheduledLessons
+      const startDate = new Date();
+      const targetEndDate = new Date();
+      targetEndDate.setDate(startDate.getDate() + 84);
+
+      // Extract lessons from levels array if present (AI format)
+      let aiLessonsList: any[] = [];
+      if (aiRaw.levels && Array.isArray(aiRaw.levels)) {
+        aiRaw.levels.forEach((lvl: any) => {
+          if (lvl.lessons && Array.isArray(lvl.lessons)) {
+            lvl.lessons.forEach((les: any) => {
+              aiLessonsList.push({ ...les, level: lvl.level || 1 });
+            });
+          }
+        });
+      }
+
+      // Always use real lessons from the lesson bank so IDs match for schedule filtering
+      const realLessonsPool = lessons.filter(l => {
+        if (customForm.focusAreas === 'all') return true;
+        return l.category === customForm.focusAreas || l.category === 'basics';
+      });
+
+      // If AI suggested lessons, try to match them to real ones by title
+      let orderedLessons = realLessonsPool;
+      if (aiLessonsList.length > 0) {
+        const matched: typeof lessons = [];
+        const usedIds = new Set<string>();
+        for (const aiLesson of aiLessonsList) {
+          const titleLower = (aiLesson.title || '').toLowerCase();
+          const match = realLessonsPool.find(rl =>
+            !usedIds.has(rl.id) && (
+              rl.title.toLowerCase().includes(titleLower) ||
+              titleLower.includes(rl.title.toLowerCase()) ||
+              rl.category === (aiLesson.category || 'basics')
+            )
+          );
+          if (match) {
+            matched.push(match);
+            usedIds.add(match.id);
+          }
+        }
+        // Fill remaining slots with unmatched real lessons
+        const remaining = realLessonsPool.filter(l => !usedIds.has(l.id));
+        orderedLessons = [...matched, ...remaining];
+      }
+
+      const scheduledLessons: ScheduledLesson[] = orderedLessons.slice(0, 50).map((lesson, index) => {
+        const scheduleDate = new Date(startDate);
+        scheduleDate.setDate(startDate.getDate() + Math.floor(index / 3) * 7 + (index % 3));
+        return {
+          ...lesson,
+          scheduledDate: scheduleDate.toISOString(),
+          isCompleted: false,
+          canReschedule: true,
+          priority: index < 10 ? 'high' as const : index < 20 ? 'medium' as const : 'low' as const,
+          estimatedCompletionTime: lesson.duration || 15,
+          adaptiveDifficulty: 'normal' as const
+        } as ScheduledLesson;
+      });
+
+      plan = {
+        id: `plan-${Date.now()}`,
+        userId: user?.id || 'guest',
+        title: aiRaw.title || `${customForm.difficulty.charAt(0).toUpperCase() + customForm.difficulty.slice(1)} Braille Journey`,
+        description: aiRaw.description || `Personalized plan focusing on ${customForm.focusAreas}`,
+        totalLessons: scheduledLessons.length,
+        scheduledLessons,
+        startDate: startDate.toISOString(),
+        targetEndDate: targetEndDate.toISOString(),
+        currentStreak: 0,
+        weeklyGoal: aiRaw.weeklyGoal || 3,
+        isActive: true,
+        aiManaged: true,
+        preferences: {
+          preferredTimeSlots: ['morning'],
+          maxLessonsPerDay: 3,
+          difficultyProgression: aiRaw.difficultyProgression || (customForm.difficulty === 'beginner' ? 'gradual' : 'moderate'),
+          focusAreas: aiRaw.focusAreas || [customForm.focusAreas],
+          availableDays: customForm.availableDays
+        },
+        statistics: {
+          lessonsCompleted: 0,
+          averageScore: 0,
+          timeSpent: 0,
+          currentLevel: customForm.currentLevel,
+          strengthAreas: [],
+          improvementAreas: []
+        }
+      };
     } catch (err) {
       console.error('AI plan generation failed, using local generator:', err);
       setGenerationMessage('⚠️ BrailleLearn Intelligence unavailable — generating smart default plan...');
@@ -362,58 +454,34 @@ const LearnPage: React.FC = () => {
     setStudyPlan(plan);
     localStorage.setItem('braillearn-study-plan', JSON.stringify(plan));
     localStorage.setItem('braillearn-schedule-confirmed', 'true');
+
+    // Auto-generate weekly schedule from plan
+    const weekly = buildWeeklySchedule(plan, parseInt(customForm.dailyTime) || 30);
+    setWeeklySchedule(weekly);
+    localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(weekly));
+
     setScheduleConfirmed(true);
     setUseCustomPlan(true);
     setShowWizard(false);
     setGeneratingPlan(false);
-    addToast('success', '🎉 Study Plan Created!', `Your personalized "${plan.title || 'Braille Journey'}" plan with ${plan.totalLessons} lessons is ready. Check the Overview tab!`);
+    const dayCount = Object.keys(weekly).length;
+    addToast('success', '🎉 Plan & Schedule Created!', `Your "${plan.title || 'Braille Journey'}" plan is ready with schedules for ${dayCount} days/week.`);
     setActiveTab('overview');
-    speak('Your personalized study plan is ready!');
+    speak('Your personalized study plan and weekly schedule are ready!');
   };
 
   const resetPlan = () => {
     localStorage.removeItem('braillearn-study-plan');
     localStorage.removeItem('braillearn-schedule-confirmed');
+    localStorage.removeItem('braillearn-weekly-schedule');
     setStudyPlan(null);
+    setWeeklySchedule(null);
     setScheduleConfirmed(false);
     setUseCustomPlan(false);
-    addToast('info', 'Plan Reset', 'Your study plan has been cleared. Create a new one anytime from the Overview tab.');
+    addToast('info', 'Plan Reset', 'Your study plan and schedule have been cleared. Create a new one anytime from the Overview tab.');
   };
 
-  // AI Schedule
-  const handleGenerateSchedule = async () => {
-    setGeneratingSchedule(true);
-    try {
-      const schedule = await openRouterService.generateDailySchedule(
-        scheduleHours,
-        customForm.currentLevel,
-        completedLessons,
-        totalLessonsCount,
-        [customForm.focusAreas],
-        preferredTime
-      );
-      setDailySchedule(schedule);
-      localStorage.setItem('braillearn-daily-schedule', JSON.stringify(schedule));
-      addToast('success', '📅 Schedule Generated!', `Your ${scheduleHours}-hour study schedule is ready with ${schedule.blocks?.length || 0} activities.`);
-    } catch (error) {
-      console.error('AI schedule generation failed:', error);
-      setDailySchedule({
-        date: new Date().toISOString().split('T')[0],
-        totalMinutes: scheduleHours * 60,
-        blocks: [
-          { id: '1', time: '9:00 AM', duration: 30, activity: '📖 Pattern Review', type: 'review', description: 'Warm up with familiar patterns' },
-          { id: '2', time: '9:30 AM', duration: 30, activity: '✨ New Lesson', type: 'lesson', description: 'Learn new braille characters', lessonSuggestion: 'Continue your current level' },
-          { id: '3', time: '10:00 AM', duration: 10, activity: '☕ Break', type: 'break', description: 'Rest your eyes and fingers' },
-          { id: '4', time: '10:10 AM', duration: 30, activity: '⚡ Speed Practice', type: 'practice', description: 'Build reading speed' },
-        ],
-        tips: ['⚠️ Schedule generation was unavailable — showing a default schedule. Try again later for a personalized one!', 'Take breaks between sessions', 'Focus on accuracy before speed'],
-        motivationalMessage: 'Every practice session gets you closer to mastery! 🌟'
-      });
-    }
-    setGeneratingSchedule(false);
-  };
-
-  // Schedule Customization Chat
+  // Schedule Customization Chat — handles weekly schedule, plan changes, and general braille Q&A
   const handleScheduleChat = async (message: string) => {
     if (!message.trim()) return;
     setScheduleChatLoading(true);
@@ -421,66 +489,184 @@ const LearnPage: React.FC = () => {
     setScheduleChatInput('');
 
     try {
-      const currentScheduleContext = dailySchedule
-        ? `Current schedule (${dailySchedule.blocks.length} blocks, ${dailySchedule.totalMinutes} min total):\n${dailySchedule.blocks.map(b => `- ${b.time}: ${b.activity} (${b.duration}min, type: ${b.type}) — ${b.description}`).join('\n')}`
-        : 'No schedule generated yet.';
+      const today = getTodayName();
+      const scheduleContext = weeklySchedule
+        ? `Weekly schedule (${Object.keys(weeklySchedule).length} days):\n${Object.entries(weeklySchedule).map(([day, sched]) =>
+          `${day.toUpperCase()}: ${sched.blocks.filter(b => b.type === 'lesson').map(b => b.lessonId ? `${b.activity} [${b.lessonId}]` : b.activity).join(', ')} (${sched.totalMinutes}min total)`
+        ).join('\n')}\nToday is ${today}.`
+        : 'No weekly schedule generated yet. The user needs to create a plan first.';
 
-      const systemPrompt = `You are BrailleLearn Intelligence — a smart schedule customization assistant for braille learners. The user wants to modify their study schedule/lessons. Based on their request, you MUST:
-1. Respond with a friendly explanation of what you changed
-2. Return a NEW complete schedule as a JSON block
+      const planContext = studyPlan
+        ? `Study plan: "${studyPlan.title}" — ${studyPlan.totalLessons} lessons, ${studyPlan.statistics?.lessonsCompleted || 0} completed. Weekly goal: ${studyPlan.weeklyGoal}. Focus: ${studyPlan.preferences?.focusAreas?.join(', ') || 'all'}. Difficulty: ${studyPlan.preferences?.difficultyProgression || 'gradual'}. Days: ${studyPlan.preferences?.availableDays?.join(', ') || 'weekdays'}.`
+        : 'No study plan yet.';
+
+      const lessonBankSummary = `Available lesson bank: ${allLessons.length} total lessons. Categories: basics (letters A-Z, ${allLessons.filter(l => l.category === 'basics').length} lessons), words (${allLessons.filter(l => l.category === 'words').length} lessons), sentences (${allLessons.filter(l => l.category === 'sentences').length} lessons), contractions (${allLessons.filter(l => l.category === 'contractions').length} lessons), advanced (${allLessons.filter(l => l.category === 'advanced').length} lessons). Levels 1–30.`;
+
+      const systemPrompt = `You are BrailleLearn Intelligence — a powerful learning assistant. You handle ANY request about the user's braille learning:
+- Change their weekly schedule (swap days, adjust times, add/remove days, reorder lessons)
+- Change their study plan (focus areas, difficulty, weekly goals, lesson order)
+- Filter or recommend specific lessons from the lesson bank
+- Answer questions about braille, learning strategies, etc.
 
 User progress: ${completedLessons}/${totalLessonsCount} lessons completed. Level: ${customForm.currentLevel}.
-${currentScheduleContext}
+${scheduleContext}
+${planContext}
+${lessonBankSummary}
 
-IMPORTANT: After your friendly message, you MUST include a JSON code block with the updated schedule in this exact format:
+IMPORTANT: If the user wants to make a CHANGE (schedule, plan, lessons), include a JSON code block. If they're just asking a question, respond normally without JSON.
+
+JSON format for changes:
 \`\`\`json
 {
-  "date": "${new Date().toISOString().split('T')[0]}",
-  "totalMinutes": number,
-  "blocks": [
-    {
-      "id": "unique-id",
-      "time": "9:00 AM",
-      "duration": 30,
-      "activity": "Activity name",
-      "type": "lesson|practice|review|break",
-      "description": "What to focus on",
-      "lessonSuggestion": "optional suggestion"
+  "type": "schedule" | "plan" | "both",
+  "weeklySchedule": {
+    "monday": {
+      "date": "monday",
+      "totalMinutes": number,
+      "blocks": [
+        { "id": "mon-1", "time": "9:00 AM", "duration": 30, "activity": "Activity name", "type": "lesson|practice|review|break", "description": "Details", "lessonId": "lesson-1", "lessonSuggestion": "Lesson title" }
+      ],
+      "tips": ["tip"],
+      "motivationalMessage": "message"
     }
-  ],
-  "tips": ["tip1", "tip2"],
-  "motivationalMessage": "motivational message"
+  },
+  "planUpdates": {
+    "title": "optional new title",
+    "weeklyGoal": number,
+    "preferences": {
+      "difficultyProgression": "gradual|moderate|aggressive",
+      "focusAreas": ["basics","words","sentences","contractions","advanced"],
+      "availableDays": ["monday","tuesday",...],
+      "maxLessonsPerDay": number
+    }
+  }
 }
 \`\`\`
 
-Always create a complete, realistic schedule based on the user's request. Adjust times, durations, activity types, and lessons to match what they asked for.`;
+For "schedule" type: include "weeklySchedule" with ALL days the user wants scheduled.
+For "plan" type: include "planUpdates" with only the fields to change.
+For "both": include both "weeklySchedule" and "planUpdates".
+Use actual lesson IDs (lesson-1 through lesson-50, adventure-1, etc.) in lessonId when assigning lessons.
+Respond with a friendly message explaining what you changed, then the JSON block.`;
 
-      const response = await openRouterService.chat(systemPrompt, message, { maxTokens: 2000, temperature: 0.8 });
+      const response = await openRouterService.chat(systemPrompt, message, { maxTokens: 3000, temperature: 0.7 });
 
-      // Try to extract JSON schedule from the response
       const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/```\s*([\s\S]*?)\s*```/);
-      let updatedSchedule = null;
       let chatResponse = response;
+      let appliedChanges = false;
 
       if (jsonMatch) {
         try {
-          updatedSchedule = JSON.parse(jsonMatch[1]);
+          const parsed = JSON.parse(jsonMatch[1]);
           chatResponse = response.replace(/```json\s*[\s\S]*?\s*```/, '').replace(/```\s*[\s\S]*?\s*```/, '').trim();
-          if (!chatResponse) chatResponse = "Done! I've updated your schedule based on your request. 📅";
+          if (!chatResponse) chatResponse = "Done! I've updated your learning setup. ✨";
+
+          // Handle weekly schedule updates
+          if ((parsed.type === 'schedule' || parsed.type === 'both') && parsed.weeklySchedule) {
+            const newWeekly: WeeklySchedule = {};
+            Object.entries(parsed.weeklySchedule).forEach(([day, sched]: [string, any]) => {
+              newWeekly[day] = {
+                date: day,
+                totalMinutes: sched.totalMinutes || sched.blocks?.reduce((s: number, b: any) => s + (b.duration || 0), 0) || 60,
+                blocks: (sched.blocks || []).map((b: any, i: number) => ({
+                  ...b,
+                  id: b.id || `${day}-${i}`
+                })),
+                tips: sched.tips || ['Keep up the great work!'],
+                motivationalMessage: sched.motivationalMessage || 'You\'re making progress! 🌟'
+              };
+            });
+            setWeeklySchedule(newWeekly);
+            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(newWeekly));
+            addToast('success', '📅 Weekly Schedule Updated!', `Schedule updated for ${Object.keys(newWeekly).length} days.`);
+            appliedChanges = true;
+          }
+          // Legacy: single-day schedule object
+          else if ((parsed.type === 'schedule' || !parsed.type) && parsed.schedule?.blocks) {
+            const dayKey = today;
+            const updated = { ...(weeklySchedule || {}), [dayKey]: {
+              ...parsed.schedule,
+              date: dayKey,
+              blocks: parsed.schedule.blocks.map((b: any, i: number) => ({ ...b, id: b.id || `${dayKey}-${i}` }))
+            }};
+            setWeeklySchedule(updated);
+            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
+            addToast('success', '📅 Schedule Updated!', `Today's schedule updated with ${parsed.schedule.blocks.length} activities.`);
+            appliedChanges = true;
+          }
+          // Legacy: bare blocks array
+          else if (!parsed.type && parsed.blocks) {
+            const dayKey = today;
+            const updated = { ...(weeklySchedule || {}), [dayKey]: {
+              date: dayKey,
+              totalMinutes: parsed.totalMinutes || parsed.blocks.reduce((s: number, b: any) => s + (b.duration || 0), 0),
+              blocks: parsed.blocks.map((b: any, i: number) => ({ ...b, id: b.id || `${dayKey}-${i}` })),
+              tips: parsed.tips || [],
+              motivationalMessage: parsed.motivationalMessage || ''
+            }};
+            setWeeklySchedule(updated);
+            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
+            addToast('success', '📅 Schedule Updated!', `Today's schedule updated.`);
+            appliedChanges = true;
+          }
+
+          // Handle study plan updates
+          if ((parsed.type === 'plan' || parsed.type === 'both') && parsed.planUpdates && studyPlan) {
+            const updates = parsed.planUpdates;
+            const updatedPlan = { ...studyPlan };
+
+            if (updates.title) updatedPlan.title = updates.title;
+            if (updates.weeklyGoal) updatedPlan.weeklyGoal = updates.weeklyGoal;
+            if (updates.preferences) {
+              updatedPlan.preferences = {
+                ...updatedPlan.preferences,
+                ...updates.preferences,
+                focusAreas: updates.preferences.focusAreas || updatedPlan.preferences.focusAreas,
+                availableDays: updates.preferences.availableDays || updatedPlan.preferences.availableDays,
+                preferredTimeSlots: updates.preferences.preferredTimeSlots || updatedPlan.preferences.preferredTimeSlots,
+              };
+            }
+
+            if (updates.preferences?.focusAreas || updates.preferences?.difficultyProgression) {
+              const focusAreas = updates.preferences?.focusAreas || updatedPlan.preferences.focusAreas;
+              let selectedLessons = lessons.filter(lesson => {
+                if (focusAreas.includes('all')) return true;
+                return focusAreas.includes(lesson.category) || lesson.category === 'basics';
+              });
+              const diff = updates.preferences?.difficultyProgression || updatedPlan.preferences.difficultyProgression;
+              if (diff === 'gradual') selectedLessons = selectedLessons.filter(l => l.level <= 10);
+              else if (diff === 'moderate') selectedLessons = selectedLessons.filter(l => l.level <= 20);
+
+              const startDate = new Date();
+              const scheduledLessons: ScheduledLesson[] = selectedLessons.slice(0, 50).map((lesson, index) => {
+                const scheduleDate = new Date(startDate);
+                scheduleDate.setDate(startDate.getDate() + Math.floor(index / (updates.weeklyGoal || updatedPlan.weeklyGoal || 3)) * 7 + (index % 3));
+                const existing = updatedPlan.scheduledLessons.find(sl => sl.id === lesson.id);
+                return { ...lesson, scheduledDate: scheduleDate.toISOString(), isCompleted: existing?.isCompleted || false, canReschedule: true, priority: index < 10 ? 'high' as const : index < 30 ? 'medium' as const : 'low' as const, estimatedCompletionTime: lesson.duration, adaptiveDifficulty: 'normal' as const } as ScheduledLesson;
+              });
+              updatedPlan.scheduledLessons = scheduledLessons;
+              updatedPlan.totalLessons = scheduledLessons.length;
+            }
+
+            updatedPlan.lastAIOptimization = new Date().toISOString();
+            setStudyPlan(updatedPlan);
+            localStorage.setItem('braillearn-study-plan', JSON.stringify(updatedPlan));
+
+            // Also rebuild weekly schedule from updated plan
+            const newWeekly = buildWeeklySchedule(updatedPlan, parseInt(customForm.dailyTime) || 30);
+            setWeeklySchedule(newWeekly);
+            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(newWeekly));
+
+            addToast('success', '📚 Plan & Schedule Updated!', `Plan "${updatedPlan.title}" and weekly schedule have been updated.`);
+            appliedChanges = true;
+          }
+
+          if (!appliedChanges) {
+            chatResponse += '\n\n_I can help you make changes — try asking me to adjust your schedule, change lesson focus, or modify your study days._';
+          }
         } catch {
           // JSON parsing failed, just show the text response
         }
-      }
-
-      if (updatedSchedule && updatedSchedule.blocks) {
-        // Ensure each block has an id
-        updatedSchedule.blocks = updatedSchedule.blocks.map((b: any, i: number) => ({
-          ...b,
-          id: b.id || `block-${i + 1}`
-        }));
-        setDailySchedule(updatedSchedule);
-        localStorage.setItem('braillearn-daily-schedule', JSON.stringify(updatedSchedule));
-        addToast('success', '📅 Schedule Updated!', `Your schedule has been customized with ${updatedSchedule.blocks.length} activities.`);
       }
 
       setScheduleChatMessages(prev => [...prev, {
@@ -500,102 +686,6 @@ Always create a complete, realistic schedule based on the user's request. Adjust
     }
     setScheduleChatLoading(false);
     setTimeout(() => scheduleChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  };
-
-  // Create Class
-  const handleCreateClass = () => {
-    if (!newClassName.trim()) return;
-    const newClass: CustomClass = {
-      id: `class-${Date.now()}`,
-      name: newClassName,
-      description: newClassDesc,
-      level: newClassLevel,
-      createdAt: new Date().toISOString(),
-      lessons: [],
-      schedule: [],
-      color: newClassColor
-    };
-    const updated = [...myClasses, newClass];
-    setMyClasses(updated);
-    localStorage.setItem('braillearn-classes', JSON.stringify(updated));
-    setNewClassName('');
-    setNewClassDesc('');
-    addToast('success', '🎓 Class Created!', `"${newClass.name}" has been added to your classes. You can find it on the Overview tab.`);
-    speak(`Class "${newClass.name}" created!`);
-  };
-
-  const handleDeleteClass = (id: string) => {
-    const cls = myClasses.find(c => c.id === id);
-    const updated = myClasses.filter(c => c.id !== id);
-    setMyClasses(updated);
-    localStorage.setItem('braillearn-classes', JSON.stringify(updated));
-    setDeleteConfirmId(null);
-    addToast('info', 'Class Deleted', `"${cls?.name || 'Class'}" has been removed.`);
-  };
-
-  // Braille Dot Creator
-  const dotsToUnicode = (dots: boolean[]): string => {
-    const dotValues = [1, 2, 4, 8, 16, 32];
-    const charCode = 0x2800 + dots.reduce((acc, dot, i) => acc + (dot ? dotValues[i] : 0), 0);
-    return String.fromCharCode(charCode);
-  };
-
-  const handleCreateBrailleWord = () => {
-    if (!dotWordName.trim() || !selectedDots.some(d => d)) return;
-    const newWord: CommunityBrailleWord = {
-      id: `bw-${Date.now()}`,
-      dots: [...selectedDots],
-      word: dotWordName.trim(),
-      description: dotWordDescription.trim(),
-      createdBy: user?.email?.split('@')[0] || 'Anonymous',
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [newWord, ...communityWords];
-    setCommunityWords(updated);
-    localStorage.setItem('braillearn-community-words', JSON.stringify(updated));
-    setSelectedDots([false, false, false, false, false, false]);
-    setDotWordName('');
-    setDotWordDescription('');
-    addToast('success', '🎉 Braille Word Created!', `"${newWord.word}" has been shared with the community!`);
-    speak(`Braille word "${newWord.word}" created!`);
-  };
-
-  const handleDeleteBrailleWord = (id: string) => {
-    const updated = communityWords.filter(w => w.id !== id);
-    setCommunityWords(updated);
-    localStorage.setItem('braillearn-community-words', JSON.stringify(updated));
-    addToast('info', 'Word Removed', 'Your braille word has been removed.');
-  };
-
-  // Create AI Lesson
-  const handleCreateLesson = async () => {
-    if (!newLessonTopic.trim()) return;
-    setCreatingLesson(true);
-    try {
-      const lesson = await openRouterService.generateLesson(
-        newLessonTopic,
-        newLessonLevel,
-        newLessonDuration,
-        newLessonStyle
-      );
-      if (lesson) {
-        const aiLesson: AILesson = {
-          ...lesson,
-          id: lesson.id || `ai-${Date.now()}`,
-          isAIGenerated: true,
-          prerequisites: lesson.prerequisites || []
-        };
-        const updated = [...aiLessons, aiLesson];
-        setAILessons(updated);
-        localStorage.setItem('braillearn-ai-lessons', JSON.stringify(updated));
-        setNewLessonTopic('');
-        addToast('success', '✨ Lesson Created!', `"${aiLesson.title}" (Level ${aiLesson.level}, ${aiLesson.duration}min) is ready. Find it on the Overview tab.`);
-        speak(`Lesson "${aiLesson.title}" created!`);
-      }
-    } catch (error) {
-      console.error('Lesson creation failed:', error);
-    }
-    setCreatingLesson(false);
   };
 
   // Level info
@@ -635,6 +725,24 @@ Always create a complete, realistic schedule based on the user's request. Adjust
   // Filtered and grouped lessons
   const filteredLessons = useMemo(() => {
     let result = allLessons;
+
+    // Filter by today's schedule if in 'today' mode
+    if (lessonViewMode === 'today' && weeklySchedule) {
+      const todaySchedule = weeklySchedule[getTodayName()];
+      if (todaySchedule) {
+        const todayLessonIds = todaySchedule.blocks
+          .filter(b => b.type === 'lesson' && b.lessonId)
+          .map(b => b.lessonId!);
+        if (todayLessonIds.length > 0) {
+          const todayResult = result.filter(l => todayLessonIds.includes(l.id));
+          // Only apply filter if it actually matches real lessons; otherwise show all
+          if (todayResult.length > 0) {
+            result = todayResult;
+          }
+        }
+      }
+    }
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(l => l.title.toLowerCase().includes(q) || l.description?.toLowerCase().includes(q));
@@ -657,7 +765,7 @@ Always create a complete, realistic schedule based on the user's request. Adjust
       });
     }
     return result;
-  }, [allLessons, searchQuery, filterStatus, filterDifficulty, lessonProgress]);
+  }, [allLessons, searchQuery, filterStatus, filterDifficulty, lessonProgress, lessonViewMode, weeklySchedule]);
 
   const lessonsByLevel = filteredLessons.reduce((acc: Record<number, Lesson[]>, lesson) => {
     if (!acc[lesson.level]) acc[lesson.level] = [];
@@ -677,22 +785,9 @@ Always create a complete, realistic schedule based on the user's request. Adjust
 
   const currentWizardIndex = wizardSteps.findIndex(s => s.id === wizardStep);
 
-  const classColors: Record<string, string> = {
-    blue: 'from-blue-500 to-blue-600',
-    purple: 'from-purple-500 to-purple-600',
-    green: 'from-green-500 to-green-600',
-    orange: 'from-orange-500 to-orange-600',
-    pink: 'from-pink-500 to-pink-600',
-    teal: 'from-teal-500 to-teal-600',
-  };
-
-  const timeIcons: Record<string, any> = { morning: Sun, afternoon: Coffee, evening: Sunset, night: Moon };
-
   const dashTabs: { id: DashboardTab; label: string; icon: any; desc: string }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart, desc: 'Dashboard & stats' },
     { id: 'lessons', label: 'Lessons', icon: BookOpen, desc: 'Browse & study' },
-    { id: 'community', label: 'Community', icon: Heart, desc: 'Shared creations' },
-    { id: 'create', label: 'Create', icon: Plus, desc: 'Lessons & classes' },
   ];
 
   if (loading) {
@@ -728,8 +823,7 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                 <BookOpen className="w-9 h-9" /> Learning Dashboard
               </h1>
               <p className="text-blue-100 text-base">
-                <span className="font-bold text-white">{totalLessonsCount + aiLessons.length}</span> lessons •
-                <span className="font-bold text-white"> {myClasses.length}</span> classes •
+                <span className="font-bold text-white">{totalLessonsCount}</span> lessons •
                 personalized curriculum
               </p>
             </motion.div>
@@ -797,7 +891,7 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                           {[
                             { step: 1, title: 'Create Your Plan', desc: 'Tell us your level and goals — BrailleLearn Intelligence builds a custom curriculum.', icon: Brain, action: () => setShowWizard(true), btn: 'Get Started', color: 'from-blue-500 to-blue-600' },
                             { step: 2, title: 'Browse Lessons', desc: 'Explore 50+ braille lessons and customize your focus areas.', icon: BookOpen, action: () => setActiveTab('lessons'), btn: 'View Lessons', color: 'from-green-500 to-emerald-600' },
-                            { step: 3, title: 'Create Content', desc: 'Generate custom lessons and organize them into classes.', icon: Wand2, action: () => setActiveTab('create'), btn: 'Create', color: 'from-purple-500 to-purple-600' },
+                            { step: 3, title: 'Practice & Review', desc: 'Reinforce your learning with hands-on braille practice exercises.', icon: Wand2, action: () => setActiveTab('lessons'), btn: 'Start Practice', color: 'from-purple-500 to-purple-600' },
                           ].map((item) => (
                             <motion.div key={item.step} className="bg-white rounded-2xl p-5 border-2 border-blue-100 shadow-md"
                               whileHover={{ y: -3, shadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
@@ -825,8 +919,8 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                     {[
                       { label: useCustomPlan ? 'Edit Plan' : 'Create Plan', icon: Brain, color: 'from-blue-500 to-blue-600', action: () => setShowWizard(true) },
                       { label: 'Browse Lessons', icon: BookOpen, color: 'from-green-500 to-emerald-600', action: () => setActiveTab('lessons') },
-                      { label: 'Create Lesson', icon: Wand2, color: 'from-purple-500 to-purple-600', action: () => { setActiveTab('create'); } },
-                      { label: 'Create Class', icon: Users, color: 'from-orange-500 to-orange-600', action: () => { setActiveTab('create'); } },
+                      { label: 'Practice', icon: Wand2, color: 'from-purple-500 to-purple-600', action: () => setActiveTab('lessons') },
+                      { label: 'Study Groups', icon: Users, color: 'from-orange-500 to-orange-600', action: () => setActiveTab('lessons') },
                     ].map((action, i) => (
                       <motion.button key={action.label} onClick={action.action}
                         className="relative overflow-hidden bg-white rounded-3xl shadow-lg border-2 border-blue-100 p-5 text-left group hover:shadow-xl hover:border-blue-300 transition-all"
@@ -876,107 +970,117 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                     </motion.div>
                   )}
 
-                  {/* ─── Today's Schedule ─── */}
+                  {/* ─── Weekly Schedule ─── */}
                   <motion.div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 mb-6 overflow-hidden"
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="p-6">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-blue-600" /> Today's Schedule
-                      </h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-blue-600" /> Weekly Schedule
+                        </h3>
+                        {weeklySchedule && (
+                          <button onClick={() => { setWeeklySchedule(null); localStorage.removeItem('braillearn-weekly-schedule'); }}
+                            className="text-xs font-bold text-gray-500 hover:text-red-500 transition-all flex items-center gap-1">
+                            <X className="w-3.5 h-3.5" /> Reset Schedule
+                          </button>
+                        )}
+                      </div>
 
-                      {!dailySchedule ? (
-                        /* Schedule Generator (compact) */
-                        <div>
-                          <p className="text-sm text-gray-600 mb-4">Set your availability and BrailleLearn Intelligence will build your daily plan.</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <label className="text-xs font-bold text-gray-600 mb-1.5 block">Hours available</label>
-                              <div className="flex gap-2">
-                                {[1, 2, 3, 4].map(h => (
-                                  <button key={h} onClick={() => setScheduleHours(h)}
-                                    className={`flex-1 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${
-                                      scheduleHours === h ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-300'
-                                    }`}>
-                                    {h}h
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-xs font-bold text-gray-600 mb-1.5 block">Preferred time</label>
-                              <div className="flex gap-2">
-                                {(['morning', 'afternoon', 'evening'] as const).map(t => {
-                                  const Icon = timeIcons[t] || Sun;
-                                  const isSelected = preferredTime.includes(t);
-                                  return (
-                                    <button key={t} onClick={() => setPreferredTime(isSelected ? preferredTime.filter(x => x !== t) : [...preferredTime, t])}
-                                      className={`flex-1 py-2.5 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-1 capitalize ${
-                                        isSelected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-blue-300'
-                                      }`}>
-                                      <Icon className="w-3.5 h-3.5" /> {t}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                          <motion.button onClick={handleGenerateSchedule} disabled={generatingSchedule}
-                            className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                            {generatingSchedule ? (
-                              <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Generating...</>
-                            ) : (
-                              <><Brain className="w-4 h-4" /> Generate Smart Schedule</>
-                            )}
+                      {!weeklySchedule ? (
+                        <div className="text-center py-8">
+                          <Calendar className="w-12 h-12 text-blue-300 mx-auto mb-3" />
+                          <p className="text-gray-600 font-medium mb-2">No schedule yet</p>
+                          <p className="text-sm text-gray-500 mb-4">Create a study plan and your weekly schedule will be generated automatically!</p>
+                          <motion.button onClick={() => setShowWizard(true)}
+                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 mx-auto"
+                            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <Brain className="w-4 h-4" /> Create Your Plan
                           </motion.button>
                         </div>
                       ) : (
-                        /* Schedule Display */
                         <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
-                              {dailySchedule.blocks.length} activities · ⏱ {Math.floor(dailySchedule.totalMinutes / 60)}h {dailySchedule.totalMinutes % 60}m
-                            </span>
-                            <button onClick={() => { setDailySchedule(null); localStorage.removeItem('braillearn-daily-schedule'); }}
-                              className="text-xs font-bold text-gray-500 hover:text-red-500 transition-all flex items-center gap-1">
-                              <X className="w-3.5 h-3.5" /> Reset
-                            </button>
-                          </div>
-                          <div className="space-y-2">
-                            {dailySchedule.blocks.map((block, i) => {
-                              const typeStyles: Record<string, string> = {
-                                lesson: 'border-l-blue-500 bg-blue-50',
-                                practice: 'border-l-purple-500 bg-purple-50',
-                                review: 'border-l-amber-500 bg-amber-50',
-                                break: 'border-l-green-500 bg-green-50',
-                              };
-                              const typeIcons: Record<string, any> = {
-                                lesson: BookOpen, practice: Play, review: Star, break: Coffee
-                              };
-                              const Icon = typeIcons[block.type] || BookOpen;
+                          {/* Day Tabs */}
+                          <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 scrollbar-thin">
+                            {Object.keys(weeklySchedule).map(day => {
+                              const isToday = day === getTodayName();
+                              const isSelected = day === selectedScheduleDay;
+                              const dayBlocks = weeklySchedule[day]?.blocks || [];
+                              const lessonCount = dayBlocks.filter(b => b.type === 'lesson').length;
                               return (
-                                <motion.div key={i}
-                                  className={`rounded-xl border-l-4 p-3 ${typeStyles[block.type] || 'bg-gray-50 border-l-gray-400'}`}
-                                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                      <Icon className="w-4 h-4 text-gray-500" />
-                                      <div>
-                                        <div className="font-bold text-sm text-gray-900">{block.activity}</div>
-                                        <div className="text-xs text-gray-500">{block.description}</div>
-                                      </div>
-                                    </div>
-                                    <div className="text-right flex-shrink-0">
-                                      <div className="text-xs font-bold text-gray-600">{block.time}</div>
-                                      <div className="text-xs text-gray-400">{block.duration}m</div>
-                                    </div>
-                                  </div>
-                                </motion.div>
+                                <button key={day} onClick={() => setSelectedScheduleDay(day)}
+                                  className={`flex-shrink-0 px-3 py-2 rounded-xl font-bold text-xs transition-all border-2 ${
+                                    isSelected
+                                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+                                      : isToday
+                                        ? 'border-green-300 bg-green-50 text-green-700 hover:border-green-400'
+                                        : 'border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50'
+                                  }`}>
+                                  <div className="capitalize">{day.slice(0, 3)}</div>
+                                  <div className="text-[10px] font-medium opacity-70">{lessonCount} lesson{lessonCount !== 1 ? 's' : ''}</div>
+                                  {isToday && <div className="w-1.5 h-1.5 bg-green-500 rounded-full mx-auto mt-1" />}
+                                </button>
                               );
                             })}
                           </div>
-                          {dailySchedule.motivationalMessage && (
-                            <p className="text-sm text-gray-500 mt-3 italic">💬 {dailySchedule.motivationalMessage}</p>
+
+                          {/* Selected Day Schedule */}
+                          {weeklySchedule[selectedScheduleDay] ? (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                                  {weeklySchedule[selectedScheduleDay].blocks.length} activities · ⏱ {Math.floor(weeklySchedule[selectedScheduleDay].totalMinutes / 60)}h {weeklySchedule[selectedScheduleDay].totalMinutes % 60}m
+                                </span>
+                                {selectedScheduleDay === getTodayName() && (
+                                  <span className="text-xs font-bold text-green-600 flex items-center gap-1">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Today
+                                  </span>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                {weeklySchedule[selectedScheduleDay].blocks.map((block, i) => {
+                                  const typeStyles: Record<string, string> = {
+                                    lesson: 'border-l-blue-500 bg-blue-50',
+                                    practice: 'border-l-purple-500 bg-purple-50',
+                                    review: 'border-l-amber-500 bg-amber-50',
+                                    break: 'border-l-green-500 bg-green-50',
+                                  };
+                                  const typeIcons: Record<string, any> = {
+                                    lesson: BookOpen, practice: Play, review: Star, break: Coffee
+                                  };
+                                  const Icon = typeIcons[block.type] || BookOpen;
+                                  const blockContent = (
+                                    <motion.div key={block.id || i}
+                                      className={`rounded-xl border-l-4 p-3 ${typeStyles[block.type] || 'bg-gray-50 border-l-gray-400'} ${block.type === 'lesson' && block.lessonId ? 'cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all' : ''}`}
+                                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                          <Icon className="w-4 h-4 text-gray-500" />
+                                          <div>
+                                            <div className="font-bold text-sm text-gray-900">{block.activity}</div>
+                                            <div className="text-xs text-gray-500">{block.description}</div>
+                                          </div>
+                                        </div>
+                                        <div className="text-right flex-shrink-0">
+                                          <div className="text-xs font-bold text-gray-600">{block.time}</div>
+                                          <div className="text-xs text-gray-400">{block.duration}m</div>
+                                          {block.type === 'lesson' && block.lessonId && (
+                                            <div className="text-[10px] text-blue-600 font-bold mt-0.5">Start →</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  );
+                                  return block.type === 'lesson' && block.lessonId ? (
+                                    <Link key={block.id || i} to={`/learn/${block.lessonId}`}>{blockContent}</Link>
+                                  ) : blockContent;
+                                })}
+                              </div>
+                              {weeklySchedule[selectedScheduleDay].motivationalMessage && (
+                                <p className="text-sm text-gray-500 mt-3 italic">💬 {weeklySchedule[selectedScheduleDay].motivationalMessage}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 text-center py-4">No activities scheduled for this day. Rest day! 😴</p>
                           )}
                         </div>
                       )}
@@ -1015,66 +1119,6 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                     </div>
                   </motion.div>
 
-                  {/* My Classes */}
-                  {myClasses.length > 0 && (
-                    <motion.div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-blue-100 mb-6"
-                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <GraduationCap className="w-5 h-5 text-blue-600" /> My Classes
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {myClasses.map(cls => (
-                          <motion.div key={cls.id} className="relative rounded-2xl overflow-hidden border-2 border-blue-100 hover:shadow-lg transition-all"
-                            whileHover={{ y: -2 }}>
-                            <div className={`bg-gradient-to-r ${classColors[cls.color] || classColors.blue} p-4 text-white`}>
-                              <h4 className="font-bold">{cls.name}</h4>
-                              <p className="text-sm text-white/80 capitalize">{cls.level}</p>
-                            </div>
-                            <div className="p-4">
-                              <p className="text-sm text-gray-600 mb-2">{cls.description || 'No description'}</p>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-400">{new Date(cls.createdAt).toLocaleDateString()}</span>
-                                <button onClick={() => setDeleteConfirmId(cls.id)} className="text-red-400 hover:text-red-600 transition-all">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* AI-Generated Lessons */}
-                  {aiLessons.length > 0 && (
-                    <motion.div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-blue-100"
-                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Wand2 className="w-5 h-5 text-purple-600" /> Generated Lessons
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {aiLessons.map(lesson => (
-                          <motion.div key={lesson.id} className="rounded-2xl border-2 border-purple-100 p-4 hover:shadow-lg hover:border-purple-300 transition-all"
-                            whileHover={{ y: -2 }}>
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                                <Sparkles className="w-4 h-4 text-white" />
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-sm text-gray-900">{lesson.title}</h4>
-                                <p className="text-xs text-gray-500">Level {lesson.level} • {lesson.duration}min</p>
-                              </div>
-                            </div>
-                            <p className="text-xs text-gray-600 line-clamp-2">{lesson.description}</p>
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">{lesson.category}</span>
-                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{lesson.exercises?.length || 0} exercises</span>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
                 </motion.div>
               )}
 
@@ -1117,11 +1161,25 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                               <List className="w-4 h-4" />
                             </button>
                           </div>
+                          {weeklySchedule && (
+                            <div className="flex rounded-xl border-2 border-gray-200 overflow-hidden">
+                              <button onClick={() => setLessonViewMode('today')}
+                                className={`px-3 py-2.5 font-bold text-xs transition-all ${lessonViewMode === 'today' ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                                📅 Today
+                              </button>
+                              <button onClick={() => setLessonViewMode('all')}
+                                className={`px-3 py-2.5 font-bold text-xs transition-all ${lessonViewMode === 'all' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                                📚 All
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        {(searchQuery || filterStatus !== 'all' || filterDifficulty !== 'all') && (
+                        {(searchQuery || filterStatus !== 'all' || filterDifficulty !== 'all' || lessonViewMode === 'today') && (
                           <div className="mt-2 flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">Showing {filteredLessons.length} of {totalLessonsCount}</span>
-                            <button onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterDifficulty('all'); }}
+                            <span className="text-gray-500">
+                              {lessonViewMode === 'today' ? `Today's lessons: ${filteredLessons.length}` : `Showing ${filteredLessons.length} of ${totalLessonsCount}`}
+                            </span>
+                            <button onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterDifficulty('all'); setLessonViewMode('all'); }}
                               className="text-blue-600 font-bold hover:underline">Clear</button>
                           </div>
                         )}
@@ -1217,7 +1275,7 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                              <MessageSquare className="w-3.5 h-3.5 text-white" />
+                              <Send className="w-3.5 h-3.5 text-white" />
                             </div>
                             <div>
                               <h3 className="text-white font-bold text-xs">Lesson Assistant</h3>
@@ -1299,362 +1357,6 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                   </div>
                 </motion.div>
               )}
-
-              {/* ═══ COMMUNITY TAB ═══ */}
-              {activeTab === 'community' && (
-                <motion.div key="community" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                  {/* ─── Braille Dot Creator ─── */}
-                  <motion.div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-emerald-100 mb-6"
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                        <Grid3X3 className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">Create Braille Character</h3>
-                        <p className="text-sm text-gray-500">Select dots, name your character & share with the community</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row gap-6">
-                      {/* Dot Selector */}
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="bg-gradient-to-br from-gray-50 to-emerald-50 rounded-2xl p-6 border-2 border-emerald-200 relative overflow-hidden">
-                          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #10b981 1px, transparent 0)', backgroundSize: '16px 16px' }} />
-                          <div className="relative grid grid-cols-2 gap-3">
-                            {[
-                              [0, 3],
-                              [1, 4],
-                              [2, 5]
-                            ].map((row, rowIdx) => (
-                              <React.Fragment key={rowIdx}>
-                                {row.map(dotIdx => (
-                                  <motion.button
-                                    key={dotIdx}
-                                    onClick={() => {
-                                      const newDots = [...selectedDots];
-                                      newDots[dotIdx] = !newDots[dotIdx];
-                                      setSelectedDots(newDots);
-                                    }}
-                                    className={`w-14 h-14 rounded-full border-[3px] font-bold text-lg transition-all ${
-                                      selectedDots[dotIdx]
-                                        ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400 text-white shadow-lg shadow-emerald-200'
-                                        : 'bg-white border-gray-300 text-gray-400 hover:border-emerald-400 hover:bg-emerald-50'
-                                    }`}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                  >
-                                    {dotIdx + 1}
-                                  </motion.button>
-                                ))}
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Unicode Preview */}
-                        <div className="text-center">
-                          <div className="text-6xl font-mono leading-none mb-1">
-                            {dotsToUnicode(selectedDots)}
-                          </div>
-                          <p className="text-xs text-gray-500 font-medium">
-                            {selectedDots.some(d => d)
-                              ? `Dots: ${selectedDots.map((d, i) => d ? i + 1 : null).filter(Boolean).join(', ')}`
-                              : 'Tap dots to select'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Word Info */}
-                      <div className="flex-1 space-y-4">
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">What does this mean?</label>
-                          <input type="text" value={dotWordName} onChange={e => setDotWordName(e.target.value)}
-                            placeholder="e.g. Letter A, Number 1, Love, Hello..."
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-sm font-medium outline-none transition-all" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Description (optional)</label>
-                          <textarea value={dotWordDescription} onChange={e => setDotWordDescription(e.target.value)}
-                            placeholder="Add a note about this braille character, memory tip, or context..."
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-sm font-medium h-24 resize-none outline-none transition-all" />
-                        </div>
-
-                        {/* Quick preset buttons */}
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-2 block">Quick Presets</label>
-                          <div className="flex flex-wrap gap-2">
-                            {[
-                              { label: 'A', dots: [true, false, false, false, false, false] },
-                              { label: 'B', dots: [true, true, false, false, false, false] },
-                              { label: 'C', dots: [true, false, false, true, false, false] },
-                              { label: 'D', dots: [true, false, false, true, true, false] },
-                              { label: 'E', dots: [true, false, false, false, true, false] },
-                              { label: 'F', dots: [true, true, false, true, false, false] },
-                              { label: 'Clear', dots: [false, false, false, false, false, false] },
-                            ].map(preset => (
-                              <button key={preset.label} onClick={() => setSelectedDots(preset.dots)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
-                                  preset.label === 'Clear'
-                                    ? 'border-red-200 text-red-600 hover:bg-red-50'
-                                    : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                                }`}>
-                                {preset.label === 'Clear' ? '✕ Clear' : `${preset.label} ${dotsToUnicode(preset.dots)}`}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <motion.button onClick={handleCreateBrailleWord}
-                          disabled={!dotWordName.trim() || !selectedDots.some(d => d)}
-                          className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                          whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                          <Sparkles className="w-5 h-5" /> Share with Community
-                        </motion.button>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* ─── Community Braille Words Grid ─── */}
-                  <motion.div className="bg-white rounded-3xl shadow-xl border-2 border-emerald-100 overflow-hidden"
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                    <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-3.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <Users className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-white font-bold text-sm">Community Braille Words</h3>
-                          <p className="text-emerald-200 text-xs">{communityWords.length} custom characters shared by learners</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-5">
-                      {communityWords.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                          {communityWords.map((w, idx) => (
-                            <motion.div key={w.id}
-                              className="relative group bg-gradient-to-br from-gray-50 to-emerald-50/30 rounded-2xl p-3 border-2 border-emerald-100 hover:border-emerald-300 hover:shadow-lg transition-all text-center"
-                              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: idx * 0.03 }}
-                              whileHover={{ y: -2 }}>
-                              <div className="text-4xl font-mono mb-1">{dotsToUnicode(w.dots)}</div>
-                              <div className="font-bold text-sm text-gray-900 truncate">{w.word}</div>
-                              <div className="text-xs text-gray-500 truncate">{w.description || `Dots ${w.dots.map((d: boolean, i: number) => d ? i + 1 : null).filter(Boolean).join(', ')}`}</div>
-                              <div className="text-[10px] text-emerald-600 font-medium mt-1">by {w.createdBy}</div>
-                              {/* Visual dots indicator */}
-                              <div className="grid grid-cols-2 gap-0.5 w-6 mx-auto mt-2">
-                                {[
-                                  [0, 3],
-                                  [1, 4],
-                                  [2, 5]
-                                ].map((row, ri) => (
-                                  <React.Fragment key={ri}>
-                                    {row.map(di => (
-                                      <div key={di} className={`w-2.5 h-2.5 rounded-full ${w.dots[di] ? 'bg-emerald-500' : 'bg-gray-200'}`} />
-                                    ))}
-                                  </React.Fragment>
-                                ))}
-                              </div>
-                              {/* Delete button */}
-                              <button
-                                onClick={() => handleDeleteBrailleWord(w.id)}
-                                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Grid3X3 className="w-12 h-12 text-emerald-300 mx-auto mb-3" />
-                          <h3 className="text-lg font-extrabold text-gray-900 mb-1">No community words yet</h3>
-                          <p className="text-sm text-gray-500">Create your first braille character above to get started!</p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-
-              {/* ═══ CREATE TAB ═══ */}
-              {activeTab === 'create' && (
-                <motion.div key="create" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Create Lesson Card */}
-                    <motion.div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-blue-100"
-                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-                          <Wand2 className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900">Create Custom Lesson</h3>
-                          <p className="text-sm text-gray-500">BrailleLearn Intelligence generates a full lesson</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Topic</label>
-                          <input type="text" value={newLessonTopic} onChange={e => setNewLessonTopic(e.target.value)}
-                            placeholder="e.g. Numbers in braille, Common contractions..."
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-purple-500 text-sm font-medium" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-sm font-bold text-gray-700 mb-1 block">Level</label>
-                            <select value={newLessonLevel} onChange={e => setNewLessonLevel(parseInt(e.target.value))}
-                              className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-purple-500 text-sm font-bold">
-                              {Array.from({ length: 30 }, (_, i) => (
-                                <option key={i + 1} value={i + 1}>Level {i + 1}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-bold text-gray-700 mb-1 block">Duration</label>
-                            <select value={newLessonDuration} onChange={e => setNewLessonDuration(parseInt(e.target.value))}
-                              className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-purple-500 text-sm font-bold">
-                              <option value={10}>10 min</option>
-                              <option value={15}>15 min</option>
-                              <option value={20}>20 min</option>
-                              <option value={30}>30 min</option>
-                              <option value={45}>45 min</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Style</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { val: 'visual', label: 'Visual', emoji: '👁️' },
-                              { val: 'tactile', label: 'Tactile', emoji: '✋' },
-                              { val: 'mixed', label: 'Mixed', emoji: '🔀' },
-                            ].map(s => (
-                              <button key={s.val} onClick={() => setNewLessonStyle(s.val)}
-                                className={`py-2 rounded-xl border-2 font-bold text-xs transition-all ${
-                                  newLessonStyle === s.val ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-600'
-                                }`}>
-                                {s.emoji} {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <motion.button onClick={handleCreateLesson} disabled={!newLessonTopic.trim() || creatingLesson}
-                          className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                          whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                          {creatingLesson ? (
-                            <><div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" /> Creating...</>
-                          ) : (
-                            <><Sparkles className="w-5 h-5" /> Generate Lesson</>
-                          )}
-                        </motion.button>
-                      </div>
-                    </motion.div>
-
-                    {/* Create Class Card */}
-                    <motion.div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-blue-100"
-                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
-                          <Users className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900">Create Class</h3>
-                          <p className="text-sm text-gray-500">Organize your learning</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Class Name</label>
-                          <input type="text" value={newClassName} onChange={e => setNewClassName(e.target.value)}
-                            placeholder="e.g. My Braille Journey, Grade 1 Braille..."
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-orange-500 text-sm font-medium" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Description</label>
-                          <textarea value={newClassDesc} onChange={e => setNewClassDesc(e.target.value)}
-                            placeholder="What is this class about?"
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-orange-500 text-sm font-medium h-20 resize-none" />
-                        </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Level</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { val: 'beginner', label: 'Beginner', emoji: '🌱' },
-                              { val: 'intermediate', label: 'Intermediate', emoji: '⭐' },
-                              { val: 'advanced', label: 'Advanced', emoji: '🏆' },
-                            ].map(l => (
-                              <button key={l.val} onClick={() => setNewClassLevel(l.val)}
-                                className={`py-2 rounded-xl border-2 font-bold text-xs transition-all ${
-                                  newClassLevel === l.val ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600'
-                                }`}>
-                                {l.emoji} {l.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-700 mb-1 block">Color</label>
-                          <div className="flex gap-2">
-                            {Object.keys(classColors).map(c => (
-                              <button key={c} onClick={() => setNewClassColor(c)}
-                                className={`w-8 h-8 rounded-lg bg-gradient-to-br ${classColors[c]} transition-all ${
-                                  newClassColor === c ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'
-                                }`} />
-                            ))}
-                          </div>
-                        </div>
-                        <motion.button onClick={handleCreateClass} disabled={!newClassName.trim()}
-                          className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                          whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                          <Plus className="w-5 h-5" /> Create Class
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Existing items list */}
-                  {(aiLessons.length > 0 || myClasses.length > 0) && (
-                    <div className="mt-6 space-y-4">
-                      {aiLessons.length > 0 && (
-                        <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-purple-100">
-                          <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-600" /> Your Generated Lessons ({aiLessons.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {aiLessons.map(l => (
-                              <div key={l.id} className="rounded-2xl border-2 border-purple-100 p-3 hover:border-purple-300 transition-all">
-                                <div className="font-bold text-sm text-gray-900">{l.title}</div>
-                                <div className="text-xs text-gray-500">Level {l.level} • {l.duration}min • {l.exercises?.length || 0} exercises</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {myClasses.length > 0 && (
-                        <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-orange-100">
-                          <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <GraduationCap className="w-5 h-5 text-orange-600" /> Your Classes ({myClasses.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {myClasses.map(c => (
-                              <div key={c.id} className="rounded-2xl border-2 border-orange-100 p-3 flex items-center justify-between hover:border-orange-300 transition-all">
-                                <div>
-                                  <div className="font-bold text-sm text-gray-900">{c.name}</div>
-                                  <div className="text-xs text-gray-500 capitalize">{c.level}</div>
-                                </div>
-                                <button onClick={() => setDeleteConfirmId(c.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
         </div>
@@ -1666,7 +1368,7 @@ Always create a complete, realistic schedule based on the user's request. Adjust
           <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={(e) => { if (e.target === e.currentTarget) setShowWizard(false); }}>
-            <motion.div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-blue-100"
+            <motion.div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col border-2 border-blue-100"
               initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}>
               {generatingPlan ? (
                 <div className="p-12 text-center">
@@ -1683,13 +1385,13 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                 </div>
               ) : (
                 <>
-                  <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 p-6 text-white rounded-t-3xl relative overflow-hidden">
+                  <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 p-4 text-white rounded-t-3xl relative overflow-hidden flex-shrink-0">
                     <div className="absolute inset-0 opacity-10">
                       <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
                     </div>
                     <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-extrabold">Curriculum Builder</h2>
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-xl font-extrabold">Curriculum Builder</h2>
                         <button onClick={() => setShowWizard(false)} className="p-2 hover:bg-white/20 rounded-xl"><X className="w-5 h-5" /></button>
                       </div>
                       <div className="flex gap-2">
@@ -1705,13 +1407,13 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                     </div>
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-6 overflow-y-auto flex-1 min-h-0">
                     <AnimatePresence mode="wait">
                       {wizardStep === 'level' && (
                         <motion.div key="level" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                          <h3 className="text-xl font-extrabold text-gray-900 mb-2">What's your current level?</h3>
-                          <p className="text-gray-600 mb-5">Select where you'd like to start</p>
-                          <div className="grid grid-cols-3 gap-3">
+                          <h3 className="text-lg font-extrabold text-gray-900 mb-1">What's your current level?</h3>
+                          <p className="text-gray-600 mb-4 text-sm">Select where you'd like to start</p>
+                          <div className="grid grid-cols-3 gap-2">
                             {[
                               { val: 1, label: 'Brand New', emoji: '🌱', desc: 'Never learned braille' },
                               { val: 5, label: 'Some Basics', emoji: '🌿', desc: 'Know some letters' },
@@ -1721,11 +1423,11 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                               { val: 25, label: 'Expert', emoji: '👑', desc: 'Near fluent reader' }
                             ].map(opt => (
                               <motion.button key={opt.val} onClick={() => setCustomForm({ ...customForm, currentLevel: opt.val })}
-                                className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                                className={`p-3 rounded-2xl border-2 text-left transition-all ${
                                   customForm.currentLevel === opt.val ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-blue-300'
                                 }`} whileHover={{ scale: 1.03 }}>
-                                <div className="text-2xl mb-1">{opt.emoji}</div>
-                                <div className="font-bold text-gray-900 text-sm">{opt.label}</div>
+                                <div className="text-xl mb-1">{opt.emoji}</div>
+                                <div className="font-bold text-gray-900 text-xs">{opt.label}</div>
                                 <div className="text-xs text-gray-500">{opt.desc}</div>
                               </motion.button>
                             ))}
@@ -1735,9 +1437,9 @@ Always create a complete, realistic schedule based on the user's request. Adjust
 
                       {wizardStep === 'style' && (
                         <motion.div key="style" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                          <h3 className="text-xl font-extrabold text-gray-900 mb-2">How do you learn best?</h3>
-                          <p className="text-gray-600 mb-5">We'll adapt content to your style</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <h3 className="text-lg font-extrabold text-gray-900 mb-1">How do you learn best?</h3>
+                          <p className="text-gray-600 mb-4 text-sm">We'll adapt content to your style</p>
+                          <div className="grid grid-cols-2 gap-2">
                             {[
                               { val: 'visual', label: 'Visual', emoji: '👁️', desc: 'Patterns, diagrams, colors' },
                               { val: 'tactile', label: 'Tactile', emoji: '✋', desc: 'Hands-on, physical practice' },
@@ -1746,11 +1448,11 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                               { val: 'mixed', label: 'Mixed', emoji: '🔀', desc: 'Combination of all styles' }
                             ].map(opt => (
                               <motion.button key={opt.val} onClick={() => setCustomForm({ ...customForm, learningStyle: opt.val })}
-                                className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                                className={`p-3 rounded-2xl border-2 text-left transition-all ${
                                   customForm.learningStyle === opt.val ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-blue-300'
                                 }`} whileHover={{ scale: 1.03 }}>
-                                <div className="text-2xl mb-1">{opt.emoji}</div>
-                                <div className="font-bold text-gray-900">{opt.label}</div>
+                                <div className="text-xl mb-1">{opt.emoji}</div>
+                                <div className="font-bold text-gray-900 text-sm">{opt.label}</div>
                                 <div className="text-xs text-gray-500">{opt.desc}</div>
                               </motion.button>
                             ))}
@@ -1760,9 +1462,9 @@ Always create a complete, realistic schedule based on the user's request. Adjust
 
                       {wizardStep === 'focus' && (
                         <motion.div key="focus" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                          <h3 className="text-xl font-extrabold text-gray-900 mb-2">What do you want to focus on?</h3>
-                          <p className="text-gray-600 mb-5">Select your primary learning goal</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <h3 className="text-lg font-extrabold text-gray-900 mb-1">What do you want to focus on?</h3>
+                          <p className="text-gray-600 mb-4 text-sm">Select your primary learning goal</p>
+                          <div className="grid grid-cols-2 gap-2">
                             {[
                               { val: 'basics', label: 'Fundamentals', emoji: '📝' },
                               { val: 'words', label: 'Words & Vocab', emoji: '📖' },
@@ -1772,11 +1474,11 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                               { val: 'all', label: 'Everything', emoji: '🌟' }
                             ].map(opt => (
                               <motion.button key={opt.val} onClick={() => setCustomForm({ ...customForm, focusAreas: opt.val })}
-                                className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                                className={`p-3 rounded-2xl border-2 text-left transition-all ${
                                   customForm.focusAreas === opt.val ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-blue-300'
                                 }`} whileHover={{ scale: 1.03 }}>
-                                <span className="text-2xl">{opt.emoji}</span>
-                                <div className="font-bold text-gray-900 mt-1">{opt.label}</div>
+                                <span className="text-xl">{opt.emoji}</span>
+                                <div className="font-bold text-gray-900 mt-1 text-sm">{opt.label}</div>
                               </motion.button>
                             ))}
                           </div>
@@ -1792,9 +1494,9 @@ Always create a complete, realistic schedule based on the user's request. Adjust
 
                       {wizardStep === 'schedule' && (
                         <motion.div key="schedule" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                          <h3 className="text-xl font-extrabold text-gray-900 mb-2">Set your schedule</h3>
-                          <p className="text-gray-600 mb-5">When and how often can you study?</p>
-                          <div className="space-y-5">
+                          <h3 className="text-lg font-extrabold text-gray-900 mb-1">Set your schedule</h3>
+                          <p className="text-gray-600 mb-4 text-sm">When and how often can you study?</p>
+                          <div className="space-y-4">
                             <div>
                               <label className="text-sm font-bold text-gray-700 mb-2 block">Daily study time</label>
                               <div className="grid grid-cols-3 gap-3">
@@ -1849,9 +1551,9 @@ Always create a complete, realistic schedule based on the user's request. Adjust
 
                       {wizardStep === 'review' && (
                         <motion.div key="review" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                          <h3 className="text-xl font-extrabold text-gray-900 mb-2">Review your plan</h3>
-                          <p className="text-gray-600 mb-5">Here's what BrailleLearn Intelligence will create for you</p>
-                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-100 space-y-3">
+                          <h3 className="text-lg font-extrabold text-gray-900 mb-1">Review your plan</h3>
+                          <p className="text-gray-600 mb-4 text-sm">Here's what BrailleLearn Intelligence will create for you</p>
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 border-2 border-blue-100 space-y-2">
                             {[
                               { label: 'Starting Level', value: `Level ${customForm.currentLevel}` },
                               { label: 'Learning Style', value: customForm.learningStyle },
@@ -1877,7 +1579,7 @@ Always create a complete, realistic schedule based on the user's request. Adjust
                     </AnimatePresence>
                   </div>
 
-                  <div className="p-6 border-t border-gray-100 flex justify-between">
+                  <div className="p-4 border-t border-gray-100 flex justify-between flex-shrink-0">
                     <button onClick={() => {
                       const idx = currentWizardIndex;
                       if (idx > 0) setWizardStep(wizardSteps[idx - 1].id);
@@ -1915,38 +1617,6 @@ Always create a complete, realistic schedule based on the user's request. Adjust
         </AnimatePresence>
       </div>
 
-      {/* ─── Delete Confirmation Modal ─── */}
-      <AnimatePresence>
-        {deleteConfirmId && (
-          <motion.div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] flex items-center justify-center p-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setDeleteConfirmId(null)}>
-            <motion.div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full border-2 border-red-100"
-              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">Delete Class?</h3>
-                  <p className="text-sm text-gray-500">"{myClasses.find(c => c.id === deleteConfirmId)?.name}" will be permanently removed.</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-2.5 border-2 border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all">
-                  Cancel
-                </button>
-                <button onClick={() => handleDeleteClass(deleteConfirmId)}
-                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all">
-                  Delete
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

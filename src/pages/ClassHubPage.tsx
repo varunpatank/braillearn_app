@@ -6,7 +6,8 @@ import {
   Plus, Search, Calendar, Globe,
   Play, ExternalLink, Clock, Youtube, X, FileText,
   LinkIcon, Upload, Trash, Save, BarChart, TrendingUp,
-  Activity, Target, Brain, ArrowUpRight, Eye, Flame
+  Activity, Target, Brain, ArrowUpRight, Eye, Flame,
+  Grid3x3, Sparkles, Phone, PhoneOff, VideoIcon
 } from 'lucide-react';
 import { showSuccessConfetti } from '@/utils/confetti';
 import { toast } from '@/components/ui/use-toast';
@@ -448,7 +449,7 @@ const ClassHubPage: React.FC = () => {
     'user35': 'Ivy Mitchell'
   });
 
-  const [activeTab, setActiveTab] = useState<'tutors' | 'classes' | 'centers' | 'dashboard' | 'resources'>('tutors');
+  const [activeTab, setActiveTab] = useState<'tutors' | 'classes' | 'centers' | 'dashboard' | 'resources' | 'community'>('tutors');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddTutor, setShowAddTutor] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
@@ -457,6 +458,68 @@ const ClassHubPage: React.FC = () => {
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showClassStats, setShowClassStats] = useState(false);
   const [showAddResource, setShowAddResource] = useState(false);
+  const [showMeetingRoom, setShowMeetingRoom] = useState(false);
+  const [meetingRoomId, setMeetingRoomId] = useState('');
+  const [meetingClassName, setMeetingClassName] = useState('');
+
+  // Braille Character Creator state
+  const [selectedDots, setSelectedDots] = useState<boolean[]>([false, false, false, false, false, false]);
+  const [dotWordName, setDotWordName] = useState('');
+  const [dotWordDescription, setDotWordDescription] = useState('');
+  interface CommunityBrailleWord {
+    id: string;
+    dots: boolean[];
+    word: string;
+    description: string;
+    createdBy: string;
+    createdAt: string;
+  }
+  const [communityWords, setCommunityWords] = useState<CommunityBrailleWord[]>(() => {
+    const saved = localStorage.getItem('braillearn-community-words');
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: 'seed-1', dots: [true, false, false, false, false, false], word: 'Letter A', description: 'The first letter — just dot 1', createdBy: 'BrailleBot', createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
+      { id: 'seed-2', dots: [true, true, false, false, false, false], word: 'Letter B', description: 'Dots 1-2 make the letter B', createdBy: 'Sarah_T', createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
+      { id: 'seed-3', dots: [true, false, false, true, false, false], word: 'Letter C', description: 'Two top dots together', createdBy: 'Alex_M', createdAt: new Date(Date.now() - 86400000).toISOString() },
+    ];
+  });
+
+  const dotsToUnicode = (dots: boolean[]): string => {
+    let val = 0x2800;
+    dots.forEach((d, i) => { if (d) val += (1 << i); });
+    return String.fromCodePoint(val);
+  };
+
+  const handleCreateBrailleWord = () => {
+    if (!dotWordName.trim() || !selectedDots.some(d => d)) return;
+    const newWord: CommunityBrailleWord = {
+      id: `word-${Date.now()}`,
+      dots: [...selectedDots],
+      word: dotWordName.trim(),
+      description: dotWordDescription.trim(),
+      createdBy: 'You',
+      createdAt: new Date().toISOString()
+    };
+    const updated = [newWord, ...communityWords];
+    setCommunityWords(updated);
+    localStorage.setItem('braillearn-community-words', JSON.stringify(updated));
+    setSelectedDots([false, false, false, false, false, false]);
+    setDotWordName('');
+    setDotWordDescription('');
+  };
+
+  const handleDeleteBrailleWord = (id: string) => {
+    const updated = communityWords.filter(w => w.id !== id);
+    setCommunityWords(updated);
+    localStorage.setItem('braillearn-community-words', JSON.stringify(updated));
+  };
+
+  const openMeetingRoom = (classTitle: string) => {
+    const roomId = classTitle.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-') + '-' + Date.now().toString(36);
+    setMeetingRoomId(roomId);
+    setMeetingClassName(classTitle);
+    setShowMeetingRoom(true);
+  };
   const [tutorForm, setTutorForm] = useState({
     name: '',
     email: '',
@@ -1649,6 +1712,7 @@ const ClassHubPage: React.FC = () => {
           {[
             { id: 'tutors', label: 'Find Tutors', icon: Users, color: 'blue' },
             { id: 'classes', label: 'Live Classes', icon: BookOpen, color: 'green' },
+            { id: 'community', label: 'Braille Lab', icon: Grid3x3, color: 'emerald' },
             { id: 'centers', label: 'Learning Centers', icon: MapPin, color: 'purple' },
             { id: 'dashboard', label: 'Analytics', icon: BarChart, color: 'orange' },
             { id: 'resources', label: 'Resources', icon: Video, color: 'indigo' }
@@ -1918,9 +1982,12 @@ const ClassHubPage: React.FC = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Globe size={16} className="mr-2 text-green-600" />
-                        <a href={classItem.meetingLink} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">
-                          Join Meeting
-                        </a>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); openMeetingRoom(classItem.title); }}
+                          className="hover:text-blue-600 font-medium text-blue-600 flex items-center gap-1"
+                        >
+                          <Phone size={14} /> Join Meeting Room
+                        </button>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Users size={16} className="mr-2 text-purple-600" />
@@ -2779,6 +2846,211 @@ const ClassHubPage: React.FC = () => {
                   )}
                 </div>
               </motion.div>
+            </motion.div>
+          )}
+
+          {/* ═══ COMMUNITY / BRAILLE LAB TAB ═══ */}
+          {activeTab === 'community' && (
+            <motion.div key="community" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+              <div className="space-y-6">
+                {/* Braille Dot Creator */}
+                <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-emerald-100">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+                      <Grid3x3 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Create Braille Character</h3>
+                      <p className="text-sm text-gray-500">Select dots, name your character & share with the community</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="bg-gradient-to-br from-gray-50 to-emerald-50 rounded-2xl p-6 border-2 border-emerald-200">
+                        <div className="grid grid-cols-2 gap-3">
+                          {[[0, 3], [1, 4], [2, 5]].map((row, rowIdx) => (
+                            <React.Fragment key={rowIdx}>
+                              {row.map(dotIdx => (
+                                <motion.button key={dotIdx}
+                                  onClick={() => {
+                                    const newDots = [...selectedDots];
+                                    newDots[dotIdx] = !newDots[dotIdx];
+                                    setSelectedDots(newDots);
+                                  }}
+                                  className={`w-14 h-14 rounded-full border-[3px] font-bold text-lg transition-all ${
+                                    selectedDots[dotIdx]
+                                      ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400 text-white shadow-lg'
+                                      : 'bg-white border-gray-300 text-gray-400 hover:border-emerald-400'
+                                  }`}
+                                  whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  {dotIdx + 1}
+                                </motion.button>
+                              ))}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-6xl font-mono leading-none mb-1">{dotsToUnicode(selectedDots)}</div>
+                        <p className="text-xs text-gray-500 font-medium">
+                          {selectedDots.some(d => d) ? `Dots: ${selectedDots.map((d, i) => d ? i + 1 : null).filter(Boolean).join(', ')}` : 'Tap dots to select'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <label className="text-sm font-bold text-gray-700 mb-1 block">What does this mean?</label>
+                        <input type="text" value={dotWordName} onChange={e => setDotWordName(e.target.value)}
+                          placeholder="e.g. Letter A, Number 1, Love..."
+                          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 text-sm font-medium" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-gray-700 mb-1 block">Description (optional)</label>
+                        <textarea value={dotWordDescription} onChange={e => setDotWordDescription(e.target.value)}
+                          placeholder="Add a note about this braille character..."
+                          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 text-sm font-medium h-24 resize-none" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-gray-700 mb-2 block">Quick Presets</label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { label: 'A', dots: [true, false, false, false, false, false] },
+                            { label: 'B', dots: [true, true, false, false, false, false] },
+                            { label: 'C', dots: [true, false, false, true, false, false] },
+                            { label: 'D', dots: [true, false, false, true, true, false] },
+                            { label: 'E', dots: [true, false, false, false, true, false] },
+                            { label: 'F', dots: [true, true, false, true, false, false] },
+                            { label: 'Clear', dots: [false, false, false, false, false, false] },
+                          ].map(preset => (
+                            <button key={preset.label} onClick={() => setSelectedDots(preset.dots)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                                preset.label === 'Clear' ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              }`}>
+                              {preset.label === 'Clear' ? '✕ Clear' : `${preset.label} ${dotsToUnicode(preset.dots)}`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={handleCreateBrailleWord}
+                        disabled={!dotWordName.trim() || !selectedDots.some(d => d)}
+                        className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                        <Sparkles className="w-5 h-5" /> Share with Community
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Community Words Grid */}
+                <div className="bg-white rounded-3xl shadow-xl border-2 border-emerald-100 overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-3.5 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-sm">Community Braille Words</h3>
+                      <p className="text-emerald-200 text-xs">{communityWords.length} characters shared by learners</p>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    {communityWords.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        {communityWords.map((w, idx) => (
+                          <motion.div key={w.id}
+                            className="relative group bg-gradient-to-br from-gray-50 to-emerald-50/30 rounded-2xl p-3 border-2 border-emerald-100 hover:border-emerald-300 hover:shadow-lg transition-all text-center"
+                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.03 }}>
+                            <div className="text-4xl font-mono mb-1">{dotsToUnicode(w.dots)}</div>
+                            <div className="font-bold text-sm text-gray-900 truncate">{w.word}</div>
+                            <div className="text-xs text-gray-500 truncate">{w.description || `Dots ${w.dots.map((d: boolean, i: number) => d ? i + 1 : null).filter(Boolean).join(', ')}`}</div>
+                            <div className="text-[10px] text-emerald-600 font-medium mt-1">by {w.createdBy}</div>
+                            <div className="grid grid-cols-2 gap-0.5 w-6 mx-auto mt-2">
+                              {[[0, 3], [1, 4], [2, 5]].map((row, ri) => (
+                                <React.Fragment key={ri}>
+                                  {row.map(di => (
+                                    <div key={di} className={`w-2.5 h-2.5 rounded-full ${w.dots[di] ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                                  ))}
+                                </React.Fragment>
+                              ))}
+                            </div>
+                            <button onClick={() => handleDeleteBrailleWord(w.id)}
+                              className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Grid3x3 className="w-12 h-12 text-emerald-300 mx-auto mb-3" />
+                        <h3 className="text-lg font-extrabold text-gray-900 mb-1">No community words yet</h3>
+                        <p className="text-sm text-gray-500">Create your first braille character above!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ═══ MEETING ROOM MODAL ═══ */}
+        <AnimatePresence>
+          {showMeetingRoom && (
+            <motion.div className="fixed inset-0 bg-black/90 z-50 flex flex-col"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {/* Meeting Header */}
+              <div className="bg-gray-900 px-6 py-3 flex items-center justify-between border-b border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <VideoIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-sm">{meetingClassName}</h3>
+                    <p className="text-gray-400 text-xs">Room: {meetingRoomId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Live
+                  </span>
+                  <button onClick={() => setShowMeetingRoom(false)}
+                    className="p-2 hover:bg-gray-700 rounded-lg transition-all text-gray-400 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Meeting Content */}
+              <div className="flex-1 flex">
+                {/* Video Area */}
+                <div className="flex-1 flex flex-col">
+                  <div className="flex-1 p-4">
+                    <div className="w-full h-full rounded-2xl overflow-hidden">
+                      <iframe
+                        src={`https://meet.jit.si/BrailleLearn-${meetingRoomId}#config.prejoinConfig.enabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=false&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","desktop","fullscreen","hangup","chat","raisehand","settings"]&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.DEFAULT_BACKGROUND="#1a1a2e"&interfaceConfig.DISABLE_JOIN_LEAVE_NOTIFICATIONS=true`}
+                        className="w-full h-full rounded-2xl"
+                        allow="camera; microphone; fullscreen; display-capture; autoplay; clipboard-write"
+                        style={{ border: 'none', minHeight: '500px' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Meeting Controls */}
+                  <div className="bg-gray-900 px-6 py-4 flex items-center justify-center gap-3 border-t border-gray-700">
+                    <button onClick={() => setShowMeetingRoom(false)}
+                      className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg transition-all">
+                      <PhoneOff className="w-4 h-4" /> Leave Meeting
+                    </button>
+                    <button onClick={() => {
+                      const url = `${window.location.origin}/classhub?meeting=${meetingRoomId}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: 'Link Copied!', description: 'Meeting invite link copied to clipboard.' });
+                    }}
+                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg transition-all">
+                      <LinkIcon className="w-4 h-4" /> Copy Invite Link
+                    </button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
