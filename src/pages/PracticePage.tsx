@@ -219,7 +219,7 @@ const PracticePage: React.FC = () => {
   useEffect(() => {
     document.title = 'Practice Sessions - BrailleLearn';
     window.scrollTo(0, 0);
-    speak('Welcome to Practice Sessions! Choose a practice mode to improve your braille skills.');
+    speak('Welcome to Practice Sessions! Choose a practice mode to improve your braille skills. This app is designed for partially sighted learners, and blind users can navigate by voice.');
     
     // Test Gemini API connection when page loads
     const testAPI = async () => {
@@ -852,64 +852,18 @@ const PracticePage: React.FC = () => {
       </AnimatePresence>
       
       <div className="min-h-screen bg-gray-50 braille-bg">
-        {/* Hero Banner — Target Ring Theme */}
-        <section className="relative bg-gradient-to-b from-blue-700 via-indigo-700 to-blue-800 text-white overflow-hidden">
-          {/* Concentric ring pattern */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="absolute rounded-full border-2 border-white" style={{ width: `${i * 200}px`, height: `${i * 200}px` }} />
-            ))}
-          </div>
-          {/* Crosshair lines */}
-          <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
-            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white" />
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
-          </div>
-          <div className="absolute top-10 right-10 w-72 h-72 bg-orange-500/10 rounded-full blur-[80px]" />
-          
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative z-10 text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <motion.span 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: 'spring' }}
-                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-4"
-              >
-                <Flame className="w-4 h-4 text-orange-400" />
-                <span className="text-sm font-medium">Advanced Training</span>
-              </motion.span>
-            </motion.div>
-            <motion.h1 
-              className="text-4xl font-extrabold leading-tight mb-4"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              🎯 Practice Sessions
-            </motion.h1>
-            <motion.p 
-              className="text-lg text-blue-200"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              Challenge yourself with interactive braille practice games
-            </motion.p>
-          </div>
-        </section>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {!selectedMode ? (
             // Practice Mode Selection
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
+              <div className="mb-6 bg-blue-50 rounded-2xl px-5 py-3 border border-blue-100 flex items-center gap-3">
+                <span className="text-2xl">♿</span>
+                <p className="text-sm text-blue-700"><span className="font-bold">Accessible to all</span> — Designed for partially sighted learners. Blind users can navigate entirely by voice using the mic button.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {practiceModes.map((mode) => {
                 const IconComponent = mode.icon;
                 return (
@@ -968,6 +922,7 @@ const PracticePage: React.FC = () => {
                   </motion.div>
                 );
               })}
+              </div>
             </motion.div>
           ) : showCustomization ? (
             // Customization Screen

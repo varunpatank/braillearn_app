@@ -186,7 +186,7 @@ const HardwareSetupPage: React.FC = () => {
                 Hardware Setup & Testing
               </h1>
               <p className="text-lg text-blue-200 max-w-lg">
-                Connect and test your Arduino Braille Display device
+                Connect and test your Arduino Braille Display device. Accessible for partially sighted and blind users — use the voice assistant to navigate.
               </p>
             </div>
             {/* Hardware illustration */}

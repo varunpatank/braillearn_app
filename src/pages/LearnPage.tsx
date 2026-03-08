@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAudio } from '../context/AudioContext';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase } from '@/hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, BookOpen, TrendingUp,
@@ -10,16 +10,19 @@ import {
   Check, ChevronDown,
   Layers, Brain,
   X, ArrowRight, BarChart,
-  Rocket, Search, Grid3X3, List,
-  Calendar,
+  Rocket,
+  Calendar, Gamepad2,
   Play, Users, Wand2,
   ChevronRight, Coffee,
-  CheckCircle, AlertTriangle, Info
+  CheckCircle, AlertTriangle, Info,
+  MousePointer2, Clock
 } from 'lucide-react';
 import LessonCard from '../components/lessons/LessonCard';
 import { openRouterService } from '../services/openRouterService';
 import { lessons } from '../data/lessons';
 import type { ScheduledLesson, StudyPlan, Lesson, LessonProgress } from '../types/types';
+import { lazy, Suspense } from 'react';
+const PracticePage = lazy(() => import('./PracticePage'));
 
 // ─── Toast Notification Types ───
 interface Toast {
@@ -66,10 +69,8 @@ const ToastNotification: React.FC<{ toast: Toast; onDismiss: (id: string) => voi
 };
 
 type ViewMode = 'grid' | 'list';
-type FilterStatus = 'all' | 'completed' | 'in-progress' | 'locked';
-type FilterDifficulty = 'all' | 'beginner' | 'intermediate' | 'advanced';
 type WizardStep = 'level' | 'style' | 'focus' | 'schedule' | 'review';
-type DashboardTab = 'overview' | 'lessons';
+type DashboardTab = 'overview' | 'lessons' | 'practice';
 
 interface ScheduleBlock {
   id: string;
@@ -94,7 +95,14 @@ type WeeklySchedule = Record<string, DailySchedule>;
 
 const LearnPage: React.FC = () => {
   const { speak } = useAudio();
-  const { user } = useAuth();
+  const speakRef = useRef(speak);
+  speakRef.current = speak;
+  const { user: clerkUser } = useUser();
+  const supabase = useSupabase();
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
+  const userId = clerkUser?.id ?? null;
+  const user = useMemo(() => (userId ? { id: userId } : null), [userId]);
 
   // Core state
   const [loading, setLoading] = useState(true);
@@ -115,11 +123,8 @@ const LearnPage: React.FC = () => {
 
 
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [filterDifficulty, setFilterDifficulty] = useState<FilterDifficulty>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  // View
+  const [viewMode] = useState<ViewMode>('grid');
 
   // Schedule
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule | null>(null);
@@ -127,13 +132,20 @@ const LearnPage: React.FC = () => {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     return days[new Date().getDay()];
   });
-  const [lessonViewMode, setLessonViewMode] = useState<'today' | 'all'>('all');
 
-  // Schedule Customization Chat
-  const [scheduleChatMessages, setScheduleChatMessages] = useState<Array<{ id: string; text: string; sender: 'user' | 'ai'; timestamp: Date }>>([]);
+  // AI Agent state
   const [scheduleChatInput, setScheduleChatInput] = useState('');
   const [scheduleChatLoading, setScheduleChatLoading] = useState(false);
-  const scheduleChatEndRef = React.useRef<HTMLDivElement>(null);
+
+  // AI Visual Agent Cursor state
+  const [aiCursorActive, setAiCursorActive] = useState(false);
+  const [aiCursorPos, setAiCursorPos] = useState({ x: 0, y: 0 });
+  const [aiCursorLabel, setAiCursorLabel] = useState('');
+  const [aiEditingBlocks, setAiEditingBlocks] = useState<string[]>([]);
+  const [aiChangePopup, setAiChangePopup] = useState<{ show: boolean; title: string; changes: string[]; type: string } | null>(null);
+
+  // Lessons sub-tab: 'browse' shows all/filtered lessons, 'week' shows weekly schedule
+  const [lessonsSubTab, setLessonsSubTab] = useState<'browse' | 'week'>('week');
 
   // Toast Notifications & Confirmations
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -161,10 +173,11 @@ const LearnPage: React.FC = () => {
   });
 
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
       document.title = 'Learn Braille - BrailleLearn';
       window.scrollTo(0, 0);
-      speak('Welcome to the learning dashboard.');
+      speakRef.current('Welcome to the learning dashboard.');
 
       try {
         setAllLessons(lessons);
@@ -178,20 +191,54 @@ const LearnPage: React.FC = () => {
         const savedWeekly = localStorage.getItem('braillearn-weekly-schedule');
         if (savedWeekly) setWeeklySchedule(JSON.parse(savedWeekly));
 
-        if (user) {
-          const { data: progress } = await supabase
-            .from('lesson_progress')
-            .select('*')
-            .eq('user_id', user.id);
-          if (progress) setLessonProgress(progress);
+        if (user && supabaseRef.current) {
+          try {
+            const { data: progress } = await Promise.race([
+              supabaseRef.current
+                .from('lesson_progress')
+                .select('*')
+                .eq('user_id', user.id),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 4000)),
+            ]);
+            if (!cancelled && progress) setLessonProgress(progress);
+          } catch (dbError) {
+            console.warn('Supabase fetch skipped:', dbError);
+          }
         }
       } catch (error) {
         console.error('Error loading data:', error);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
     init();
-  }, [user, speak]);
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Reset state on sign-out
+  useEffect(() => {
+    if (!clerkUser) {
+      setStudyPlan(null);
+      setUseCustomPlan(false);
+      setWeeklySchedule(null);
+      setLessonProgress([]);
+      setScheduleConfirmed(false);
+      localStorage.removeItem('braillearn-study-plan');
+      localStorage.removeItem('braillearn-schedule-confirmed');
+      localStorage.removeItem('braillearn-weekly-schedule');
+    }
+  }, [clerkUser]);
+
+  // ─── Voice Assistant integration — listen for voice-agent-command events ───
+  useEffect(() => {
+    const onVoiceCmd = (e: Event) => {
+      const msg = (e as CustomEvent).detail?.message;
+      if (msg && typeof msg === 'string') {
+        handleScheduleChat(msg);
+      }
+    };
+    window.addEventListener('voice-agent-command', onVoiceCmd);
+    return () => window.removeEventListener('voice-agent-command', onVoiceCmd);
+  }, []);
 
   // ─── Schedule Generation Helpers ───
   const formatScheduleTime = (minutes: number): string => {
@@ -464,6 +511,8 @@ const LearnPage: React.FC = () => {
     setUseCustomPlan(true);
     setShowWizard(false);
     setGeneratingPlan(false);
+    setLessonsSubTab('week');
+    setSelectedScheduleDay(getTodayName());
     const dayCount = Object.keys(weekly).length;
     addToast('success', '🎉 Plan & Schedule Created!', `Your "${plan.title || 'Braille Journey'}" plan is ready with schedules for ${dayCount} days/week.`);
     setActiveTab('overview');
@@ -481,211 +530,497 @@ const LearnPage: React.FC = () => {
     addToast('info', 'Plan Reset', 'Your study plan and schedule have been cleared. Create a new one anytime from the Overview tab.');
   };
 
-  // Schedule Customization Chat — handles weekly schedule, plan changes, and general braille Q&A
+  // AI Agent — translates natural language to schedule commands, feeds ALL lessons + current schedule to Gemini
+  // Cursor moves in slow motion with scroll-follow so user can watch hands-free
   const handleScheduleChat = async (message: string) => {
     if (!message.trim()) return;
     setScheduleChatLoading(true);
-    setScheduleChatMessages(prev => [...prev, { id: Date.now().toString(), text: message, sender: 'user', timestamp: new Date() }]);
     setScheduleChatInput('');
 
     try {
       const today = getTodayName();
       const scheduleContext = weeklySchedule
-        ? `Weekly schedule (${Object.keys(weeklySchedule).length} days):\n${Object.entries(weeklySchedule).map(([day, sched]) =>
-          `${day.toUpperCase()}: ${sched.blocks.filter(b => b.type === 'lesson').map(b => b.lessonId ? `${b.activity} [${b.lessonId}]` : b.activity).join(', ')} (${sched.totalMinutes}min total)`
+        ? `CURRENT WEEKLY SCHEDULE:\n${Object.entries(weeklySchedule).map(([day, sched]) =>
+          `${day.toUpperCase()}: ${sched.blocks.map((b, i) => `[${b.id || day + '-' + i}] ${b.time || ''} ${b.activity} (${b.duration}min, type:${b.type}${b.lessonId ? ', lessonId:' + b.lessonId : ''})`).join(' | ')} — Total: ${sched.totalMinutes}min`
         ).join('\n')}\nToday is ${today}.`
-        : 'No weekly schedule generated yet. The user needs to create a plan first.';
+        : 'NO SCHEDULE EXISTS YET — create one from scratch.';
 
       const planContext = studyPlan
-        ? `Study plan: "${studyPlan.title}" — ${studyPlan.totalLessons} lessons, ${studyPlan.statistics?.lessonsCompleted || 0} completed. Weekly goal: ${studyPlan.weeklyGoal}. Focus: ${studyPlan.preferences?.focusAreas?.join(', ') || 'all'}. Difficulty: ${studyPlan.preferences?.difficultyProgression || 'gradual'}. Days: ${studyPlan.preferences?.availableDays?.join(', ') || 'weekdays'}.`
+        ? `STUDY PLAN: "${studyPlan.title}" — ${studyPlan.totalLessons} lessons, ${studyPlan.statistics?.lessonsCompleted || 0} completed. Weekly goal: ${studyPlan.weeklyGoal}. Focus: ${studyPlan.preferences?.focusAreas?.join(', ') || 'all'}. Difficulty: ${studyPlan.preferences?.difficultyProgression || 'gradual'}. Days: ${studyPlan.preferences?.availableDays?.join(', ') || 'weekdays'}.`
         : 'No study plan yet.';
 
-      const lessonBankSummary = `Available lesson bank: ${allLessons.length} total lessons. Categories: basics (letters A-Z, ${allLessons.filter(l => l.category === 'basics').length} lessons), words (${allLessons.filter(l => l.category === 'words').length} lessons), sentences (${allLessons.filter(l => l.category === 'sentences').length} lessons), contractions (${allLessons.filter(l => l.category === 'contractions').length} lessons), advanced (${allLessons.filter(l => l.category === 'advanced').length} lessons). Levels 1–30.`;
+      // Build FULL lesson catalog for Gemini
+      const lessonCatalog = allLessons.map(l => `${l.id}: "${l.title}" (cat:${l.category}, lvl:${l.level}, ${l.duration}min)`).join('\n');
 
-      const systemPrompt = `You are BrailleLearn Intelligence — a powerful learning assistant. You handle ANY request about the user's braille learning:
-- Change their weekly schedule (swap days, adjust times, add/remove days, reorder lessons)
-- Change their study plan (focus areas, difficulty, weekly goals, lesson order)
-- Filter or recommend specific lessons from the lesson bank
-- Answer questions about braille, learning strategies, etc.
+      const systemPrompt = `You are BrailleLearn Agent — a COMMAND EXECUTOR that DIRECTLY EDITS the user's weekly braille learning schedule. You receive natural language and output ONLY a valid JSON command. NEVER output text — ONLY JSON.
 
-User progress: ${completedLessons}/${totalLessonsCount} lessons completed. Level: ${customForm.currentLevel}.
+USER STATE:
+- Progress: ${completedLessons}/${totalLessonsCount} lessons completed. Level: ${customForm.currentLevel}.
 ${scheduleContext}
 ${planContext}
-${lessonBankSummary}
 
-IMPORTANT: If the user wants to make a CHANGE (schedule, plan, lessons), include a JSON code block. If they're just asking a question, respond normally without JSON.
+COMPLETE LESSON CATALOG (use these EXACT lesson IDs):
+${lessonCatalog}
 
-JSON format for changes:
-\`\`\`json
+YOUR JOB: Take ANY user request — no matter how specific or vague — and translate it into a JSON schedule edit. ALWAYS output a complete weeklySchedule with the FULL updated schedule for ALL days. If the user asks for something you're unsure about, make your best guess and DO IT.
+
+EXAMPLES OF REQUESTS YOU MUST HANDLE:
+- "Add math lessons" → find lesson-42 (Mathematical Notation) and lesson-43 (Mathematical Expressions) and add them
+- "More letters" / "letter lessons" / "character lessons" / "alphabet" → add lesson-1 through lesson-10 (Letters A-Z)
+- "Change style to contractions" → replace current lessons with contraction lessons (lesson-31 through lesson-37)
+- "Make it easier" / "too hard" / "simpler" → swap for lower-level basics lessons (lesson-1 through lesson-10)
+- "Make it harder" / "more challenging" / "advanced" → add lesson-41+ (advanced category)
+- "I want to learn numbers" / "digits" → add lesson-11 and lesson-12
+- "Focus on words" / "word lessons" → replace with word lessons (lesson-18, 19, 21-27, 39)
+- "Add music lessons" / "music notation" → add lesson-44
+- "I want Spanish" / "foreign language" → add lesson-45
+- "Add computer lessons" / "tech" / "coding" → add lesson-46
+- "More poetry" / "poems" → add lesson-47
+- "Punctuation lessons" / "periods and commas" → add lesson-13 through lesson-16
+- "Symbol lessons" / "special characters" → add lesson-13 through lesson-17
+- "Sentence lessons" / "reading sentences" → add lesson-28, 29, 30, 40
+- "Capital letters" / "capitalization" → add lesson-17
+- "Shorten sessions" / "less time" / "quick" → reduce all block durations to 15min
+- "Make it longer" / "more time" / "extend" → increase block durations to 45min
+- "Remove Monday" → remove monday from schedule
+- "Add weekends" / "saturday and sunday" → add saturday and sunday with lessons
+- "Swap Monday and Friday" → swap those days' blocks
+- "Move everything to evenings" / "evening schedule" → change times to 6:00 PM+
+- "Move to mornings" / "morning schedule" → change times to 8:00 AM+
+- "Afternoon schedule" → change times to 1:00 PM+
+- "I need more practice" / "practice sessions" → add practice/review type blocks
+- "Add breaks" / "rest periods" → insert break blocks between lesson blocks
+- "Only 3 days a week" / "fewer days" → keep only 3 days
+- "Every day" / "7 days" / "daily" → schedule all 7 days
+- "Review what I learned" / "revision" → add review blocks for completed lessons
+- "Double the lessons" / "more lessons per day" → add more lesson blocks per day
+- "Only basics" / "basic only" → replace everything with basics category lessons
+- "Mix categories" / "variety" / "diverse" → alternate between different categories each day
+- "Theme days" / "focused days" → each day focuses on one category
+- "Clear everything" / "reset" / "start over" → empty all days then rebuild
+- "Start fresh" / "new schedule" → rebuild from scratch with balanced lessons
+- "Make it fun" / "adventure" / "games" → use adventure lessons
+- "Randomize" / "shuffle" / "surprise me" → random mix of lessons from all categories
+- "Rush" / "accelerate" / "cover more" / "speed up" → pack more lessons per day, shorter durations
+- "Slow down" / "take it easy" / "relaxed" → fewer lessons per day, longer durations
+- "Give all lessons on X" → find all lessons matching that topic and add them
+- "Focus on reading" → add lesson-38, 40, 41 (reading-focused)
+- "Compound words" → add lesson-39
+- "Document formatting" → add lesson-49
+- "Speed reading" → add lesson-41
+
+OUTPUT FORMAT — ALWAYS this exact structure:
 {
-  "type": "schedule" | "plan" | "both",
+  "command": "edit_schedule",
+  "changeSummary": ["Human-readable change 1", "Human-readable change 2"],
   "weeklySchedule": {
     "monday": {
       "date": "monday",
-      "totalMinutes": number,
+      "totalMinutes": 60,
       "blocks": [
-        { "id": "mon-1", "time": "9:00 AM", "duration": 30, "activity": "Activity name", "type": "lesson|practice|review|break", "description": "Details", "lessonId": "lesson-1", "lessonSuggestion": "Lesson title" }
+        {"id": "mon-0", "time": "9:00 AM", "duration": 30, "activity": "EXACT lesson title from catalog", "type": "lesson", "description": "Brief description", "lessonId": "lesson-1"},
+        {"id": "mon-1", "time": "9:30 AM", "duration": 30, "activity": "Another lesson title", "type": "lesson", "description": "Brief description", "lessonId": "lesson-2"}
       ],
-      "tips": ["tip"],
-      "motivationalMessage": "message"
-    }
-  },
-  "planUpdates": {
-    "title": "optional new title",
-    "weeklyGoal": number,
-    "preferences": {
-      "difficultyProgression": "gradual|moderate|aggressive",
-      "focusAreas": ["basics","words","sentences","contractions","advanced"],
-      "availableDays": ["monday","tuesday",...],
-      "maxLessonsPerDay": number
+      "tips": ["Helpful tip for this day"],
+      "motivationalMessage": "Encouraging message 🌟"
     }
   }
 }
-\`\`\`
 
-For "schedule" type: include "weeklySchedule" with ALL days the user wants scheduled.
-For "plan" type: include "planUpdates" with only the fields to change.
-For "both": include both "weeklySchedule" and "planUpdates".
-Use actual lesson IDs (lesson-1 through lesson-50, adventure-1, etc.) in lessonId when assigning lessons.
-Respond with a friendly message explaining what you changed, then the JSON block.`;
+CRITICAL RULES:
+1. ALWAYS output ONLY valid JSON — no text before/after, no markdown.
+2. ALWAYS include "changeSummary" — short array of what you changed.
+3. ALWAYS include "weeklySchedule" with ALL days that should exist.
+4. Use REAL lessonId values from the catalog above.
+5. Activity names should match the lesson titles from the catalog.
+6. Set realistic times (morning: 9:00 AM, afternoon: 1:00 PM, evening: 6:00 PM).
+7. Block durations: 15-60 min. Space blocks 30 min apart.
+8. Every block needs: id, time, duration, activity, type, description, lessonId.
+9. Valid block types: "lesson", "practice", "review", "break".
+10. For break blocks, omit lessonId. For review, use a previously-assigned lessonId.
+11. If the current schedule is empty, CREATE one with sensible defaults.
+12. For ANY request — even ambiguous — output a schedule. NEVER refuse.`;
 
-      const response = await openRouterService.chat(systemPrompt, message, { maxTokens: 3000, temperature: 0.7 });
+      const response = await openRouterService.chat(systemPrompt, message, { maxTokens: 4000, temperature: 0.3 });
 
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/```\s*([\s\S]*?)\s*```/);
-      let chatResponse = response;
-      let appliedChanges = false;
+      // Bulletproof JSON extraction — try every possible format
+      let jsonStr = response.trim();
+      const jsonMatch = jsonStr.match(/```json\s*([\s\S]*?)\s*```/) || jsonStr.match(/```\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) jsonStr = jsonMatch[1].trim();
+      const bareJson = jsonStr.match(/\{[\s\S]*\}/);
+      if (bareJson) jsonStr = bareJson[0];
 
-      if (jsonMatch) {
+      let cmd: any;
+      try {
+        cmd = JSON.parse(jsonStr);
+      } catch {
+        // Last resort: try to fix common JSON issues
+        const fixedJson = jsonStr
+          .replace(/,\s*}/g, '}')
+          .replace(/,\s*]/g, ']')
+          .replace(/(['"])?([a-zA-Z_]\w*)\1\s*:/g, '"$2":');
         try {
-          const parsed = JSON.parse(jsonMatch[1]);
-          chatResponse = response.replace(/```json\s*[\s\S]*?\s*```/, '').replace(/```\s*[\s\S]*?\s*```/, '').trim();
-          if (!chatResponse) chatResponse = "Done! I've updated your learning setup. ✨";
-
-          // Handle weekly schedule updates
-          if ((parsed.type === 'schedule' || parsed.type === 'both') && parsed.weeklySchedule) {
-            const newWeekly: WeeklySchedule = {};
-            Object.entries(parsed.weeklySchedule).forEach(([day, sched]: [string, any]) => {
-              newWeekly[day] = {
-                date: day,
-                totalMinutes: sched.totalMinutes || sched.blocks?.reduce((s: number, b: any) => s + (b.duration || 0), 0) || 60,
-                blocks: (sched.blocks || []).map((b: any, i: number) => ({
-                  ...b,
-                  id: b.id || `${day}-${i}`
-                })),
-                tips: sched.tips || ['Keep up the great work!'],
-                motivationalMessage: sched.motivationalMessage || 'You\'re making progress! 🌟'
-              };
-            });
-            setWeeklySchedule(newWeekly);
-            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(newWeekly));
-            addToast('success', '📅 Weekly Schedule Updated!', `Schedule updated for ${Object.keys(newWeekly).length} days.`);
-            appliedChanges = true;
-          }
-          // Legacy: single-day schedule object
-          else if ((parsed.type === 'schedule' || !parsed.type) && parsed.schedule?.blocks) {
-            const dayKey = today;
-            const updated = { ...(weeklySchedule || {}), [dayKey]: {
-              ...parsed.schedule,
-              date: dayKey,
-              blocks: parsed.schedule.blocks.map((b: any, i: number) => ({ ...b, id: b.id || `${dayKey}-${i}` }))
-            }};
-            setWeeklySchedule(updated);
-            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
-            addToast('success', '📅 Schedule Updated!', `Today's schedule updated with ${parsed.schedule.blocks.length} activities.`);
-            appliedChanges = true;
-          }
-          // Legacy: bare blocks array
-          else if (!parsed.type && parsed.blocks) {
-            const dayKey = today;
-            const updated = { ...(weeklySchedule || {}), [dayKey]: {
-              date: dayKey,
-              totalMinutes: parsed.totalMinutes || parsed.blocks.reduce((s: number, b: any) => s + (b.duration || 0), 0),
-              blocks: parsed.blocks.map((b: any, i: number) => ({ ...b, id: b.id || `${dayKey}-${i}` })),
-              tips: parsed.tips || [],
-              motivationalMessage: parsed.motivationalMessage || ''
-            }};
-            setWeeklySchedule(updated);
-            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
-            addToast('success', '📅 Schedule Updated!', `Today's schedule updated.`);
-            appliedChanges = true;
-          }
-
-          // Handle study plan updates
-          if ((parsed.type === 'plan' || parsed.type === 'both') && parsed.planUpdates && studyPlan) {
-            const updates = parsed.planUpdates;
-            const updatedPlan = { ...studyPlan };
-
-            if (updates.title) updatedPlan.title = updates.title;
-            if (updates.weeklyGoal) updatedPlan.weeklyGoal = updates.weeklyGoal;
-            if (updates.preferences) {
-              updatedPlan.preferences = {
-                ...updatedPlan.preferences,
-                ...updates.preferences,
-                focusAreas: updates.preferences.focusAreas || updatedPlan.preferences.focusAreas,
-                availableDays: updates.preferences.availableDays || updatedPlan.preferences.availableDays,
-                preferredTimeSlots: updates.preferences.preferredTimeSlots || updatedPlan.preferences.preferredTimeSlots,
-              };
-            }
-
-            if (updates.preferences?.focusAreas || updates.preferences?.difficultyProgression) {
-              const focusAreas = updates.preferences?.focusAreas || updatedPlan.preferences.focusAreas;
-              let selectedLessons = lessons.filter(lesson => {
-                if (focusAreas.includes('all')) return true;
-                return focusAreas.includes(lesson.category) || lesson.category === 'basics';
-              });
-              const diff = updates.preferences?.difficultyProgression || updatedPlan.preferences.difficultyProgression;
-              if (diff === 'gradual') selectedLessons = selectedLessons.filter(l => l.level <= 10);
-              else if (diff === 'moderate') selectedLessons = selectedLessons.filter(l => l.level <= 20);
-
-              const startDate = new Date();
-              const scheduledLessons: ScheduledLesson[] = selectedLessons.slice(0, 50).map((lesson, index) => {
-                const scheduleDate = new Date(startDate);
-                scheduleDate.setDate(startDate.getDate() + Math.floor(index / (updates.weeklyGoal || updatedPlan.weeklyGoal || 3)) * 7 + (index % 3));
-                const existing = updatedPlan.scheduledLessons.find(sl => sl.id === lesson.id);
-                return { ...lesson, scheduledDate: scheduleDate.toISOString(), isCompleted: existing?.isCompleted || false, canReschedule: true, priority: index < 10 ? 'high' as const : index < 30 ? 'medium' as const : 'low' as const, estimatedCompletionTime: lesson.duration, adaptiveDifficulty: 'normal' as const } as ScheduledLesson;
-              });
-              updatedPlan.scheduledLessons = scheduledLessons;
-              updatedPlan.totalLessons = scheduledLessons.length;
-            }
-
-            updatedPlan.lastAIOptimization = new Date().toISOString();
-            setStudyPlan(updatedPlan);
-            localStorage.setItem('braillearn-study-plan', JSON.stringify(updatedPlan));
-
-            // Also rebuild weekly schedule from updated plan
-            const newWeekly = buildWeeklySchedule(updatedPlan, parseInt(customForm.dailyTime) || 30);
-            setWeeklySchedule(newWeekly);
-            localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(newWeekly));
-
-            addToast('success', '📚 Plan & Schedule Updated!', `Plan "${updatedPlan.title}" and weekly schedule have been updated.`);
-            appliedChanges = true;
-          }
-
-          if (!appliedChanges) {
-            chatResponse += '\n\n_I can help you make changes — try asking me to adjust your schedule, change lesson focus, or modify your study days._';
-          }
+          cmd = JSON.parse(fixedJson);
         } catch {
-          // JSON parsing failed, just show the text response
+          // NEVER show an error — build a smart fallback schedule from the user's message
+          const msgLower = message.toLowerCase();
+          const fallbackLessons: any[] = [];
+          const addLesson = (id: string) => {
+            if (fallbackLessons.some(l => l.lessonId === id)) return;
+            const lesson = allLessons.find(l => l.id === id);
+            if (lesson) fallbackLessons.push({ id: `fb-${fallbackLessons.length}`, time: `${9 + Math.floor(fallbackLessons.length / 2)}:${fallbackLessons.length % 2 === 0 ? '00' : '30'} AM`, duration: lesson.duration || 30, activity: lesson.title, type: 'lesson', description: lesson.description || '', lessonId: lesson.id });
+          };
+          const addLessons = (ids: string[]) => ids.forEach(addLesson);
+
+          // ─── 30+ keyword-to-lesson mappings (checked in priority order) ───
+          // Letters / alphabet / characters (MUST be checked BEFORE "advanced"/"more")
+          if (/\b(letter|alphabet|character|abc|a-z)\b/.test(msgLower)) {
+            addLessons(['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-5', 'lesson-6', 'lesson-7', 'lesson-8', 'lesson-9', 'lesson-10']);
+          }
+          // Numbers / digits / math
+          else if (/\b(math|number|digit|calculation|arithmetic)\b/.test(msgLower)) {
+            addLessons(['lesson-11', 'lesson-12', 'lesson-42', 'lesson-43']);
+          }
+          // Punctuation
+          else if (/\b(punctuation|period|comma|question mark|exclamation)\b/.test(msgLower)) {
+            addLessons(['lesson-13', 'lesson-14', 'lesson-15', 'lesson-16']);
+          }
+          // Symbols / special characters
+          else if (/\b(symbol|special char|sign)\b/.test(msgLower)) {
+            addLessons(['lesson-13', 'lesson-14', 'lesson-15', 'lesson-16', 'lesson-17']);
+          }
+          // Capitalization
+          else if (/\b(capital|uppercase|capitalization)\b/.test(msgLower)) {
+            addLessons(['lesson-17']);
+          }
+          // Words
+          else if (/\b(word|words|sight word|vocabulary)\b/.test(msgLower)) {
+            addLessons(['lesson-18', 'lesson-19', 'lesson-21', 'lesson-22', 'lesson-23', 'lesson-24', 'lesson-25', 'lesson-26', 'lesson-27']);
+          }
+          // Sentences / reading
+          else if (/\b(sentence|reading|paragraph|read)\b/.test(msgLower)) {
+            addLessons(['lesson-28', 'lesson-29', 'lesson-30', 'lesson-38', 'lesson-40']);
+          }
+          // Contractions
+          else if (/\b(contraction|short form|abbreviat)\b/.test(msgLower)) {
+            addLessons(['lesson-31', 'lesson-32', 'lesson-33', 'lesson-34', 'lesson-35', 'lesson-36', 'lesson-37', 'lesson-48']);
+          }
+          // Easy / beginner / basics
+          else if (/\b(easy|easier|beginner|basic|simple|start)\b/.test(msgLower)) {
+            addLessons(['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-5']);
+          }
+          // Hard / advanced / challenge
+          else if (/\b(hard|harder|difficult|advanced|challeng)\b/.test(msgLower)) {
+            addLessons(['lesson-41', 'lesson-44', 'lesson-46', 'lesson-48', 'lesson-50']);
+          }
+          // Music
+          else if (/\b(music|notation|musical)\b/.test(msgLower)) {
+            addLessons(['lesson-44']);
+          }
+          // Spanish / foreign language
+          else if (/\b(spanish|foreign|language|french|german)\b/.test(msgLower)) {
+            addLessons(['lesson-45']);
+          }
+          // Computer / tech / coding
+          else if (/\b(computer|tech|code|coding|programming|software)\b/.test(msgLower)) {
+            addLessons(['lesson-46']);
+          }
+          // Poetry / poems
+          else if (/\b(poetry|poem|literary)\b/.test(msgLower)) {
+            addLessons(['lesson-47']);
+          }
+          // Speed reading
+          else if (/\b(speed|speed read|fast read)\b/.test(msgLower)) {
+            addLessons(['lesson-41']);
+          }
+          // Compound words
+          else if (/\b(compound)\b/.test(msgLower)) {
+            addLessons(['lesson-39']);
+          }
+          // Document formatting
+          else if (/\b(document|format|formatting)\b/.test(msgLower)) {
+            addLessons(['lesson-49']);
+          }
+          // Assessment / test
+          else if (/\b(assess|test|exam|quiz)\b/.test(msgLower)) {
+            addLessons(['lesson-50']);
+          }
+          // Adventure / fun
+          else if (/\b(fun|adventure|game|play)\b/.test(msgLower)) {
+            const advLessons = allLessons.filter(l => l.id.startsWith('adventure-')).slice(0, 5);
+            advLessons.forEach(l => addLesson(l.id));
+          }
+          // Randomize / shuffle / surprise
+          else if (/\b(random|shuffle|surprise|mix up)\b/.test(msgLower)) {
+            const shuffled = [...allLessons].sort(() => Math.random() - 0.5).slice(0, 10);
+            shuffled.forEach(l => addLesson(l.id));
+          }
+          // Rush / accelerate / cover more
+          else if (/\b(rush|accelerat|cover more|speed up|faster|more lessons)\b/.test(msgLower)) {
+            addLessons(['lesson-1', 'lesson-5', 'lesson-10', 'lesson-15', 'lesson-20', 'lesson-25', 'lesson-30', 'lesson-35', 'lesson-40', 'lesson-45', 'lesson-50']);
+          }
+          // Slow down / relaxed / take it easy
+          else if (/\b(slow|relax|take it easy|chill|calm)\b/.test(msgLower)) {
+            addLessons(['lesson-1', 'lesson-2', 'lesson-3']);
+          }
+          // More time / longer / extend
+          else if (/\b(more time|longer|extend|extra time)\b/.test(msgLower)) {
+            // Keep current lessons but with longer durations — handled via special flag
+            addLessons(['lesson-1', 'lesson-2', 'lesson-3']);
+            fallbackLessons.forEach(l => l.duration = 45);
+          }
+          // Shorten / less time / quick
+          else if (/\b(short|less time|quick|brief|15 min)\b/.test(msgLower)) {
+            addLessons(['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-5']);
+            fallbackLessons.forEach(l => l.duration = 15);
+          }
+          // Practice / review
+          else if (/\b(practice|review|revision|recap|drill)\b/.test(msgLower)) {
+            addLessons(['lesson-1', 'lesson-11', 'lesson-21']);
+            fallbackLessons.forEach(l => l.type = 'review');
+          }
+          // Colors
+          else if (/\b(color|colour)\b/.test(msgLower)) {
+            addLessons(['lesson-24']);
+          }
+          // Animals
+          else if (/\b(animal|animals|pet)\b/.test(msgLower)) {
+            addLessons(['lesson-25']);
+          }
+          // Family
+          else if (/\b(family|mom|dad|parent|brother|sister)\b/.test(msgLower)) {
+            addLessons(['lesson-26']);
+          }
+          // Food
+          else if (/\b(food|eat|meal|cook)\b/.test(msgLower)) {
+            addLessons(['lesson-27']);
+          }
+          // Clear / reset / fresh
+          else if (/\b(clear|reset|start over|fresh|empty|wipe)\b/.test(msgLower)) {
+            // Return empty schedule
+            cmd = { command: 'edit_schedule', changeSummary: ['Cleared entire schedule'], weeklySchedule: { monday: { date: 'monday', totalMinutes: 0, blocks: [], tips: ['Schedule cleared!'], motivationalMessage: 'Ready for a fresh start! 🌟' } } };
+          }
+
+          // If we matched lessons, build the schedule
+          if (fallbackLessons.length > 0 && !(cmd && cmd.weeklySchedule)) {
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+            const fbSchedule: any = {};
+            const perDay = Math.max(1, Math.ceil(fallbackLessons.length / days.length));
+            days.forEach((day, di) => {
+              const dayBlocks = fallbackLessons.slice(di * perDay, (di + 1) * perDay);
+              if (dayBlocks.length > 0) {
+                fbSchedule[day] = { date: day, totalMinutes: dayBlocks.reduce((s: number, b: any) => s + b.duration, 0), blocks: dayBlocks.map((b: any, i: number) => ({ ...b, id: `${day}-${i}`, time: `${9 + i}:00 AM` })), tips: ['Generated from your request!'], motivationalMessage: 'Let\'s learn! 🌟' };
+              }
+            });
+            cmd = { command: 'edit_schedule', changeSummary: [`Applied: "${message}"`], weeklySchedule: fbSchedule };
+          } else if (!cmd || !cmd.weeklySchedule) {
+            // Absolute last resort — balanced mix
+            addLessons(['lesson-1', 'lesson-11', 'lesson-21', 'lesson-31', 'lesson-41']);
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+            const fbSchedule: any = {};
+            const perDay = Math.max(1, Math.ceil(fallbackLessons.length / days.length));
+            days.forEach((day, di) => {
+              const dayBlocks = fallbackLessons.slice(di * perDay, (di + 1) * perDay);
+              if (dayBlocks.length > 0) {
+                fbSchedule[day] = { date: day, totalMinutes: dayBlocks.reduce((s: number, b: any) => s + b.duration, 0), blocks: dayBlocks.map((b: any, i: number) => ({ ...b, id: `${day}-${i}`, time: `${9 + i}:00 AM` })), tips: ['Balanced mix of lessons!'], motivationalMessage: 'Let\'s learn! 🌟' };
+              }
+            });
+            cmd = { command: 'edit_schedule', changeSummary: [`Applied: "${message}"`], weeklySchedule: fbSchedule };
+          }
         }
       }
 
-      setScheduleChatMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        text: chatResponse || response,
-        sender: 'ai',
-        timestamp: new Date()
-      }]);
+      const changeSummary: string[] = cmd.changeSummary || ['Schedule updated'];
+
+      // ─── ULTRA-SLOW CURSOR WITH REAL-TIME POSITIONING ───
+      // Positions are looked up IN REAL TIME at each step (not pre-computed).
+      // The element is scrolled into view FIRST, then the cursor moves to it.
+      // This guarantees the cursor is always on top of what's being edited.
+      type CursorStep = {
+        selector?: string; // CSS selector to find element — position computed at runtime
+        fallbackPos?: { x: number; y: number }; // only if selector not found
+        label: string;
+        blocks?: string[];
+        action?: () => void;
+      };
+
+      const runCursorSteps = (
+        steps: CursorStep[],
+        popupTitle: string,
+        popupType: string
+      ) => {
+        // Spawn cursor at center of screen immediately
+        setAiCursorPos({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
+        setAiCursorLabel('🤖 Starting...');
+        setAiCursorActive(true);
+        const PAUSE_BETWEEN_STEPS = 4500; // 4.5s per step — ultra slow
+        const SCROLL_SETTLE = 800; // wait for scroll animation to finish
+
+        let stepIndex = 0;
+
+        const executeStep = () => {
+          if (stepIndex >= steps.length) {
+            // All steps done — show final label, then popup
+            setAiCursorLabel('✨ All changes applied!');
+            setAiEditingBlocks([]);
+            setTimeout(() => {
+              setAiChangePopup({ show: true, title: popupTitle, changes: changeSummary, type: popupType });
+            }, 3000);
+            return;
+          }
+
+          const step = steps[stepIndex];
+          stepIndex++;
+
+          // Run the action (schedule edit) FIRST so elements exist in DOM
+          if (step.action) step.action();
+
+          // Find the target element in real time
+          const el = step.selector ? document.querySelector(step.selector) as HTMLElement : null;
+
+          if (el) {
+            // Scroll element into the center of the viewport
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+            // Wait for scroll to settle, THEN read position and move cursor
+            setTimeout(() => {
+              const rect = el.getBoundingClientRect();
+              const cursorX = rect.left + rect.width / 2;
+              const cursorY = rect.top + rect.height / 2;
+              setAiCursorPos({ x: cursorX, y: cursorY });
+              setAiCursorLabel(step.label);
+              if (step.blocks) setAiEditingBlocks(step.blocks);
+
+              // Purple highlight glow on the element
+              el.style.transition = 'box-shadow 0.4s, outline 0.4s';
+              el.style.boxShadow = '0 0 24px 8px rgba(147,51,234,0.45)';
+              el.style.outline = '3px solid rgba(147,51,234,0.8)';
+              el.style.outlineOffset = '3px';
+              setTimeout(() => {
+                el.style.boxShadow = '';
+                el.style.outline = '';
+                el.style.outlineOffset = '';
+              }, 3500);
+
+              // Wait, then go to next step
+              setTimeout(executeStep, PAUSE_BETWEEN_STEPS);
+            }, SCROLL_SETTLE);
+          } else {
+            // No element found — use fallback position
+            const pos = step.fallbackPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            setAiCursorPos({ x: pos.x, y: pos.y });
+            setAiCursorLabel(step.label);
+            if (step.blocks) setAiEditingBlocks(step.blocks);
+
+            setTimeout(executeStep, PAUSE_BETWEEN_STEPS);
+          }
+        };
+
+        // Start the chain
+        executeStep();
+      };
+
+      // ─── EXECUTE: Switch to week view, then animate cursor across schedule ───
+      setActiveTab('lessons');
+      setLessonsSubTab('week');
+
+      // Wait for DOM to render, then build cursor steps and execute
+      setTimeout(() => {
+        const ws = cmd.weeklySchedule;
+        if (!ws) {
+          setAiChangePopup({ show: true, title: 'No Changes', changes: ['The AI did not return a schedule. Try: "Add math lessons to my week"'], type: 'error' });
+          setScheduleChatLoading(false);
+          return;
+        }
+
+        const changedDays = Object.keys(ws);
+        const steps: CursorStep[] = [];
+
+        // Step 0: INTRO — cursor spawns at center, pauses, describes plan
+        const introPlan = changeSummary[0] || `Working on: "${message}"`;
+        steps.push({
+          fallbackPos: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
+          label: `🤖 ${introPlan}`,
+          blocks: []
+        });
+
+        // Step 1: Cursor goes to the "Week" tab
+        steps.push({
+          selector: '[data-subtab="week"]',
+          label: '🔍 Opening weekly schedule...',
+          blocks: []
+        });
+
+        // Step 2: Scan existing schedule header
+        steps.push({
+          selector: '[data-ai-day]',
+          label: '📋 Reading current schedule...',
+          blocks: []
+        });
+
+        // Step 3+: For each day — apply changes, then visit each block
+        changedDays.forEach(day => {
+          const dayTitle = day.charAt(0).toUpperCase() + day.slice(1);
+          const dayBlocks = ws[day]?.blocks || [];
+          const dayMins = ws[day]?.totalMinutes || dayBlocks.reduce((s: number, b: any) => s + (b.duration || 0), 0);
+
+          // Move to day header + apply this day's schedule
+          steps.push({
+            selector: `[data-ai-day="${day}"]`,
+            fallbackPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+            label: `📅 ${dayTitle} — adding ${dayBlocks.length} blocks (${dayMins}min)`,
+            blocks: [day],
+            action: () => {
+              setWeeklySchedule(prev => {
+                const updated = { ...(prev || {}) };
+                updated[day] = {
+                  date: day,
+                  totalMinutes: dayMins,
+                  blocks: dayBlocks.map((b: any, i: number) => ({ ...b, id: b.id || `${day}-${i}` })),
+                  tips: ws[day]?.tips || ['Keep learning!'],
+                  motivationalMessage: ws[day]?.motivationalMessage || 'Great progress! 🌟'
+                };
+                localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
+                return updated;
+              });
+            }
+          });
+
+          // Visit each block within this day
+          dayBlocks.forEach((block: any, bIdx: number) => {
+            const actionVerb = block.type === 'break' ? '☕ Break' :
+              block.type === 'review' ? '🔄 Review' :
+              block.type === 'practice' ? '🎯 Practice' :
+              '📝 Lesson';
+
+            steps.push({
+              selector: `[data-ai-block="${day}-${bIdx}"]`,
+              fallbackPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+              label: `${actionVerb}: "${block.activity}" — ${block.duration}min @ ${block.time || ''}`,
+              blocks: [day, `${day}-${bIdx}`]
+            });
+          });
+        });
+
+        // Final confirming step
+        steps.push({
+          selector: '[data-subtab="week"]',
+          label: '✅ All days updated!',
+          blocks: changedDays
+        });
+
+        runCursorSteps(
+          steps,
+          changeSummary.length > 1 ? 'Schedule Updated' : changeSummary[0] || 'Schedule Updated',
+          'schedule'
+        );
+      }, 600);
+
     } catch (error) {
-      console.error('Schedule chat error:', error);
-      setScheduleChatMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        text: '⚠️ I\'m having trouble processing your request right now. Please try again in a moment!',
-        sender: 'ai',
-        timestamp: new Date()
-      }]);
+      console.error('AI Agent error:', error);
+      setAiChangePopup({ show: true, title: 'Agent Error', changes: ['Something went wrong. Please try again.'], type: 'error' });
     }
     setScheduleChatLoading(false);
-    setTimeout(() => scheduleChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   // Level info
@@ -724,48 +1059,8 @@ Respond with a friendly message explaining what you changed, then the JSON block
 
   // Filtered and grouped lessons
   const filteredLessons = useMemo(() => {
-    let result = allLessons;
-
-    // Filter by today's schedule if in 'today' mode
-    if (lessonViewMode === 'today' && weeklySchedule) {
-      const todaySchedule = weeklySchedule[getTodayName()];
-      if (todaySchedule) {
-        const todayLessonIds = todaySchedule.blocks
-          .filter(b => b.type === 'lesson' && b.lessonId)
-          .map(b => b.lessonId!);
-        if (todayLessonIds.length > 0) {
-          const todayResult = result.filter(l => todayLessonIds.includes(l.id));
-          // Only apply filter if it actually matches real lessons; otherwise show all
-          if (todayResult.length > 0) {
-            result = todayResult;
-          }
-        }
-      }
-    }
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(l => l.title.toLowerCase().includes(q) || l.description?.toLowerCase().includes(q));
-    }
-    if (filterStatus !== 'all') {
-      result = result.filter(l => {
-        const prog = getLessonProg(l.id);
-        if (filterStatus === 'completed') return prog?.completed;
-        if (filterStatus === 'in-progress') return prog && !prog.completed;
-        if (filterStatus === 'locked') return isLessonLocked(l);
-        return true;
-      });
-    }
-    if (filterDifficulty !== 'all') {
-      result = result.filter(l => {
-        if (filterDifficulty === 'beginner') return l.level <= 10;
-        if (filterDifficulty === 'intermediate') return l.level > 10 && l.level <= 20;
-        if (filterDifficulty === 'advanced') return l.level > 20;
-        return true;
-      });
-    }
-    return result;
-  }, [allLessons, searchQuery, filterStatus, filterDifficulty, lessonProgress, lessonViewMode, weeklySchedule]);
+    return allLessons;
+  }, [allLessons]);
 
   const lessonsByLevel = filteredLessons.reduce((acc: Record<number, Lesson[]>, lesson) => {
     if (!acc[lesson.level]) acc[lesson.level] = [];
@@ -788,16 +1083,100 @@ Respond with a friendly message explaining what you changed, then the JSON block
   const dashTabs: { id: DashboardTab; label: string; icon: any; desc: string }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart, desc: 'Dashboard & stats' },
     { id: 'lessons', label: 'Lessons', icon: BookOpen, desc: 'Browse & study' },
+    { id: 'practice', label: 'Practice', icon: Gamepad2, desc: 'Games & drills' },
   ];
 
   if (loading) {
+    const brailleCells = [
+      { letter: 'L', dots: [1,2,3] },
+      { letter: 'E', dots: [1,5] },
+      { letter: 'A', dots: [1] },
+      { letter: 'R', dots: [1,2,3,5] },
+      { letter: 'N', dots: [1,3,4,5] },
+    ];
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50 flex items-center justify-center">
-        <motion.div className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl">
-            <BookOpen className="w-10 h-10 text-white animate-pulse" />
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50/30 flex items-start justify-center pt-[15vh] p-6">
+        {/* Ambient floating dots */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <motion.div key={i}
+              className="absolute w-2 h-2 rounded-full bg-blue-300/20"
+              style={{ left: `${10 + (i * 7) % 80}%`, top: `${15 + (i * 13) % 70}%` }}
+              animate={{ y: [0, -30, 0], opacity: [0.2, 0.5, 0.2] }}
+              transition={{ duration: 3 + i * 0.3, repeat: Infinity, delay: i * 0.2, ease: 'easeInOut' }}
+            />
+          ))}
+        </div>
+
+        <motion.div
+          className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_60px_rgba(99,102,241,0.12)] border border-white/60 px-10 py-10 max-w-lg w-full text-center"
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* Subtle glow ring */}
+          <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-br from-blue-200/30 via-indigo-200/20 to-purple-200/30 -z-10 blur-sm" />
+
+          {/* Braille cells — large */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            {brailleCells.map((cell, cellIdx) => (
+              <motion.div
+                key={cell.letter}
+                className="flex flex-col items-center gap-2.5"
+                initial={{ opacity: 0, y: -25 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + cellIdx * 0.1, type: 'spring', stiffness: 200, damping: 20 }}
+              >
+                <div className="grid grid-cols-2 gap-2 bg-gradient-to-b from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200/80 p-4 w-16 h-24 shadow-sm">
+                  {[1,4,2,5,3,6].map(dot => {
+                    const isRaised = cell.dots.includes(dot);
+                    return (
+                      <motion.div
+                        key={dot}
+                        className={`w-4 h-4 rounded-full mx-auto ${isRaised ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-[0_0_8px_rgba(99,102,241,0.4)]' : 'bg-slate-200/80'}`}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1, ...(isRaised ? { boxShadow: ['0 0 4px rgba(99,102,241,0.2)', '0 0 12px rgba(99,102,241,0.5)', '0 0 4px rgba(99,102,241,0.2)'] } : {}) }}
+                        transition={isRaised
+                          ? { scale: { delay: 0.3 + cellIdx * 0.1 + dot * 0.03 }, boxShadow: { duration: 2, repeat: Infinity, ease: 'easeInOut' } }
+                          : { delay: 0.3 + cellIdx * 0.1 + dot * 0.03 }}
+                      />
+                    );
+                  })}
+                </div>
+                <motion.span
+                  className="text-sm font-bold text-slate-400 tracking-wide"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 + cellIdx * 0.1 }}
+                >{cell.letter}</motion.span>
+              </motion.div>
+            ))}
           </div>
-          <p className="text-gray-600 font-medium">Loading your learning journey...</p>
+
+          <motion.h2 className="text-slate-800 font-bold text-xl mb-1 tracking-tight"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+            Loading your lessons
+          </motion.h2>
+          <motion.p className="text-slate-400 text-sm mb-6 font-medium"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+            Preparing your personalized experience...
+          </motion.p>
+
+          {/* Progress bar */}
+          <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden mb-5">
+            <motion.div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full"
+              initial={{ width: '0%' }} animate={{ width: '90%' }}
+              transition={{ duration: 3, ease: 'easeInOut' }} />
+          </div>
+
+          {/* Animated dots */}
+          <div className="flex justify-center gap-2">
+            {[0, 1, 2].map(i => (
+              <motion.div key={i} className="w-2 h-2 rounded-full bg-indigo-400/70"
+                animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.25, ease: 'easeInOut' }} />
+            ))}
+          </div>
         </motion.div>
       </div>
     );
@@ -824,7 +1203,7 @@ Respond with a friendly message explaining what you changed, then the JSON block
               </h1>
               <p className="text-blue-100 text-base">
                 <span className="font-bold text-white">{totalLessonsCount}</span> lessons •
-                personalized curriculum
+                personalized curriculum • <span className="text-blue-200">accessible to partially sighted & blind learners</span>
               </p>
             </motion.div>
 
@@ -850,7 +1229,7 @@ Respond with a friendly message explaining what you changed, then the JSON block
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-5 relative z-20">
         <div className="bg-white rounded-2xl shadow-xl border-2 border-blue-100 p-1.5 flex gap-1">
           {dashTabs.map(tab => (
-            <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            <motion.button key={tab.id} data-tab={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg'
@@ -884,7 +1263,7 @@ Respond with a friendly message explaining what you changed, then the JSON block
                           </div>
                           <div>
                             <h2 className="text-2xl font-extrabold text-gray-900">Welcome to BrailleLearn! 👋</h2>
-                            <p className="text-gray-600">Let's set up your personalized learning journey in 3 easy steps.</p>
+                            <p className="text-gray-600">Let's set up your personalized learning journey in 3 easy steps. Designed for partially sighted learners — blind users can navigate entirely by voice.</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
@@ -1071,7 +1450,7 @@ Respond with a friendly message explaining what you changed, then the JSON block
                                     </motion.div>
                                   );
                                   return block.type === 'lesson' && block.lessonId ? (
-                                    <Link key={block.id || i} to={`/learn/${block.lessonId}`}>{blockContent}</Link>
+                                    <Link key={block.id || i} to={`/learn/${block.lessonId}`} onClick={() => window.scrollTo(0, 0)}>{blockContent}</Link>
                                   ) : blockContent;
                                 })}
                               </div>
@@ -1125,67 +1504,31 @@ Respond with a friendly message explaining what you changed, then the JSON block
               {/* ═══ LESSONS TAB ═══ */}
               {activeTab === 'lessons' && (
                 <motion.div key="lessons" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                  {/* Lessons Sub-Tab Bar */}
+                  <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 p-1.5 flex gap-1 mb-6">
+                    <button data-subtab="browse" onClick={() => setLessonsSubTab('browse')}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                        lessonsSubTab === 'browse' ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md' : 'text-gray-600 hover:bg-blue-50'
+                      }`}>
+                      <BookOpen className="w-4 h-4" /> Browse Lessons
+                    </button>
+                    <button data-subtab="week" onClick={() => setLessonsSubTab('week')}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                        lessonsSubTab === 'week' ? 'bg-gradient-to-r from-indigo-600 to-purple-700 text-white shadow-md' : 'text-gray-600 hover:bg-purple-50'
+                      }`}>
+                      <Calendar className="w-4 h-4" /> Your Week
+                      {weeklySchedule && <span className="ml-1 text-xs opacity-80">({Object.keys(weeklySchedule).length} days)</span>}
+                    </button>
+                  </div>
+
                   <div className="flex gap-5">
                     {/* ─── Main Lessons Area ─── */}
                     <div className="flex-1 min-w-0">
-                      {/* Filters */}
-                      <div className="bg-white rounded-3xl shadow-xl p-5 border-2 border-blue-100 mb-6">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex-1 min-w-[200px]">
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                                placeholder="Search lessons..."
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-sm font-medium" />
-                            </div>
-                          </div>
-                          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as FilterStatus)}
-                            className="px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 font-bold text-sm text-gray-700">
-                            <option value="all">All Status</option>
-                            <option value="completed">✅ Completed</option>
-                            <option value="in-progress">🔵 In Progress</option>
-                            <option value="locked">🔒 Locked</option>
-                          </select>
-                          <select value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value as FilterDifficulty)}
-                            className="px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 font-bold text-sm text-gray-700">
-                            <option value="all">All Levels</option>
-                            <option value="beginner">🌱 Beginner</option>
-                            <option value="intermediate">⭐ Intermediate</option>
-                            <option value="advanced">🏆 Advanced</option>
-                          </select>
-                          <div className="flex rounded-xl border-2 border-gray-200 overflow-hidden">
-                            <button onClick={() => setViewMode('grid')} className={`px-2.5 py-2.5 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                              <Grid3X3 className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setViewMode('list')} className={`px-2.5 py-2.5 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                              <List className="w-4 h-4" />
-                            </button>
-                          </div>
-                          {weeklySchedule && (
-                            <div className="flex rounded-xl border-2 border-gray-200 overflow-hidden">
-                              <button onClick={() => setLessonViewMode('today')}
-                                className={`px-3 py-2.5 font-bold text-xs transition-all ${lessonViewMode === 'today' ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                                📅 Today
-                              </button>
-                              <button onClick={() => setLessonViewMode('all')}
-                                className={`px-3 py-2.5 font-bold text-xs transition-all ${lessonViewMode === 'all' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                                📚 All
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        {(searchQuery || filterStatus !== 'all' || filterDifficulty !== 'all' || lessonViewMode === 'today') && (
-                          <div className="mt-2 flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">
-                              {lessonViewMode === 'today' ? `Today's lessons: ${filteredLessons.length}` : `Showing ${filteredLessons.length} of ${totalLessonsCount}`}
-                            </span>
-                            <button onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterDifficulty('all'); setLessonViewMode('all'); }}
-                              className="text-blue-600 font-bold hover:underline">Clear</button>
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Levels */}
+                      {/* ─── BROWSE SUB-TAB ─── */}
+                      {lessonsSubTab === 'browse' && (
+                        <>
+                      {/* All Lessons by Level */}
                       <div className="space-y-4">
                         {sortedLevels.map((level, idx) => {
                           const info = generateLevelInfo(level);
@@ -1254,93 +1597,200 @@ Respond with a friendly message explaining what you changed, then the JSON block
                           );
                         })}
 
-                        {sortedLevels.length === 0 && (
-                          <motion.div className="bg-white rounded-3xl shadow-xl p-10 border-2 border-blue-100 text-center"
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                            <Search className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                            <h3 className="text-lg font-extrabold text-gray-900 mb-2">No lessons match your filters</h3>
-                            <button onClick={() => { setSearchQuery(''); setFilterStatus('all'); setFilterDifficulty('all'); }}
-                              className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all">
-                              Clear Filters
-                            </button>
-                          </motion.div>
-                        )}
                       </div>
+                        </>
+                      )}
+
+                      {/* ─── YOUR WEEK SUB-TAB ─── */}
+                      {lessonsSubTab === 'week' && (
+                        <div className="space-y-4">
+                          {!weeklySchedule ? (
+                            <motion.div className="bg-white rounded-3xl shadow-xl p-10 border-2 border-blue-100 text-center"
+                              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                              <Calendar className="w-14 h-14 text-blue-300 mx-auto mb-4" />
+                              <h3 className="text-xl font-extrabold text-gray-900 mb-2">No Weekly Schedule Yet</h3>
+                              <p className="text-gray-500 mb-5 max-w-md mx-auto">Create a study plan and your personalized weekly schedule will appear here with lessons, breaks, and time commitments for each day.</p>
+                              <motion.button onClick={() => setShowWizard(true)}
+                                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all inline-flex items-center gap-2"
+                                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <Brain className="w-5 h-5" /> Create Your Plan
+                              </motion.button>
+                            </motion.div>
+                          ) : (
+                            <>
+                              {/* Week overview header */}
+                              <motion.div className="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden"
+                                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                                <div className="relative z-10 flex items-center justify-between flex-wrap gap-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center">
+                                      <Calendar className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-lg font-extrabold">Your Weekly Schedule</h3>
+                                      <p className="text-indigo-200 text-sm">{Object.keys(weeklySchedule).length} study days · {Object.values(weeklySchedule).reduce((s, d) => s + d.totalMinutes, 0)} min total</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <span className="bg-white/20 px-3 py-1.5 rounded-xl text-xs font-bold">
+                                      {Object.values(weeklySchedule).reduce((s, d) => s + d.blocks.filter(b => b.type === 'lesson').length, 0)} lessons
+                                    </span>
+                                    <span className="bg-white/20 px-3 py-1.5 rounded-xl text-xs font-bold">
+                                      {Math.round(Object.values(weeklySchedule).reduce((s, d) => s + d.totalMinutes, 0) / 60 * 10) / 10}h/week
+                                    </span>
+                                  </div>
+                                </div>
+                              </motion.div>
+
+                              {/* Each day card */}
+                              {Object.entries(weeklySchedule).map(([day, daySchedule], dayIdx) => {
+                                const isToday = day === getTodayName();
+                                const lessonBlocks = daySchedule.blocks.filter(b => b.type === 'lesson');
+                                const isEditing = aiEditingBlocks.includes(day);
+                                return (
+                                  <motion.div key={day}
+                                    data-ai-day={day}
+                                    className={`bg-white rounded-3xl shadow-lg border-2 overflow-hidden transition-all ${
+                                      isToday ? 'border-green-400 shadow-green-100' : isEditing ? 'border-purple-400 shadow-purple-100' : 'border-blue-100'
+                                    }`}
+                                    initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: dayIdx * 0.05 }}
+                                    layout>
+                                    {/* Day header */}
+                                    <div className={`px-5 py-3 flex items-center justify-between ${isToday ? 'bg-green-50' : 'bg-gray-50'}`}>
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-lg font-extrabold text-gray-900 capitalize">{day}</span>
+                                        {isToday && (
+                                          <span className="text-xs font-bold bg-green-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> Today
+                                          </span>
+                                        )}
+                                        {isEditing && (
+                                          <motion.span className="text-xs font-bold bg-purple-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1"
+                                            animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1, repeat: Infinity }}>
+                                            <MousePointer2 className="w-3 h-3" /> AI Editing...
+                                          </motion.span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                                          <Clock className="w-3.5 h-3.5" />
+                                          {Math.floor(daySchedule.totalMinutes / 60)}h {daySchedule.totalMinutes % 60}m
+                                        </span>
+                                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                          {lessonBlocks.length} lesson{lessonBlocks.length !== 1 ? 's' : ''}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Blocks timeline */}
+                                    <div className="p-4 space-y-2">
+                                      {daySchedule.blocks.map((block, i) => {
+                                        const matchedLesson = block.lessonId ? allLessons.find(l => l.id === block.lessonId) : null;
+                                        const prog = block.lessonId ? getLessonProg(block.lessonId) : null;
+                                        const typeStyles: Record<string, { bg: string; border: string; dot: string }> = {
+                                          lesson: { bg: 'bg-blue-50', border: 'border-l-blue-500', dot: 'bg-blue-500' },
+                                          practice: { bg: 'bg-purple-50', border: 'border-l-purple-500', dot: 'bg-purple-500' },
+                                          review: { bg: 'bg-amber-50', border: 'border-l-amber-500', dot: 'bg-amber-500' },
+                                          break: { bg: 'bg-green-50', border: 'border-l-green-400', dot: 'bg-green-400' },
+                                        };
+                                        const style = typeStyles[block.type] || typeStyles.lesson;
+                                        const blockIsEditing = isEditing && aiEditingBlocks.includes(`${day}-${i}`);
+
+                                        return (
+                                          <motion.div key={block.id || i}
+                                            data-ai-block={`${day}-${i}`}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border-l-4 ${style.border} ${style.bg} ${blockIsEditing ? 'ring-2 ring-purple-400 ring-offset-1' : ''} ${block.type === 'lesson' && block.lessonId ? 'hover:shadow-md transition-shadow' : ''}`}
+                                            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: dayIdx * 0.05 + i * 0.02 }}
+                                            layout>
+                                            {/* Time column */}
+                                            <div className="w-16 flex-shrink-0 text-center">
+                                              <div className="text-xs font-bold text-gray-700">{block.time}</div>
+                                              <div className="text-[10px] text-gray-400">{block.duration}m</div>
+                                            </div>
+                                            {/* Dot */}
+                                            <div className={`w-2.5 h-2.5 rounded-full ${style.dot} flex-shrink-0`} />
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="font-bold text-sm text-gray-900 truncate">{matchedLesson?.title || block.activity}</div>
+                                              <div className="text-xs text-gray-500 truncate">{block.description}</div>
+                                            </div>
+                                            {/* Action */}
+                                            {block.type === 'lesson' && block.lessonId && (
+                                              <Link to={`/learn/${block.lessonId}`}
+                                                onClick={() => window.scrollTo(0, 0)}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex-shrink-0 ${
+                                                  prog?.completed
+                                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                                }`}>
+                                                {prog?.completed ? '✓ Done' : 'Start →'}
+                                              </Link>
+                                            )}
+                                          </motion.div>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {/* Day tips */}
+                                    {daySchedule.motivationalMessage && (
+                                      <div className="px-5 pb-3">
+                                        <p className="text-xs text-gray-500 italic">💬 {daySchedule.motivationalMessage}</p>
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                      )}
+
                     </div>
 
-                    {/* ─── Chat Sidebar ─── */}
+                    {/* ─── AI Agent Sidebar ─── */}
                     <div className="hidden lg:block w-80 flex-shrink-0">
                       <div className="sticky top-6">
                         <motion.div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 overflow-hidden"
                           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3 flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                              <Send className="w-3.5 h-3.5 text-white" />
+                              <MousePointer2 className="w-3.5 h-3.5 text-white" />
                             </div>
                             <div>
-                              <h3 className="text-white font-bold text-xs">Lesson Assistant</h3>
-                              <p className="text-blue-200 text-[10px]">Ask to customize your learning</p>
+                              <h3 className="text-white font-bold text-xs">AI Agent</h3>
+                              <p className="text-blue-200 text-[10px]">Tell me what to do — I'll execute it</p>
                             </div>
                           </div>
 
-                          {/* Chat Messages */}
-                          <div className="max-h-[40vh] overflow-y-auto p-3 space-y-2 bg-gradient-to-b from-blue-50/30 to-white">
-                            {scheduleChatMessages.length === 0 && (
-                              <div className="space-y-1.5">
-                                {[
-                                  'Focus on contractions',
-                                  'Numbers and math',
-                                  'Shorter, faster lessons',
-                                  'More practice A–J',
-                                  'More review sessions',
-                                  'Evening-only schedule'
-                                ].map(suggestion => (
-                                  <button key={suggestion} onClick={() => handleScheduleChat(suggestion)}
-                                    className="w-full text-left text-xs px-3 py-2 rounded-xl bg-blue-50 text-blue-700 font-medium border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-all">
-                                    {suggestion}
-                                  </button>
-                                ))}
+                          {/* Status Area */}
+                          <div className="p-4 bg-gradient-to-b from-blue-50/30 to-white min-h-[80px] flex items-center justify-center">
+                            {scheduleChatLoading ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="flex gap-1">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                                <span className="text-xs text-blue-600 font-semibold">Executing action...</span>
+                              </div>
+                            ) : (
+                              <div className="text-center">
+                                <MousePointer2 className="w-8 h-8 text-blue-300 mx-auto mb-2" />
+                                <p className="text-xs text-gray-500 font-medium">Type a command below</p>
+                                <p className="text-[10px] text-gray-400 mt-1">e.g. "Add number lessons to Monday"</p>
                               </div>
                             )}
-                            {scheduleChatMessages.map(msg => (
-                              <motion.div key={msg.id}
-                                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}>
-                                <div className={`max-w-[90%] rounded-2xl px-3 py-2 text-xs ${
-                                  msg.sender === 'user'
-                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md'
-                                    : 'bg-white border border-blue-100 text-gray-800 rounded-bl-md shadow-sm'
-                                }`}>
-                                  {msg.sender === 'ai' && <span className="text-[10px] font-bold text-blue-600 block mb-0.5">🧠 BrailleLearn</span>}
-                                  <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                                </div>
-                              </motion.div>
-                            ))}
-                            {scheduleChatLoading && (
-                              <div className="flex justify-start">
-                                <div className="bg-white border border-blue-100 rounded-2xl rounded-bl-md px-3 py-2 shadow-sm">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="flex gap-0.5">
-                                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                    </div>
-                                    <span className="text-[10px] text-blue-500 font-medium">Thinking...</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            <div ref={scheduleChatEndRef} />
                           </div>
 
-                          {/* Chat Input */}
+                          {/* Command Input */}
                           <div className="px-3 py-2.5 border-t border-blue-100 bg-white flex items-center gap-1.5">
                             <input
                               type="text"
                               value={scheduleChatInput}
                               onChange={e => setScheduleChatInput(e.target.value)}
                               onKeyDown={e => e.key === 'Enter' && !scheduleChatLoading && handleScheduleChat(scheduleChatInput)}
-                              placeholder="Ask about lessons..."
+                              placeholder="Tell the agent what to do..."
                               className="flex-1 px-3 py-2 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-xs font-medium outline-none transition-all"
                             />
                             <motion.button
@@ -1355,6 +1805,22 @@ Respond with a friendly message explaining what you changed, then the JSON block
                       </div>
                     </div>
                   </div>
+                </motion.div>
+              )}
+
+              {/* ═══ PRACTICE TAB ═══ */}
+              {activeTab === 'practice' && (
+                <motion.div key="practice" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center py-24">
+                      <div className="text-center">
+                        <motion.div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} />
+                        <p className="text-gray-500 font-medium">Loading practice...</p>
+                      </div>
+                    </div>
+                  }>
+                    <PracticePage />
+                  </Suspense>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1603,6 +2069,102 @@ Respond with a friendly message explaining what you changed, then the JSON block
                   </div>
                 </>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── AI Cursor Overlay ─── */}
+      <AnimatePresence>
+        {aiCursorActive && (
+          <motion.div className="fixed inset-0 z-[100] pointer-events-none"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {/* Cursor */}
+            <motion.div
+              className="absolute flex items-start gap-2"
+              animate={{ left: aiCursorPos.x, top: aiCursorPos.y }}
+              transition={{ type: 'tween', duration: 2.2, ease: 'easeInOut' }}>
+              {/* Cursor icon — larger */}
+              <div className="relative">
+                <MousePointer2 className="w-9 h-9 text-purple-600 drop-shadow-[0_2px_12px_rgba(147,51,234,0.7)]" fill="rgba(147,51,234,0.25)" />
+                {/* Pulse ring */}
+                <motion.div className="absolute -inset-5 rounded-full border-[3px] border-purple-400/60"
+                  animate={{ scale: [0.5, 2], opacity: [0.9, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }} />
+                {/* Inner glow */}
+                <motion.div className="absolute -inset-2 rounded-full bg-purple-400/20"
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0.2, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }} />
+              </div>
+              {/* Label — bigger, more prominent, shows what's being edited */}
+              {aiCursorLabel && (
+                <motion.div className="mt-8 -ml-3 bg-gray-900/95 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-2xl max-w-xs border border-purple-500/30"
+                  initial={{ opacity: 0, y: -8, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} key={aiCursorLabel}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}>
+                  <span className="text-purple-400 mr-1.5 text-xs font-extrabold tracking-wider">AI AGENT</span>
+                  <br />
+                  <span className="text-white/90 leading-snug">{aiCursorLabel}</span>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── AI Change Popup ─── */}
+      <AnimatePresence>
+        {aiChangePopup?.show && (
+          <motion.div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => { setAiChangePopup(null); setAiCursorActive(false); setAiCursorLabel(''); }}>
+            <motion.div
+              className="relative bg-white rounded-3xl shadow-[0_20px_80px_rgba(99,102,241,0.2)] border border-indigo-100/60 max-w-md w-full mx-4 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">{aiChangePopup.title}</h3>
+                    <p className="text-white/70 text-xs font-medium">AI made the following changes</p>
+                  </div>
+                </div>
+              </div>
+              {/* Changes list */}
+              <div className="px-6 py-5 space-y-2.5">
+                {aiChangePopup.changes.map((change, i) => (
+                  <motion.div key={i}
+                    className="flex items-start gap-3 bg-gradient-to-r from-green-50 to-emerald-50/50 rounded-xl px-4 py-3 border border-green-100"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 }}>
+                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <p className="text-sm text-gray-800 font-medium leading-snug">{change}</p>
+                  </motion.div>
+                ))}
+                {aiChangePopup.changes.length === 0 && (
+                  <div className="flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
+                    <CheckCircle className="w-5 h-5 text-blue-500" />
+                    <p className="text-sm text-gray-700 font-medium">Changes applied successfully!</p>
+                  </div>
+                )}
+              </div>
+              {/* Footer */}
+              <div className="px-6 pb-5">
+                <button
+                  onClick={() => { setAiChangePopup(null); setAiCursorActive(false); setAiCursorLabel(''); }}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition-all text-sm">
+                  Got it!
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

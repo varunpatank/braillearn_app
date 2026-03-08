@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Center Clerk sign-in/sign-up modals */
+.cl-modalBackdrop {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.cl-modalContent {
+  margin: auto !important;
+}
+/* Ensure UserButton popover doesn't overflow right edge */
+.cl-userButtonPopoverRootBox {
+  right: 0 !important;
+  left: auto !important;
+}

@@ -25,7 +25,7 @@ const HomePage: React.FC = () => {
     document.title = 'BrailleLearn - Interactive Braille Learning';
     window.scrollTo(0, 0);
     if (speak) {
-      speak('Welcome to BrailleLearn. Start your journey to braille literacy today.');
+      speak('Welcome to BrailleLearn. Designed for partially sighted learners, with full voice navigation for blind users. Tap the microphone button or say what you\'d like to do.');
     }
     
     // Show features immediately
@@ -110,8 +110,9 @@ const HomePage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Master braille through fun, interactive lessons, speech recognition, and optional 
-                Arduino hardware integration for a complete learning experience.
+                Designed for partially sighted learners — with full voice navigation so blind users 
+                can explore hands-free. Master braille through interactive lessons, speech recognition, 
+                and optional Arduino hardware for a complete learning experience.
               </motion.p>
               <motion.div 
                 className="mt-8 flex flex-wrap justify-center lg:justify-start gap-4"
@@ -136,46 +137,160 @@ const HomePage: React.FC = () => {
                   Connect Hardware
                 </Link>
               </motion.div>
+
+              {/* Stats badges below buttons */}
+              <motion.div className="hidden lg:flex mt-6 gap-3"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+                {[
+                  { icon: '\u283f', label: '6-Dot System', desc: '64 combinations' },
+                  { icon: '\ud83d\udcd6', label: 'Grade 1 & 2', desc: 'Full curriculum' },
+                  { icon: '\ud83d\udd0a', label: 'Audio Support', desc: 'Speech enabled' },
+                  { icon: '\u267f', label: 'Accessible', desc: 'Voice navigable' },
+                ].map((stat, i) => (
+                  <motion.div key={i}
+                    className="flex items-center gap-2 px-3 py-2 bg-white/8 backdrop-blur-sm rounded-xl border border-white/10"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1 + i * 0.15, type: 'spring' }}
+                  >
+                    <span className="text-lg">{stat.icon}</span>
+                    <div>
+                      <p className="text-[11px] font-bold text-white/90">{stat.label}</p>
+                      <p className="text-[9px] text-white/50">{stat.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
             </div>
-            {/* Right: Colorful Braille Grid */}
+            {/* Right: Organic Braille Art */}
             <motion.div 
-              className="flex-shrink-0 hidden lg:grid grid-cols-5 gap-3"
+              className="flex-shrink-0 hidden lg:block relative"
+              style={{ width: 460, height: 400 }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.8, type: 'spring' }}
             >
+              {/* Large background braille dots pattern */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 460 400">
+                {/* Scattered background dots */}
+                {[
+                  { cx: 30, cy: 40, r: 4, o: 0.08 }, { cx: 90, cy: 20, r: 3, o: 0.06 },
+                  { cx: 380, cy: 60, r: 5, o: 0.07 }, { cx: 350, cy: 310, r: 4, o: 0.06 },
+                  { cx: 60, cy: 320, r: 3, o: 0.05 }, { cx: 200, cy: 340, r: 4, o: 0.07 },
+                  { cx: 400, cy: 180, r: 3, o: 0.06 }, { cx: 20, cy: 180, r: 5, o: 0.08 },
+                ].map((d, i) => (
+                  <motion.circle key={`bg-${i}`} cx={d.cx} cy={d.cy} r={d.r} fill="white" opacity={d.o}
+                    animate={{ opacity: [d.o, d.o * 2, d.o] }} transition={{ duration: 3 + i * 0.5, repeat: Infinity }} />
+                ))}
+              </svg>
+
+              {/* Floating braille word: "LEARN" spelled out as dot cells */}
               {[
-                { char: '⠁', label: 'A', bg: 'from-blue-400 to-blue-600', border: 'border-blue-300/50' },
-                { char: '⠃', label: 'B', bg: 'from-purple-400 to-purple-600', border: 'border-purple-300/50' },
-                { char: '⠉', label: 'C', bg: 'from-teal-400 to-teal-600', border: 'border-teal-300/50' },
-                { char: '⠙', label: 'D', bg: 'from-amber-400 to-orange-500', border: 'border-amber-300/50' },
-                { char: '⠑', label: 'E', bg: 'from-rose-400 to-rose-600', border: 'border-rose-300/50' },
-                { char: '⠋', label: 'F', bg: 'from-emerald-400 to-emerald-600', border: 'border-emerald-300/50' },
-                { char: '⠛', label: 'G', bg: 'from-indigo-400 to-indigo-600', border: 'border-indigo-300/50' },
-                { char: '⠓', label: 'H', bg: 'from-pink-400 to-pink-600', border: 'border-pink-300/50' },
-                { char: '⠊', label: 'I', bg: 'from-cyan-400 to-cyan-600', border: 'border-cyan-300/50' },
-                { char: '⠚', label: 'J', bg: 'from-violet-400 to-violet-600', border: 'border-violet-300/50' },
-                { char: '⠅', label: 'K', bg: 'from-sky-400 to-sky-600', border: 'border-sky-300/50' },
-                { char: '⠇', label: 'L', bg: 'from-fuchsia-400 to-fuchsia-600', border: 'border-fuchsia-300/50' },
-                { char: '⠍', label: 'M', bg: 'from-lime-500 to-green-600', border: 'border-lime-300/50' },
-                { char: '⠝', label: 'N', bg: 'from-orange-400 to-red-500', border: 'border-orange-300/50' },
-                { char: '⠕', label: 'O', bg: 'from-blue-500 to-indigo-600', border: 'border-blue-400/50' },
-                { char: '⠏', label: 'P', bg: 'from-teal-400 to-cyan-600', border: 'border-teal-300/50' },
-                { char: '⠟', label: 'Q', bg: 'from-purple-500 to-violet-600', border: 'border-purple-400/50' },
-                { char: '⠗', label: 'R', bg: 'from-rose-500 to-pink-600', border: 'border-rose-400/50' },
-                { char: '⠎', label: 'S', bg: 'from-amber-500 to-yellow-600', border: 'border-amber-400/50' },
-                { char: '⠞', label: 'T', bg: 'from-emerald-500 to-teal-600', border: 'border-emerald-400/50' },
-              ].map((cell, i) => (
+                { letter: 'L', dots: [1,2,3], x: 20, y: 30, delay: 0.4 },
+                { letter: 'E', dots: [1,5], x: 100, y: 10, delay: 0.5 },
+                { letter: 'A', dots: [1], x: 180, y: 40, delay: 0.6 },
+                { letter: 'R', dots: [1,2,3,5], x: 260, y: 15, delay: 0.7 },
+                { letter: 'N', dots: [1,3,4,5], x: 340, y: 35, delay: 0.8 },
+              ].map((cell, ci) => (
                 <motion.div
-                  key={i}
-                  className={`w-[5.5rem] h-[5.5rem] bg-gradient-to-br ${cell.bg} backdrop-blur-sm rounded-2xl border-2 ${cell.border} flex flex-col items-center justify-center shadow-xl hover:shadow-2xl cursor-default`}
+                  key={ci}
+                  className="absolute"
+                  style={{ left: cell.x, top: cell.y }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.04, type: 'spring', stiffness: 200 }}
-                  whileHover={{ scale: 1.1, y: -4 }}
+                  transition={{ delay: cell.delay, type: 'spring', stiffness: 200 }}
                 >
-                  <span className="text-3xl leading-none text-white drop-shadow-lg">{cell.char}</span>
-                  <span className="text-[10px] font-bold text-white/80 mt-1 tracking-wider">{cell.label}</span>
+                  <motion.div
+                    className="relative"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 3 + ci * 0.4, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <svg width="56" height="70" viewBox="0 0 56 70">
+                      <rect x="2" y="2" width="52" height="66" rx="12" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+                      {[
+                        { cx: 20, cy: 16 }, { cx: 20, cy: 35 }, { cx: 20, cy: 54 },
+                        { cx: 36, cy: 16 }, { cx: 36, cy: 35 }, { cx: 36, cy: 54 },
+                      ].map((pos, di) => (
+                        <circle key={di} cx={pos.cx} cy={pos.cy} r={cell.dots.includes(di + 1) ? 6.5 : 4}
+                          fill={cell.dots.includes(di + 1) ? 'white' : 'rgba(255,255,255,0.12)'}
+                          stroke={cell.dots.includes(di + 1) ? 'rgba(255,255,255,0.6)' : 'transparent'}
+                          strokeWidth="1" />
+                      ))}
+                    </svg>
+                    <span className="block text-center text-[11px] font-bold text-white/60 mt-0.5 tracking-widest">{cell.letter}</span>
+                  </motion.div>
+                </motion.div>
+              ))}
+
+              {/* Center: Large animated braille cell with glow */}
+              <motion.div
+                className="absolute"
+                style={{ left: 130, top: 110 }}
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-white/20 rounded-3xl blur-xl scale-110" />
+                  <svg width="160" height="190" viewBox="0 0 160 190" className="relative">
+                    <rect x="4" y="4" width="152" height="182" rx="28" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
+                    {/* Full braille cell (all 6 dots) */}
+                    {[
+                      { cx: 55, cy: 45 }, { cx: 55, cy: 95 }, { cx: 55, cy: 145 },
+                      { cx: 105, cy: 45 }, { cx: 105, cy: 95 }, { cx: 105, cy: 145 },
+                    ].map((pos, i) => (
+                      <motion.circle key={i} cx={pos.cx} cy={pos.cy} r={16}
+                        fill="white"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1, opacity: [0.7, 1, 0.7] }}
+                        transition={{ delay: 0.5 + i * 0.1, duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.4))' }}
+                      />
+                    ))}
+                  </svg>
+                </div>
+              </motion.div>
+
+              {/* Braille Man mascot */}
+              <motion.div
+                className="absolute"
+                style={{ right: 20, bottom: 10 }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1, type: 'spring' }}
+              >
+                <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}>
+                  <svg width="64" height="64" viewBox="0 0 40 40">
+                    <circle cx="20" cy="10" r="7" fill="white" />
+                    <circle cx="17" cy="9" r="1.2" fill="#3b82f6" />
+                    <circle cx="23" cy="9" r="1.2" fill="#3b82f6" />
+                    <circle cx="17" cy="12" r="1" fill="#3b82f6" opacity="0.6" />
+                    <circle cx="23" cy="12" r="1" fill="#3b82f6" opacity="0.6" />
+                    <rect x="15" y="17" width="10" height="12" rx="3" fill="white" />
+                    <circle cx="17.5" cy="20" r="1" fill="#3b82f6" /><circle cx="22.5" cy="20" r="1" fill="#3b82f6" />
+                    <circle cx="17.5" cy="24" r="1" fill="#3b82f6" /><circle cx="22.5" cy="24" r="1" fill="#3b82f6" />
+                    <line x1="15" y1="21" x2="10" y2="26" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="25" y1="21" x2="30" y2="16" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="17" y1="29" x2="15" y2="37" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="23" y1="29" x2="25" y2="37" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                </motion.div>
+              </motion.div>
+
+              {/* Floating label badges */}
+              {[
+                { text: '6-dot cell', x: 280, y: 150, delay: 1.2 },
+                { text: 'Grade 1', x: 10, y: 250, delay: 1.4 },
+                { text: 'Tactile', x: 310, y: 260, delay: 1.6 },
+              ].map((badge, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-[11px] font-medium text-white/70"
+                  style={{ left: badge.x, top: badge.y }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: badge.delay, type: 'spring' }}
+                >
+                  {badge.text}
                 </motion.div>
               ))}
             </motion.div>

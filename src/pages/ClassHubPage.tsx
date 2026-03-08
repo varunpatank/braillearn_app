@@ -1,19 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from '@/components/motion';
 import { ClassDashboard } from '@/components/ClassDashboard';
 import {
   MapPin, Star, Users, BookOpen, Video,
-  Plus, Search, Calendar, Globe,
+  Plus, Calendar, Globe,
   Play, ExternalLink, Clock, Youtube, X, FileText,
   LinkIcon, Upload, Trash, Save, BarChart, TrendingUp,
   Activity, Target, Brain, ArrowUpRight, Eye, Flame,
-  Grid3x3, Sparkles, Phone, PhoneOff, VideoIcon
+  Phone, PhoneOff, VideoIcon, Monitor, Edit3
 } from 'lucide-react';
 import { showSuccessConfetti } from '@/utils/confetti';
 import { toast } from '@/components/ui/use-toast';
-import { useMockAuth } from '@/context/MockAuthContext';
+import { useUser } from '@clerk/clerk-react';
 import { ClassService } from '@/services/classService';
 import { BrailleClass } from '@/types/classTypes';
+import { useSupabase } from '@/hooks/useSupabase';
+import { createCourse, enrollInCourse, unenrollFromCourse } from '@/services/dbService';
 
 interface TutorResource {
   id: string;
@@ -62,351 +64,16 @@ interface BrailleCenter {
 
 
 
-// Leaflet Map Component
-const LeafletMap: React.FC<{
-  centers: BrailleCenter[];
-  selectedCenter: BrailleCenter | null;
-  onCenterSelect: (center: BrailleCenter | null) => void;
-}> = ({ centers, selectedCenter, onCenterSelect }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-
+// Live meeting duration timer
+const MeetingTimer: React.FC = () => {
+  const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Dynamically import Leaflet to avoid SSR issues
-    import('leaflet').then((L) => {
-      // Clean up existing map
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-
-      // Create map centered on Washington State
-      if (!mapRef.current) return;
-      const map = L.map(mapRef.current, {
-        zoomControl: true,
-        scrollWheelZoom: true,
-        doubleClickZoom: true,
-        boxZoom: true,
-        keyboard: true,
-        dragging: true,
-        touchZoom: true
-      }).setView([47.7511, -120.7401], 7);
-      mapInstanceRef.current = map;
-
-      // Add tile layer with a nice style
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18,
-      }).addTo(map);
-
-      // Custom marker icons
-      const createCustomIcon = (isSelected: boolean) => L.divIcon({
-        html: `
-          <div style="
-            background: ${isSelected ? '#dc2626' : '#2563eb'};
-            width: ${isSelected ? '32px' : '24px'};
-            height: ${isSelected ? '32px' : '24px'};
-            border-radius: 50%;
-            border: 3px solid white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: ${isSelected ? '16px' : '12px'};
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            transform: translate(-50%, -50%);
-            ${isSelected ? 'animation: pulse 2s infinite;' : ''}
-          ">
-            📚
-          </div>
-          <style>
-            @keyframes pulse {
-              0% { box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-              50% { box-shadow: 0 4px 20px rgba(220, 38, 38, 0.6); }
-              100% { box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-            }
-          </style>
-        `,
-        className: 'custom-div-icon',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-      });
-
-      // Clear existing markers
-      markersRef.current.forEach(marker => {
-        try {
-          if (map.hasLayer(marker)) {
-            map.removeLayer(marker);
-          }
-        } catch (error) {
-          console.error('Error removing marker:', error);
-        }
-      });
-      markersRef.current = [];
-
-      // Add markers for each center
-      centers.forEach((center) => {
-        const isSelected = selectedCenter?.id === center.id;
-        const marker = L.marker([center.coordinates.lat, center.coordinates.lng], {
-          icon: createCustomIcon(isSelected)
-        });
-
-        marker.bindPopup(`
-          <div class="center-popup" data-center-id="${center.id}" style="
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); 
-            color: white; 
-            padding: 18px; 
-            border-radius: 16px; 
-            border: 2px solid rgba(255,255,255,0.2);
-            min-width: 300px;
-            max-width: 340px;
-            font-family: system-ui, -apple-system, sans-serif;
-            box-shadow: 0 8px 32px rgba(30, 58, 138, 0.4);
-            position: relative;
-            backdrop-filter: blur(10px);
-          ">
-            <div style="position: absolute; top: 0; left: 0; right: 0; height: 100%; background: linear-gradient(135deg, rgba(30, 64, 175, 0.1) 0%, rgba(30, 58, 138, 0.1) 100%); border-radius: 14px; pointer-events: none;"></div>
-            <div style="position: relative; z-index: 1;">
-              <h4 style="margin: 0 0 10px 0; font-weight: 700; font-size: 18px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${center.name}</h4>
-              <p style="margin: 0 0 12px 0; font-size: 14px; color: #e2e8f0; display: flex; align-items: center; gap: 8px; font-weight: 500;">
-                <span style="font-size: 16px;">📍</span> ${center.city}, Washington
-              </p>
-              <p style="margin: 0 0 16px 0; font-size: 13px; color: #f1f5f9; line-height: 1.5; opacity: 0.95;">${center.description}</p>
-              <div style="margin: 16px 0;">
-                <h5 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.5px;">Services Offered:</h5>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
-                  ${center.services.slice(0, 3).map(service => 
-                    `<span style="background: rgba(255,255,255,0.25); backdrop-filter: blur(5px); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid rgba(255,255,255,0.1);">${service}</span>`
-                  ).join('')}
-                  ${center.services.length > 3 ? `<span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid rgba(255,255,255,0.1);">+${center.services.length - 3} more</span>` : ''}
-                </div>
-              </div>
-              <div style="display: flex; gap: 10px; margin-top: 16px;">
-                <button class="contact-btn" data-email="${center.email}" style="background: rgba(255,255,255,0.25); backdrop-filter: blur(5px); padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: white; cursor: pointer; transition: all 0.3s ease; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                  <span>✉️</span> Contact
-                </button>
-                <button class="directions-btn" data-location="${encodeURIComponent(center.location)}" style="background: rgba(255,255,255,0.25); backdrop-filter: blur(5px); padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); color: white; cursor: pointer; transition: all 0.3s ease; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                  <span>🗺️</span> Directions
-                </button>
-              </div>
-            </div>
-          </div>
-        `, {
-          closeButton: true,
-          autoClose: false,
-          closeOnClick: false,
-          className: 'custom-popup',
-          maxWidth: 380,
-          minWidth: 320,
-          offset: [0, -15],
-          autoPan: true,
-          keepInView: true
-        });
-
-        marker.on('click', (e) => {
-          console.log('Marker clicked:', center.name);
-          
-          // Prevent any default behavior that might cause page reloads
-          if (e.originalEvent) {
-            e.originalEvent.stopPropagation();
-            e.originalEvent.preventDefault();
-          }
-          
-          // Close all other popups first
-          map.closePopup();
-          
-          // Update selected center state
-          onCenterSelect(center);
-          
-          // Zoom to the marker smoothly - closer zoom level
-          map.setView([center.coordinates.lat, center.coordinates.lng], 12, {
-            animate: true,
-            duration: 0.8
-          });
-          
-          // Open popup immediately to test
-          marker.openPopup();
-        });
-
-        // Handle popup close event properly
-        marker.on('popupclose', (_e) => {
-          // Reset selected center when popup is closed, but avoid infinite loops
-          if (selectedCenter?.id === center.id) {
-            onCenterSelect(null);
-          }
-        });
-
-        marker.addTo(map);
-        markersRef.current.push(marker);
-      });
-
-      // Add CSS for better popup styling - only add once
-      if (!document.querySelector('#leaflet-custom-styles')) {
-        const style = document.createElement('style');
-        style.id = 'leaflet-custom-styles';
-        style.textContent = `
-          .custom-popup {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            z-index: 1000 !important;
-            pointer-events: auto !important;
-          }
-          .custom-popup .leaflet-popup-content-wrapper {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            border-radius: 16px !important;
-            padding: 0 !important;
-            overflow: visible !important;
-          }
-          .custom-popup .leaflet-popup-content {
-            margin: 0 !important;
-            padding: 0 !important;
-            font-family: system-ui, -apple-system, sans-serif !important;
-            width: auto !important;
-            overflow: visible !important;
-            border-radius: 16px !important;
-          }
-          .custom-popup .leaflet-popup-tip {
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%) !important;
-            border: none !important;
-            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3) !important;
-            width: 12px !important;
-            height: 12px !important;
-          }
-          .custom-popup .leaflet-popup-close-button {
-            color: white !important;
-            font-weight: bold !important;
-            font-size: 18px !important;
-            padding: 0 !important;
-            right: 12px !important;
-            top: 12px !important;
-            background: rgba(255,255,255,0.2) !important;
-            backdrop-filter: blur(5px) !important;
-            border: 1px solid rgba(255,255,255,0.3) !important;
-            border-radius: 50% !important;
-            width: 32px !important;
-            height: 32px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            transition: all 0.3s ease !important;
-            text-decoration: none !important;
-            line-height: 1 !important;
-            z-index: 10 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-          }
-          .custom-popup .leaflet-popup-close-button:hover {
-            background: rgba(255,255,255,0.35) !important;
-            transform: scale(1.1) !important;
-            color: white !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
-          }
-          .contact-btn:hover, .directions-btn:hover {
-            background: rgba(255,255,255,0.4) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
-            border-color: rgba(255,255,255,0.4) !important;
-          }
-          .leaflet-container {
-            background: #f3f4f6 !important;
-            font-family: system-ui, -apple-system, sans-serif !important;
-          }
-          .leaflet-popup {
-            margin-bottom: 20px !important;
-          }
-          .leaflet-popup-pane {
-            z-index: 1000 !important;
-          }
-          @media (max-width: 640px) {
-            .custom-popup .leaflet-popup-content-wrapper {
-              max-width: 280px !important;
-            }
-            .center-popup {
-              min-width: 260px !important;
-              max-width: 280px !important;
-              padding: 16px !important;
-            }
-          }
-        `;
-        document.head.appendChild(style);
-      }
-
-      // Add event delegation for popup buttons
-      map.getContainer().addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        
-        if (target.classList.contains('contact-btn')) {
-          e.preventDefault();
-          e.stopPropagation();
-          const email = target.getAttribute('data-email');
-          if (email) {
-            window.location.href = `mailto:${email}`;
-          }
-        }
-        
-        if (target.classList.contains('directions-btn')) {
-          e.preventDefault();
-          e.stopPropagation();
-          const location = target.getAttribute('data-location');
-          if (location) {
-            window.open(`https://maps.google.com/?q=${location}`, '_blank');
-          }
-        }
-      });
-
-    }).catch((error) => {
-      console.error('Failed to load Leaflet:', error);
-      // Fallback: show a message that map failed to load
-      if (mapRef.current) {
-        mapRef.current.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; color: #6b7280;">
-            <div style="text-align: center;">
-              <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
-              <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Map Loading...</div>
-              <div style="font-size: 14px;">Please wait while we load the interactive map</div>
-            </div>
-          </div>
-        `;
-      }
-    });
-
-    return () => {
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.remove();
-          mapInstanceRef.current = null;
-        } catch (error) {
-          console.error('Error cleaning up map:', error);
-        }
-      }
-    };
-  }, [centers, selectedCenter, onCenterSelect]);
-
-  return (
-    <>
-      {/* Leaflet CSS - Load from CDN */}
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossOrigin=""
-      />
-      <div 
-        ref={mapRef} 
-        style={{ 
-          height: '100%', 
-          width: '100%', 
-          borderRadius: '0 0 12px 12px',
-          background: '#f3f4f6',
-          minHeight: '500px'
-        }} 
-      />
-    </>
-  );
+    const t = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const ss = String(elapsed % 60).padStart(2, '0');
+  return <span className="text-gray-300 text-sm font-mono font-bold">{mm}:{ss}</span>;
 };
 
 const ClassHubPage: React.FC = () => {
@@ -449,12 +116,11 @@ const ClassHubPage: React.FC = () => {
     'user35': 'Ivy Mitchell'
   });
 
-  const [activeTab, setActiveTab] = useState<'tutors' | 'classes' | 'centers' | 'dashboard' | 'resources' | 'community'>('tutors');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAddTutor, setShowAddTutor] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tutors' | 'classes' | 'dashboard' | 'resources'>('tutors');
+  const [searchQuery] = useState('');
+  const [_showAddTutor, setShowAddTutor] = useState(false);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [selectedClass, setSelectedClass] = useState<BrailleClass | null>(null);
-  const [selectedCenter, setSelectedCenter] = useState<BrailleCenter | null>(null);
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showClassStats, setShowClassStats] = useState(false);
   const [showAddResource, setShowAddResource] = useState(false);
@@ -462,57 +128,7 @@ const ClassHubPage: React.FC = () => {
   const [meetingRoomId, setMeetingRoomId] = useState('');
   const [meetingClassName, setMeetingClassName] = useState('');
 
-  // Braille Character Creator state
-  const [selectedDots, setSelectedDots] = useState<boolean[]>([false, false, false, false, false, false]);
-  const [dotWordName, setDotWordName] = useState('');
-  const [dotWordDescription, setDotWordDescription] = useState('');
-  interface CommunityBrailleWord {
-    id: string;
-    dots: boolean[];
-    word: string;
-    description: string;
-    createdBy: string;
-    createdAt: string;
-  }
-  const [communityWords, setCommunityWords] = useState<CommunityBrailleWord[]>(() => {
-    const saved = localStorage.getItem('braillearn-community-words');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 'seed-1', dots: [true, false, false, false, false, false], word: 'Letter A', description: 'The first letter — just dot 1', createdBy: 'BrailleBot', createdAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-      { id: 'seed-2', dots: [true, true, false, false, false, false], word: 'Letter B', description: 'Dots 1-2 make the letter B', createdBy: 'Sarah_T', createdAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-      { id: 'seed-3', dots: [true, false, false, true, false, false], word: 'Letter C', description: 'Two top dots together', createdBy: 'Alex_M', createdAt: new Date(Date.now() - 86400000).toISOString() },
-    ];
-  });
 
-  const dotsToUnicode = (dots: boolean[]): string => {
-    let val = 0x2800;
-    dots.forEach((d, i) => { if (d) val += (1 << i); });
-    return String.fromCodePoint(val);
-  };
-
-  const handleCreateBrailleWord = () => {
-    if (!dotWordName.trim() || !selectedDots.some(d => d)) return;
-    const newWord: CommunityBrailleWord = {
-      id: `word-${Date.now()}`,
-      dots: [...selectedDots],
-      word: dotWordName.trim(),
-      description: dotWordDescription.trim(),
-      createdBy: 'You',
-      createdAt: new Date().toISOString()
-    };
-    const updated = [newWord, ...communityWords];
-    setCommunityWords(updated);
-    localStorage.setItem('braillearn-community-words', JSON.stringify(updated));
-    setSelectedDots([false, false, false, false, false, false]);
-    setDotWordName('');
-    setDotWordDescription('');
-  };
-
-  const handleDeleteBrailleWord = (id: string) => {
-    const updated = communityWords.filter(w => w.id !== id);
-    setCommunityWords(updated);
-    localStorage.setItem('braillearn-community-words', JSON.stringify(updated));
-  };
 
   const openMeetingRoom = (classTitle: string) => {
     const roomId = classTitle.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-') + '-' + Date.now().toString(36);
@@ -520,18 +136,6 @@ const ClassHubPage: React.FC = () => {
     setMeetingClassName(classTitle);
     setShowMeetingRoom(true);
   };
-  const [tutorForm, setTutorForm] = useState({
-    name: '',
-    email: '',
-    bio: '',
-    location: '',
-    specialties: '',
-    experience_years: '',
-    languages: '',
-    availability: '',
-    avatar: '',
-    avatarFile: null as File | null
-  });
   const [resourceForm, setResourceForm] = useState({
     title: '',
     type: 'video' as 'video' | 'link',
@@ -568,7 +172,7 @@ const ClassHubPage: React.FC = () => {
     }[]
   });
 
-  const [tutors, setTutors] = useState<Tutor[]>([
+  const [tutors] = useState<Tutor[]>([
     {
       id: '1',
       name: 'Dr. Sarah Johnson',
@@ -1256,7 +860,9 @@ const ClassHubPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const { user } = useMockAuth();
+  const { user: clerkUser } = useUser();
+  const supabase = useSupabase();
+  const user = clerkUser ? { id: clerkUser.id, username: clerkUser.firstName || clerkUser.fullName || 'User', email: clerkUser.emailAddresses?.[0]?.emailAddress || '' } : null;
 
   // Load classes when component mounts or user changes
   useEffect(() => {
@@ -1398,52 +1004,6 @@ const ClassHubPage: React.FC = () => {
     }
   ]);
   
-  const handleAddTutor = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const newTutor: Tutor = {
-      id: Date.now().toString(),
-      name: tutorForm.name,
-      email: tutorForm.email || `${tutorForm.name.toLowerCase().replace(/\s+/g, '.')}@email.com`,
-      avatar: tutorForm.avatar || `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000) + 100000}/pexels-photo-${Math.floor(Math.random() * 1000000) + 100000}.jpeg?w=150`,
-      rating: 5.0,
-      reviewCount: 0,
-      location: tutorForm.location,
-      specialties: tutorForm.specialties.split(',').map(s => s.trim()).filter(s => s),
-      experience: parseInt(tutorForm.experience_years) || 0,
-      languages: tutorForm.languages.split(',').map(s => s.trim()).filter(s => s),
-      availability: tutorForm.availability.split(',').map(s => s.trim()).filter(s => s),
-      bio: tutorForm.bio,
-      verified: false,
-      responseTime: '< 1 hour',
-      totalStudents: 0,
-      resources: []
-    };
-    
-    setTutors(prev => [...prev, newTutor]);
-    showSuccessConfetti();
-    toast({
-      title: "🎉 Congratulations!",
-      description: "You are now a volunteer tutor! Thank you for joining our community.",
-      variant: "default",
-    });
-    setTimeout(() => {
-      setShowAddTutor(false);
-      setTutorForm({
-        name: '',
-        email: '',
-        bio: '',
-        location: '',
-        specialties: '',
-        experience_years: '',
-        languages: '',
-        availability: '',
-        avatar: '',
-        avatarFile: null
-      });
-    }, 2000);
-  };
-
   const handleAddResource = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1525,11 +1085,30 @@ const ClassHubPage: React.FC = () => {
           }))
         })),
         tags: [],
-        creatorId: user?.id || 'anonymous'
+        creatorId: user?.id || 'anonymous',
+        creatorName: user?.username || 'Anonymous'
       };
 
       console.log('Sending class data to service:', classData);
       
+      // Persist to Supabase
+      if (supabase) {
+        createCourse(supabase, {
+          creator_id: user?.id || 'anonymous',
+          title: classData.title,
+          description: classData.description || null,
+          image_url: classData.imageUrl || null,
+          level: (classData.level as 'beginner' | 'intermediate' | 'advanced') || 'beginner',
+          category: classData.category || null,
+          is_public: true,
+          max_students: classData.maxStudents || 30,
+          tags: [],
+          curriculum: classData.chapters || [],
+          meeting_link: classData.meetingLink || null,
+          schedule: classData.schedule ? { raw: classData.schedule } : null,
+        }).catch(err => console.error('[db] createCourse background error:', err));
+      }
+
       // Create the class
       const result = await ClassService.createClass(classData, classForm.imageFile || undefined);
       console.log('Class creation result:', result);
@@ -1631,108 +1210,98 @@ const ClassHubPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
       {/* Header is handled by App.tsx */}
 
-      {/* Hero Banner */}
-      <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-16 overflow-hidden">
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
-        
+      {/* Hero Banner — Deep indigo/blue matching mission banner, unique Class Hub style */}
+      <section className="relative bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white py-12 overflow-hidden">
+        {/* Honeycomb/hex pattern background */}
+        <div className="absolute inset-0 opacity-[0.06]">
+          <svg width="100%" height="100%"><defs><pattern id="hexagons" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(0.7)"><polygon points="24.8,22 37.6,29.4 37.6,44.2 24.8,51.6 12,44.2 12,29.4" fill="none" stroke="white" strokeWidth="1.5"/><polygon points="24.8,51.6 37.6,59 37.6,73.8 24.8,81.2 12,73.8 12,59" fill="none" stroke="white" strokeWidth="1.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#hexagons)"/></svg>
+        </div>
+        {/* Floating animated orbs */}
+        <motion.div className="absolute top-8 right-16 w-64 h-64 bg-blue-400/15 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], x: [0, 25, 0] }} transition={{ duration: 7, repeat: Infinity }} />
+        <motion.div className="absolute -bottom-16 left-8 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl" animate={{ scale: [1, 1.15, 1], y: [0, -20, 0] }} transition={{ duration: 9, repeat: Infinity, delay: 1 }} />
+        <motion.div className="absolute top-4 left-1/3 w-40 h-40 bg-cyan-300/10 rounded-full blur-2xl" animate={{ opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 5, repeat: Infinity }} />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-            {/* Left: Title & Description */}
-            <motion.div
-              className="text-center lg:text-left flex-1"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <motion.span 
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
-                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-4"
+                className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-4 py-2 rounded-full mb-3 border border-white/20"
               >
-                <Users className="w-4 h-4 text-green-400" />
-                <span className="text-sm font-medium">Community Learning</span>
+                <motion.span animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>🤝</motion.span>
+                <span className="text-sm font-medium">Community Learning Hub</span>
               </motion.span>
               
-              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-3">
-                🎓 Class Hub
+              <h1 className="text-3xl md:text-4xl font-extrabold leading-tight mb-1 flex items-center gap-3">
+                <motion.span className="inline-block" animate={{ y: [0, -4, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}>🎓</motion.span>
+                Class Hub
               </h1>
-              <p className="text-lg text-blue-200 max-w-lg">
+              <p className="text-blue-200 text-base max-w-lg">
                 Connect with volunteer tutors, join live classes, and find braille learning centers near you
               </p>
             </motion.div>
             
-            {/* Right: Quick Stats */}
-            <motion.div className="grid grid-cols-2 gap-3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+            {/* Stats — pill-shaped with colored left accent */}
+            <motion.div className="flex flex-wrap gap-2.5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
               {[
-                { value: tutors.length, label: 'Tutors', color: 'text-green-400' },
-                { value: classes.length, label: 'Classes', color: 'text-yellow-400' },
-                { value: centers.length, label: 'Centers', color: 'text-purple-400' },
-                { value: '⭐ 4.9', label: 'Rating', color: 'text-white' },
+                { value: tutors.length, label: 'Tutors', icon: Users, accent: 'bg-green-400' },
+                { value: classes.length, label: 'Classes', icon: BookOpen, accent: 'bg-yellow-400' },
+                { value: centers.length, label: 'Centers', icon: MapPin, accent: 'bg-purple-400' },
+                { value: '4.9', label: 'Rating', icon: Star, accent: 'bg-amber-400' },
               ].map((stat, i) => (
                 <motion.div 
                   key={stat.label}
-                  className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/15 text-center"
-                  initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3 + i * 0.1, type: 'spring' }}
+                  className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md rounded-2xl pl-1 pr-4 py-1.5 border border-white/20"
+                  initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.3 + i * 0.08, type: 'spring', stiffness: 200 }}
                 >
-                  <div className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</div>
-                  <div className="text-xs text-blue-200">{stat.label}</div>
+                  <div className={`w-9 h-9 rounded-xl ${stat.accent} flex items-center justify-center shadow-lg`}>
+                    <stat.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-base font-extrabold leading-none">{stat.value}</div>
+                    <div className="text-[10px] text-blue-200 font-medium">{stat.label}</div>
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
           </div>
-            
-          {/* Search Bar */}
-          <motion.div 
-            className="max-w-xl mx-auto lg:mx-0 mt-6 relative"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <input
-              type="text"
-              placeholder="Search tutors, classes, or topics..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-6 py-3.5 pl-14 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur-sm focus:ring-2 focus:ring-white/50 focus:border-white/50 text-white placeholder-white/60 text-base font-medium"
-            />
-            <Search className="absolute left-5 top-3.5 text-white/60" size={22} />
-          </motion.div>
+        </div>
+        {/* Wave divider at bottom */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
+          <svg viewBox="0 0 1200 60" preserveAspectRatio="none" className="w-full h-8">
+            <path d="M0,20 C200,60 400,0 600,25 C800,50 1000,5 1200,30 L1200,60 L0,60 Z" fill="#eff6ff" />
+          </svg>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tab Navigation - Missions Style */}
-        <motion.div 
-          className="bg-white rounded-2xl shadow-xl p-1.5 mb-8 border-2 border-blue-100 flex flex-wrap gap-1"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-5 relative z-20">
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-indigo-100 p-1.5 flex gap-1">
           {[
-            { id: 'tutors', label: 'Find Tutors', icon: Users, color: 'blue' },
-            { id: 'classes', label: 'Live Classes', icon: BookOpen, color: 'green' },
-            { id: 'community', label: 'Braille Lab', icon: Grid3x3, color: 'emerald' },
-            { id: 'centers', label: 'Learning Centers', icon: MapPin, color: 'purple' },
-            { id: 'dashboard', label: 'Analytics', icon: BarChart, color: 'orange' },
-            { id: 'resources', label: 'Resources', icon: Video, color: 'indigo' }
+            { id: 'tutors', label: 'Find Tutors', icon: Users },
+            { id: 'classes', label: 'Live Classes', icon: BookOpen },
+            { id: 'dashboard', label: 'Analytics', icon: BarChart },
+            { id: 'resources', label: 'Resources', icon: Video }
           ].map((tab) => (
-            <button
+            <motion.button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
                 activeTab === tab.id 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg' 
-                  : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'
+                  ? 'bg-gradient-to-r from-indigo-800 to-blue-600 text-white shadow-lg' 
+                  : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'
               }`}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             >
               <tab.icon className="w-4 h-4" />
               <span className="hidden sm:inline">{tab.label}</span>
-            </button>
+            </motion.button>
           ))}
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
           {activeTab === 'tutors' && (
             <motion.div
@@ -2020,109 +1589,6 @@ const ClassHubPage: React.FC = () => {
             </motion.div>
           )}
 
-          {activeTab === 'centers' && (
-            <motion.div
-              key="centers"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 mb-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      📍 Braille Centers Nearby
-                    </h2>
-                    <p className="text-gray-600 mt-1">Find braille learning centers and resources in Washington State</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-50 rounded-xl px-4 py-2 border border-purple-100 text-center">
-                      <div className="text-lg font-extrabold text-purple-700">{centers.length}</div>
-                      <div className="text-[10px] text-purple-500 font-medium">Centers</div>
-                    </div>
-                    <div className="bg-blue-50 rounded-xl px-4 py-2 border border-blue-100 text-center">
-                      <div className="text-lg font-extrabold text-blue-700">{new Set(centers.map(c => c.city)).size}</div>
-                      <div className="text-[10px] text-blue-500 font-medium">Cities</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Leaflet Interactive Map */}
-              <div className="mb-8 bg-white rounded-3xl shadow-xl border-2 border-blue-100 overflow-hidden">
-                <div className="bg-gradient-to-b from-blue-700 to-blue-800 p-4 text-white">
-                  <h3 className="text-lg font-bold text-white drop-shadow-lg">📍 Washington State Braille Centers</h3>
-                  <p className="text-sm text-white drop-shadow-lg opacity-90">Click on markers to view center details • Interactive map with zoom and pan</p>
-                </div>
-                <div className="relative h-[500px]">
-                  <LeafletMap centers={centers} selectedCenter={selectedCenter} onCenterSelect={setSelectedCenter} />
-                </div>
-              </div>
-
-              {/* Centers Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {centers.map((center) => (
-                  <motion.div
-                    key={center.id}
-                    className="bg-white rounded-3xl p-6 shadow-lg border-2 border-blue-100 hover:shadow-xl transition-all duration-300 hover:scale-105"
-                    whileHover={{ y: -2 }}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 mb-2 text-lg">{center.name}</h3>
-                        <div className="flex items-center text-gray-600 mb-2">
-                          <MapPin size={16} className="mr-2 text-blue-600" />
-                          <span className="text-sm">{center.location}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
-                          {center.city}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{center.description}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {center.services.slice(0, 2).map((service, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                        >
-                          {service}
-                        </span>
-                      ))}
-                      {center.services.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                          +{center.services.length - 2} more
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <a 
-                        href={`mailto:${center.email}`}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        ✉️ Contact
-                      </a>
-                      <button 
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`https://maps.google.com/?q=${encodeURIComponent(center.location)}`, '_blank');
-                        }}
-                      >
-                        🗺️ Directions
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
 
           {activeTab === 'dashboard' && (
             <motion.div
@@ -2770,6 +2236,9 @@ const ClassHubPage: React.FC = () => {
                       onClick={async () => {
                         try {
                           // Unenroll user - remove from enrolled students
+                          if (supabase && user) {
+                            unenrollFromCourse(supabase, selectedClass.id, user.id).catch(err => console.error('[db] unenroll error:', err));
+                          }
                           setClasses(prevClasses => 
                             prevClasses.map(cls => 
                               cls.id === selectedClass.id 
@@ -2809,6 +2278,11 @@ const ClassHubPage: React.FC = () => {
                           return;
                         }
                         try {
+                          // Persist enrollment to Supabase
+                          if (supabase) {
+                            enrollInCourse(supabase, selectedClass.id, user.id).catch(err => console.error('[db] enroll error:', err));
+                          }
+
                           // Add current user to mockUsers if not already there
                           setMockUsers(prevUsers => ({
                             ...prevUsers,
@@ -2848,170 +2322,38 @@ const ClassHubPage: React.FC = () => {
               </motion.div>
             </motion.div>
           )}
-
-          {/* ═══ COMMUNITY / BRAILLE LAB TAB ═══ */}
-          {activeTab === 'community' && (
-            <motion.div key="community" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-              <div className="space-y-6">
-                {/* Braille Dot Creator */}
-                <div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-emerald-100">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                      <Grid3x3 className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">Create Braille Character</h3>
-                      <p className="text-sm text-gray-500">Select dots, name your character & share with the community</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="bg-gradient-to-br from-gray-50 to-emerald-50 rounded-2xl p-6 border-2 border-emerald-200">
-                        <div className="grid grid-cols-2 gap-3">
-                          {[[0, 3], [1, 4], [2, 5]].map((row, rowIdx) => (
-                            <React.Fragment key={rowIdx}>
-                              {row.map(dotIdx => (
-                                <motion.button key={dotIdx}
-                                  onClick={() => {
-                                    const newDots = [...selectedDots];
-                                    newDots[dotIdx] = !newDots[dotIdx];
-                                    setSelectedDots(newDots);
-                                  }}
-                                  className={`w-14 h-14 rounded-full border-[3px] font-bold text-lg transition-all ${
-                                    selectedDots[dotIdx]
-                                      ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400 text-white shadow-lg'
-                                      : 'bg-white border-gray-300 text-gray-400 hover:border-emerald-400'
-                                  }`}
-                                  whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                  {dotIdx + 1}
-                                </motion.button>
-                              ))}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-6xl font-mono leading-none mb-1">{dotsToUnicode(selectedDots)}</div>
-                        <p className="text-xs text-gray-500 font-medium">
-                          {selectedDots.some(d => d) ? `Dots: ${selectedDots.map((d, i) => d ? i + 1 : null).filter(Boolean).join(', ')}` : 'Tap dots to select'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-4">
-                      <div>
-                        <label className="text-sm font-bold text-gray-700 mb-1 block">What does this mean?</label>
-                        <input type="text" value={dotWordName} onChange={e => setDotWordName(e.target.value)}
-                          placeholder="e.g. Letter A, Number 1, Love..."
-                          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 text-sm font-medium" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-bold text-gray-700 mb-1 block">Description (optional)</label>
-                        <textarea value={dotWordDescription} onChange={e => setDotWordDescription(e.target.value)}
-                          placeholder="Add a note about this braille character..."
-                          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-500 text-sm font-medium h-24 resize-none" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-bold text-gray-700 mb-2 block">Quick Presets</label>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { label: 'A', dots: [true, false, false, false, false, false] },
-                            { label: 'B', dots: [true, true, false, false, false, false] },
-                            { label: 'C', dots: [true, false, false, true, false, false] },
-                            { label: 'D', dots: [true, false, false, true, true, false] },
-                            { label: 'E', dots: [true, false, false, false, true, false] },
-                            { label: 'F', dots: [true, true, false, true, false, false] },
-                            { label: 'Clear', dots: [false, false, false, false, false, false] },
-                          ].map(preset => (
-                            <button key={preset.label} onClick={() => setSelectedDots(preset.dots)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
-                                preset.label === 'Clear' ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                              }`}>
-                              {preset.label === 'Clear' ? '✕ Clear' : `${preset.label} ${dotsToUnicode(preset.dots)}`}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <button onClick={handleCreateBrailleWord}
-                        disabled={!dotWordName.trim() || !selectedDots.some(d => d)}
-                        className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                        <Sparkles className="w-5 h-5" /> Share with Community
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Community Words Grid */}
-                <div className="bg-white rounded-3xl shadow-xl border-2 border-emerald-100 overflow-hidden">
-                  <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-3.5 flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-sm">Community Braille Words</h3>
-                      <p className="text-emerald-200 text-xs">{communityWords.length} characters shared by learners</p>
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    {communityWords.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                        {communityWords.map((w, idx) => (
-                          <motion.div key={w.id}
-                            className="relative group bg-gradient-to-br from-gray-50 to-emerald-50/30 rounded-2xl p-3 border-2 border-emerald-100 hover:border-emerald-300 hover:shadow-lg transition-all text-center"
-                            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.03 }}>
-                            <div className="text-4xl font-mono mb-1">{dotsToUnicode(w.dots)}</div>
-                            <div className="font-bold text-sm text-gray-900 truncate">{w.word}</div>
-                            <div className="text-xs text-gray-500 truncate">{w.description || `Dots ${w.dots.map((d: boolean, i: number) => d ? i + 1 : null).filter(Boolean).join(', ')}`}</div>
-                            <div className="text-[10px] text-emerald-600 font-medium mt-1">by {w.createdBy}</div>
-                            <div className="grid grid-cols-2 gap-0.5 w-6 mx-auto mt-2">
-                              {[[0, 3], [1, 4], [2, 5]].map((row, ri) => (
-                                <React.Fragment key={ri}>
-                                  {row.map(di => (
-                                    <div key={di} className={`w-2.5 h-2.5 rounded-full ${w.dots[di] ? 'bg-emerald-500' : 'bg-gray-200'}`} />
-                                  ))}
-                                </React.Fragment>
-                              ))}
-                            </div>
-                            <button onClick={() => handleDeleteBrailleWord(w.id)}
-                              className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Grid3x3 className="w-12 h-12 text-emerald-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-extrabold text-gray-900 mb-1">No community words yet</h3>
-                        <p className="text-sm text-gray-500">Create your first braille character above!</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </AnimatePresence>
 
-        {/* ═══ MEETING ROOM MODAL ═══ */}
+        {/* ═══ MEETING ROOM MODAL — Enhanced Call Interface ═══ */}
         <AnimatePresence>
           {showMeetingRoom && (
-            <motion.div className="fixed inset-0 bg-black/90 z-50 flex flex-col"
+            <motion.div className="fixed inset-0 bg-black/95 z-50 flex flex-col"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {/* Meeting Header */}
-              <div className="bg-gray-900 px-6 py-3 flex items-center justify-between border-b border-gray-700">
+              <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-6 py-3 flex items-center justify-between border-b border-gray-700/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                    <VideoIcon className="w-4 h-4 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <VideoIcon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-sm">{meetingClassName}</h3>
-                    <p className="text-gray-400 text-xs">Room: {meetingRoomId}</p>
+                    <h3 className="text-white font-bold">{meetingClassName}</h3>
+                    <div className="flex items-center gap-2">
+                      <p className="text-gray-400 text-xs font-mono">Room: {meetingRoomId.slice(0, 20)}...</p>
+                      <span className="flex items-center gap-1.5 bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /> Live
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Live
-                  </span>
+                  <button onClick={() => {
+                    const url = `${window.location.origin}/classhub?meeting=${meetingRoomId}`;
+                    navigator.clipboard.writeText(url);
+                    toast({ title: 'Invite Link Copied! 🔗', description: 'Share this link so others can join.' });
+                  }}
+                    className="px-4 py-2 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all">
+                    <LinkIcon className="w-3.5 h-3.5" /> Invite
+                  </button>
                   <button onClick={() => setShowMeetingRoom(false)}
                     className="p-2 hover:bg-gray-700 rounded-lg transition-all text-gray-400 hover:text-white">
                     <X className="w-5 h-5" />
@@ -3019,230 +2361,105 @@ const ClassHubPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Meeting Content */}
+              {/* Meeting Content — Jitsi + Sidebar */}
               <div className="flex-1 flex">
-                {/* Video Area */}
+                {/* Jitsi Video */}
                 <div className="flex-1 flex flex-col">
-                  <div className="flex-1 p-4">
-                    <div className="w-full h-full rounded-2xl overflow-hidden">
+                  <div className="flex-1 p-3">
+                    <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                       <iframe
-                        src={`https://meet.jit.si/BrailleLearn-${meetingRoomId}#config.prejoinConfig.enabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=false&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","desktop","fullscreen","hangup","chat","raisehand","settings"]&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.DEFAULT_BACKGROUND="#1a1a2e"&interfaceConfig.DISABLE_JOIN_LEAVE_NOTIFICATIONS=true`}
-                        className="w-full h-full rounded-2xl"
+                        src={`https://meet.jit.si/BrailleLearn-${meetingRoomId}#config.prejoinConfig.enabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=false&config.disableDeepLinking=true&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","desktop","fullscreen","hangup","chat","raisehand","tileview","settings","participants-pane","toggle-camera","whiteboard","shareaudio"]&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.DEFAULT_BACKGROUND="#0f0f1a"&interfaceConfig.DISABLE_JOIN_LEAVE_NOTIFICATIONS=false&interfaceConfig.MOBILE_APP_PROMO=false`}
+                        className="w-full h-full"
                         allow="camera; microphone; fullscreen; display-capture; autoplay; clipboard-write"
                         style={{ border: 'none', minHeight: '500px' }}
                       />
                     </div>
                   </div>
+                </div>
 
-                  {/* Meeting Controls */}
-                  <div className="bg-gray-900 px-6 py-4 flex items-center justify-center gap-3 border-t border-gray-700">
-                    <button onClick={() => setShowMeetingRoom(false)}
-                      className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg transition-all">
-                      <PhoneOff className="w-4 h-4" /> Leave Meeting
-                    </button>
-                    <button onClick={() => {
-                      const url = `${window.location.origin}/classhub?meeting=${meetingRoomId}`;
-                      navigator.clipboard.writeText(url);
-                      toast({ title: 'Link Copied!', description: 'Meeting invite link copied to clipboard.' });
-                    }}
-                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg transition-all">
-                      <LinkIcon className="w-4 h-4" /> Copy Invite Link
-                    </button>
+                {/* Participant Sidebar */}
+                <div className="hidden lg:flex flex-col w-72 bg-gray-900 border-l border-gray-700/50">
+                  <div className="px-4 py-3 border-b border-gray-700/50">
+                    <h4 className="text-white font-bold text-sm flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-400" /> In This Room
+                    </h4>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {/* Current user */}
+                    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                        {user?.username?.[0] || 'Y'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{user?.username || 'You'} (You)</p>
+                        <p className="text-green-400 text-[10px] font-medium">Connected</p>
+                      </div>
+                      <span className="w-2 h-2 bg-green-400 rounded-full" />
+                    </div>
+                    {/* Mock participants */}
+                    {[
+                      { name: 'Sarah M.', initial: 'S', status: 'Speaking' },
+                      { name: 'James K.', initial: 'J', status: 'Connected' },
+                      { name: 'Maria L.', initial: 'M', status: 'Screen sharing' },
+                    ].map((p, i) => (
+                      <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-xs font-bold">
+                          {p.initial}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium truncate">{p.name}</p>
+                          <p className={`text-[10px] font-medium ${p.status === 'Speaking' ? 'text-yellow-400' : p.status === 'Screen sharing' ? 'text-purple-400' : 'text-green-400'}`}>
+                            {p.status}
+                          </p>
+                        </div>
+                        <span className="w-2 h-2 bg-green-400 rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Quick Actions */}
+                  <div className="p-3 border-t border-gray-700/50 space-y-2">
+                    <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider px-1">Quick Actions</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button className="flex flex-col items-center gap-1 px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl border border-gray-700 transition-colors">
+                        <Monitor className="w-4 h-4 text-blue-400" />
+                        <span className="text-[10px] text-gray-300 font-medium">Share Screen</span>
+                      </button>
+                      <button className="flex flex-col items-center gap-1 px-3 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl border border-gray-700 transition-colors">
+                        <Edit3 className="w-4 h-4 text-purple-400" />
+                        <span className="text-[10px] text-gray-300 font-medium">Whiteboard</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Add Tutor Modal */}
-        <AnimatePresence>
-          {showAddTutor && (
-            <motion.div
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50 overflow-y-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="bg-white rounded-3xl p-6 w-full max-w-2xl my-8 relative border-2 border-blue-100 shadow-2xl"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">Become a Volunteer Tutor</h3>
-                  <button
-                    onClick={() => setShowAddTutor(false)}
-                    className="p-2 hover:bg-gray-100 rounded-full"
-                  >
-                    <X size={20} className="text-gray-500" />
+              {/* Bottom Controls */}
+              <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-6 py-4 flex items-center justify-between border-t border-gray-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-gray-800 rounded-xl px-4 py-2 border border-gray-700">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <MeetingTimer />
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 bg-gray-800 rounded-xl px-4 py-2 border border-gray-700">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span className="text-gray-300 text-sm font-bold">4 participants</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => {
+                    const url = `${window.location.origin}/classhub?meeting=${meetingRoomId}`;
+                    navigator.clipboard.writeText(url);
+                    toast({ title: 'Link Copied!', description: 'Share this link so others can join the class.' });
+                  }}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
+                    <LinkIcon className="w-4 h-4" /> Copy Invite Link
+                  </button>
+                  <button onClick={() => setShowMeetingRoom(false)}
+                    className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-bold text-sm flex items-center gap-2 shadow-lg shadow-red-500/20 transition-all">
+                    <PhoneOff className="w-4 h-4" /> Leave Meeting
                   </button>
                 </div>
-                
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 text-sm">
-                    🎉 Join our community of volunteer tutors! All tutoring is provided free of charge 
-                    to support braille literacy worldwide.
-                  </p>
-                </div>
-                
-                <form onSubmit={handleAddTutor} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name
-                      </label>
-                      <input
-                        type="text"
-                        value={tutorForm.name}
-                        onChange={(e) => setTutorForm({...tutorForm, name: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Your full name"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={tutorForm.email}
-                        onChange={(e) => setTutorForm({...tutorForm, email: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="your.email@example.com"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Profile Image
-                    </label>
-                    <div className="space-y-2">
-                      <input
-                        type="url"
-                        value={tutorForm.avatar}
-                        onChange={(e) => setTutorForm({...tutorForm, avatar: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="https://example.com/your-photo.jpg"
-                      />
-                      <p className="text-sm text-gray-500">
-                        Paste a URL to your profile image (optional). If left empty, a default image will be used.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Years of Experience
-                      </label>
-                      <input
-                        type="number"
-                        value={tutorForm.experience_years}
-                        onChange={(e) => setTutorForm({...tutorForm, experience_years: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="5"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bio & Teaching Philosophy
-                    </label>
-                    <textarea
-                      value={tutorForm.bio}
-                      onChange={(e) => setTutorForm({...tutorForm, bio: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={4}
-                      placeholder="Tell us about your experience and approach to teaching braille..."
-                      required
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Location
-                      </label>
-                      <input
-                        type="text"
-                        value={tutorForm.location}
-                        onChange={(e) => setTutorForm({...tutorForm, location: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="City, State"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Specialties (comma-separated)
-                      </label>
-                      <input
-                        type="text"
-                        value={tutorForm.specialties}
-                        onChange={(e) => setTutorForm({...tutorForm, specialties: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Beginner Braille, Advanced Reading"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Languages (comma-separated)
-                      </label>
-                      <input
-                        type="text"
-                        value={tutorForm.languages}
-                        onChange={(e) => setTutorForm({...tutorForm, languages: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="English, Spanish, French"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Availability (comma-separated days)
-                      </label>
-                      <input
-                        type="text"
-                        value={tutorForm.availability}
-                        onChange={(e) => setTutorForm({...tutorForm, availability: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Monday, Wednesday, Friday"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddTutor(false)}
-                      className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-bold"
-                    >
-                      Join as Volunteer Tutor
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -3506,23 +2723,6 @@ const ClassHubPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Meeting Link
-                    </label>
-                    <input
-                      type="url"
-                      value={classForm.meetingLink}
-                      onChange={(e) => setClassForm(prev => ({
-                        ...prev,
-                        meetingLink: e.target.value
-                      }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="https://zoom.us/..."
-                      required
-                    />
-                  </div>
-
-                  <div>
                     <div className="flex justify-between items-center mb-4">
                       <h4 className="text-lg font-semibold text-gray-900">Course Chapters</h4>
                       <button
@@ -3719,7 +2919,7 @@ const ClassHubPage: React.FC = () => {
                           e.preventDefault();
                           toast({
                             title: "Validation Error",
-                            description: "Please fill in all required fields: Title, Description, Category, Schedule Days, Schedule Time, and Meeting Link",
+                            description: "Please fill in all required fields: Title, Description, Category, Schedule Days, and Schedule Time",
                             variant: "destructive"
                           });
                           return;

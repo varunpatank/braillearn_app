@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { audioFeedback } from '../services/audioFeedback';
 
 interface AudioContextType {
@@ -45,17 +45,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const speak = async (text: string, options = {}) => {
+  const speak = useCallback(async (text: string, options = {}) => {
     if (isEnabled) {
       await audioFeedback.speak(text, options);
     }
-  };
+  }, [isEnabled]);
 
-  const playSound = (sound: string) => {
+  const playSound = useCallback((sound: string) => {
     if (isEnabled) {
       audioFeedback.playSound(sound as any);
     }
-  };
+  }, [isEnabled]);
 
   return (
     <AudioContext.Provider value={{ isEnabled, toggleAudio, speak, playSound }}>

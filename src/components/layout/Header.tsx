@@ -1,28 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Settings, BookOpen, Home, Volume2, VolumeX, MapPin } from 'lucide-react';
+import { Menu, X, User, Settings, BookOpen, Home, Volume2, VolumeX, MapPin, LogOut, ChevronDown } from 'lucide-react';
 import { useAudio } from '../../context/AudioContext';
-import { useMockAuth } from '../../context/MockAuthContext';
-import { MockAuthModal } from '../MockAuthModal';
-import { UserProfileDropdown } from '../UserProfileDropdown';
+import { SignInButton, SignUpButton, useUser, useClerk } from '@clerk/clerk-react';
 import Logo from '../common/Logo';
 
 const Header: React.FC = () => {
-  // header render log removed for cleaner console
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [_showMoreDropdown, setShowMoreDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const authDropdownRef = useRef<HTMLDivElement>(null);
   const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
-  const { user } = useMockAuth();
+  const { isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
   const location = useLocation();
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowMoreDropdown(false);
+        setShowUserDropdown(false);
+      }
+      if (authDropdownRef.current && !authDropdownRef.current.contains(event.target as Node)) {
+        setShowAuthDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -66,12 +66,6 @@ const Header: React.FC = () => {
             >
               Learn
             </Link>
-            <Link 
-              to="/practice" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/practice')}`}
-            >
-              Practice
-            </Link>
 
             <Link 
               to="/braillequest" 
@@ -101,29 +95,84 @@ const Header: React.FC = () => {
                   <VolumeX size={20} className="text-gray-400" />
                 )}
               </button>
-              {user ? (
-                <UserProfileDropdown />
-              ) : (
-                <>
-                  <button 
-                    onClick={() => {
-                      setAuthMode('login');
-                      setShowAuthModal(true);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Sign In
-                  </button>
+              {isSignedIn ? (
+                <div className="relative" ref={dropdownRef}>
                   <button
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setShowAuthModal(true);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg border-2 border-gray-900 transition-colors"
+                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                    className="flex items-center gap-1.5 focus:outline-none"
                   >
-                    Sign Up
+                    {user?.imageUrl ? (
+                      <img src={user.imageUrl} alt="" className="w-9 h-9 rounded-full ring-2 ring-blue-500 ring-offset-2 object-cover" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full ring-2 ring-blue-500 ring-offset-2 bg-blue-100 flex items-center justify-center">
+                        <User size={18} className="text-blue-600" />
+                      </div>
+                    )}
+                    <ChevronDown size={14} className={`text-gray-500 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
                   </button>
-                </>
+                  {showUserDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {user?.imageUrl ? (
+                            <img src={user.imageUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <User size={20} className="text-blue-600" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-gray-900 truncate">{user?.fullName || user?.firstName || 'User'}</p>
+                            <p className="text-xs text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="py-1">
+                        <Link to="/settings" onClick={() => setShowUserDropdown(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                          <Settings size={16} className="text-gray-400" /> Account Settings
+                        </Link>
+                        <Link to="/achievements" onClick={() => setShowUserDropdown(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                          <BookOpen size={16} className="text-gray-400" /> My Progress
+                        </Link>
+                      </div>
+                      <div className="border-t border-gray-100 pt-1">
+                        <button onClick={() => { setShowUserDropdown(false); signOut(); }}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full transition-colors">
+                          <LogOut size={16} /> Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="relative" ref={authDropdownRef}>
+                  <button
+                    onClick={() => setShowAuthDropdown(!showAuthDropdown)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all shadow-md"
+                  >
+                    <User size={16} />
+                    Sign In
+                    <ChevronDown size={14} className={`transition-transform ${showAuthDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showAuthDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 px-3 z-50 space-y-2">
+                      <SignInButton mode="modal">
+                        <button onClick={() => setShowAuthDropdown(false)}
+                          className="w-full px-4 py-2.5 text-sm font-semibold text-blue-600 border-2 border-blue-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all">
+                          Sign In
+                        </button>
+                      </SignInButton>
+                      <SignUpButton mode="modal">
+                        <button onClick={() => setShowAuthDropdown(false)}
+                          className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md">
+                          Create Account
+                        </button>
+                      </SignUpButton>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </nav>
@@ -176,16 +225,6 @@ const Header: React.FC = () => {
                 Learn
               </div>
             </Link>
-            <Link
-              to="/practice"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/practice')}`}
-              onClick={closeMenu}
-            >
-              <div className="flex items-center">
-                <Settings size={20} className="mr-2" />
-                Practice
-              </div>
-            </Link>
 
             <Link
               to="/braillequest"
@@ -212,35 +251,41 @@ const Header: React.FC = () => {
             </Link>
 
             <div className="pt-4 pb-3 border-t border-gray-200">
-              {user ? (
+              {isSignedIn ? (
                 <div className="px-3">
-                  <UserProfileDropdown />
+                  <div className="flex items-center gap-3 mb-3">
+                    {user?.imageUrl ? (
+                      <img src={user.imageUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                        <User size={18} className="text-blue-600" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-gray-900 truncate">{user?.fullName || user?.firstName || 'User'}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => { closeMenu(); signOut(); }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 w-full transition-colors">
+                    <LogOut size={16} /> Sign Out
+                  </button>
                 </div>
               ) : (
                 <>
                   <div className="flex items-center px-3">
-                    <button
-                      onClick={() => {
-                        setAuthMode('login');
-                        setShowAuthModal(true);
-                        closeMenu();
-                      }}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 w-full border-2 border-gray-300"
-                    >
-                      Sign In
-                    </button>
+                    <SignInButton mode="modal">
+                      <button className="block px-3 py-2 rounded-xl text-base font-semibold text-blue-600 hover:bg-blue-50 w-full border-2 border-blue-200 hover:border-blue-300 transition-all">
+                        Sign In
+                      </button>
+                    </SignInButton>
                   </div>
                   <div className="flex items-center px-3 mt-2">
-                    <button
-                      onClick={() => {
-                        setAuthMode('signup');
-                        setShowAuthModal(true);
-                        closeMenu();
-                      }}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 w-full text-center border-2 border-gray-900 shadow-lg"
-                    >
-                      Sign Up
-                    </button>
+                    <SignUpButton mode="modal">
+                      <button className="block px-3 py-2 rounded-xl text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 w-full text-center shadow-lg shadow-blue-500/25 transition-all">
+                        Sign Up
+                      </button>
+                    </SignUpButton>
                   </div>
                 </>
               )}
@@ -249,12 +294,6 @@ const Header: React.FC = () => {
         </div>
       )}
       
-      {/* Authentication Modal */}
-      <MockAuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialMode={authMode}
-      />
     </header>
   );
 };

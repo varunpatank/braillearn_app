@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAudio } from '../context/AudioContext';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { useUser } from '@clerk/clerk-react';
+import { useSupabase } from '@/hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, Calendar, Play, Check, X, ChevronDown, 
@@ -25,7 +25,9 @@ interface SchedulePreferences {
 const NewLearnPage: React.FC = () => {
   // Context hooks
   const { speak } = useAudio();
-  const { user } = useAuth();
+  const { user: clerkUser } = useUser();
+  const supabase = useSupabase();
+  const user = clerkUser ? { id: clerkUser.id } : null;
 
   // Core state
   const [loading, setLoading] = useState(true);

@@ -121,7 +121,7 @@ const AboutPage: React.FC = () => {
               About BrailleLearn
             </motion.h1>
             <motion.p className="text-xl text-blue-100 mb-8 leading-relaxed max-w-3xl mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-              An interactive braille learning platform combining intelligent software with a custom-built solenoid braille display — bridging digital education with physical tactile feedback.
+              An interactive braille learning platform combining intelligent software with a custom-built solenoid braille display — bridging digital education with physical tactile feedback. Designed for partially sighted learners, with full voice navigation for blind users.
             </motion.p>
             <motion.div className="flex flex-wrap justify-center gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
               <Link to="/learn" className="px-8 py-4 bg-white text-blue-700 rounded-full font-bold shadow-lg hover:bg-blue-50 transition-all hover:scale-105 inline-flex items-center gap-2">

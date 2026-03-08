@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const disableSupabase = import.meta.env.VITE_DISABLE_SUPABASE === 'true' || import.meta.env.DEV === true
+const disableSupabase = import.meta.env.VITE_DISABLE_SUPABASE === 'true'
 
 // Ensure a named export exists for TypeScript/ES module resolution
 export let supabase: any = null
@@ -52,11 +52,11 @@ if (!supabaseUrl || !supabaseAnonKey || disableSupabase) {
     }
   }
 } else {
-  // In production / when enabled: create a real client. Disable automatic token refresh during local dev to avoid spurious network requests.
+  // Create a real client. Auth is managed by Clerk, so disable Supabase's own session handling entirely.
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      persistSession: import.meta.env.DEV ? false : true,
-      autoRefreshToken: import.meta.env.DEV ? false : true
+      persistSession: false,
+      autoRefreshToken: false
     }
   })
 }

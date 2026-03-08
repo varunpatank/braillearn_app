@@ -114,6 +114,7 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked = fa
         {!isLocked && (
           <Link
             to={`/learn/${lesson.id}`}
+            onClick={() => window.scrollTo(0, 0)}
             className={`block w-full text-center rounded-lg py-2 px-4 font-semibold transition-all transform group-hover:scale-105 text-sm ${
               isCompleted 
                 ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg' 
