@@ -136,6 +136,87 @@ const ClassHubPage: React.FC = () => {
     setMeetingClassName(classTitle);
     setShowMeetingRoom(true);
   };
+
+  // ─── Braylin voice tab/action events ───
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const { page, tab } = (e as CustomEvent).detail || {};
+      if (page !== 'class-hub') return;
+      if (tab === 'tutors' || tab === 'classes' || tab === 'dashboard' || tab === 'resources') {
+        setActiveTab(tab);
+      }
+    };
+    const onAction = (e: Event) => {
+      const { action } = (e as CustomEvent).detail || {};
+      if (action === 'create-class') {
+        setShowCreateClass(true);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Create class dialog opened. Fill in the details or say "close" to dismiss.' } })), 500);
+      }
+      if (action === 'view-stats') setShowClassStats(true);
+      if (action === 'open-meeting') openMeetingRoom('Voice Meeting');
+      if (action === 'add-resource') {
+        setShowAddResource(true);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Add resource dialog opened. Say "close" to dismiss.' } })), 500);
+      }
+    };
+    const onDismiss = () => {
+      if (showCreateClass) setShowCreateClass(false);
+      if (showClassStats) setShowClassStats(false);
+      if (showAddResource) setShowAddResource(false);
+      if (showMeetingRoom) setShowMeetingRoom(false);
+      if (selectedTutor) setSelectedTutor(null);
+      if (selectedClass) setSelectedClass(null);
+    };
+    const onConfirm = () => {
+      // Submit whichever form is open
+      if (showCreateClass) {
+        const form = document.querySelector('form[data-braylin="create-class"]') as HTMLFormElement;
+        if (form) form.requestSubmit();
+        else window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Please fill in the class details first.' } }));
+      } else if (showAddResource) {
+        const form = document.querySelector('form[data-braylin="add-resource"]') as HTMLFormElement;
+        if (form) form.requestSubmit();
+        else window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Please fill in the resource details first.' } }));
+      } else if (showClassStats) {
+        setShowClassStats(false);
+      }
+    };
+    window.addEventListener('braylin-tab', onTab);
+    window.addEventListener('braylin-class-action', onAction);
+    window.addEventListener('braylin-dismiss', onDismiss);
+    window.addEventListener('braylin-confirm', onConfirm);
+    return () => {
+      window.removeEventListener('braylin-tab', onTab);
+      window.removeEventListener('braylin-class-action', onAction);
+      window.removeEventListener('braylin-dismiss', onDismiss);
+      window.removeEventListener('braylin-confirm', onConfirm);
+    };
+  }, [showCreateClass, showClassStats, showAddResource, showMeetingRoom, selectedTutor, selectedClass]);
+
+  // ─── Narrate tab switches on ClassHub ───
+  useEffect(() => {
+    const labels: Record<string, string> = {
+      tutors: 'Tutors. Browse available tutors. Say a tutor name to view details.',
+      classes: 'Classes. View and join available classes. Say "create class" to start one.',
+      dashboard: 'Dashboard. View your class stats and activity. Say "view stats" for details.',
+      resources: 'Resources. Browse learning resources. Say "add resource" to upload one.'
+    };
+    window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Class Hub: ${labels[activeTab] || activeTab}` } }));
+  }, [activeTab]);
+
+  // ─── Narrate modals ───
+  useEffect(() => {
+    if (showMeetingRoom) {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Meeting room opened for ${meetingClassName}. Say "close" to leave the meeting.` } }));
+    }
+  }, [showMeetingRoom, meetingClassName]);
+
+  useEffect(() => {
+    if (showClassStats) {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Class statistics are now showing. Say "close" to dismiss.' } }));
+    }
+  }, [showClassStats]);
+
   const [resourceForm, setResourceForm] = useState({
     title: '',
     type: 'video' as 'video' | 'link',
@@ -2528,7 +2609,7 @@ const ClassHubPage: React.FC = () => {
                   </button>
                 </div>
                 
-                <form onSubmit={handleCreateClass} className="space-y-6">
+                <form data-braylin="create-class" onSubmit={handleCreateClass} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2967,7 +3048,7 @@ const ClassHubPage: React.FC = () => {
                   </button>
                 </div>
 
-                <form onSubmit={handleAddResource} className="space-y-6">
+                <form data-braylin="add-resource" onSubmit={handleAddResource} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Resource Title

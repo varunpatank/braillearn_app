@@ -11,6 +11,26 @@ const HardwareSetupPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'setup' | 'test' | 'troubleshoot'>('setup');
+
+  // ─── Braylin voice tab events ───
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const { page, tab } = (e as CustomEvent).detail || {};
+      if (page !== 'hardware-setup') return;
+      if (tab === 'setup' || tab === 'test' || tab === 'troubleshoot') {
+        setActiveTab(tab);
+      }
+    };
+    window.addEventListener('braylin-tab', onTab);
+    return () => window.removeEventListener('braylin-tab', onTab);
+  }, []);
+
+  // ─── Narrate tab switches ───
+  useEffect(() => {
+    const labels: Record<string, string> = { setup: 'Connection Setup', test: 'Test Dots', troubleshoot: 'Troubleshooting' };
+    window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Hardware: ${labels[activeTab] || activeTab}. Say "setup", "test", or "troubleshoot" to switch.` } }));
+  }, [activeTab]);
+
   const [testRunning, setTestRunning] = useState(false);
   const [currentTestDot, setCurrentTestDot] = useState<number | null>(null);
   

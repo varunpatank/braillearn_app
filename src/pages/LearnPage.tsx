@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAudio } from '../context/AudioContext';
+
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '@/hooks/useSupabase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -94,9 +94,6 @@ interface DailySchedule {
 type WeeklySchedule = Record<string, DailySchedule>;
 
 const LearnPage: React.FC = () => {
-  const { speak } = useAudio();
-  const speakRef = useRef(speak);
-  speakRef.current = speak;
   const { user: clerkUser } = useUser();
   const supabase = useSupabase();
   const supabaseRef = useRef(supabase);
@@ -177,7 +174,17 @@ const LearnPage: React.FC = () => {
     const init = async () => {
       document.title = 'Learn Braille - BrailleLearn';
       window.scrollTo(0, 0);
-      speakRef.current('Welcome to the learning dashboard.');
+
+      // If user just returned from a lesson, prompt them to edit
+      const returnedFromLesson = sessionStorage.getItem('braillearn-returned-from-lesson');
+      if (returnedFromLesson) {
+        sessionStorage.removeItem('braillearn-returned-from-lesson');
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', {
+            detail: { text: 'Welcome back! Do you want to edit your lesson plan? Say "edit" to change it, or "view lessons" to see your schedule.' }
+          }));
+        }, 1000);
+      }
 
       try {
         setAllLessons(lessons);
@@ -239,6 +246,232 @@ const LearnPage: React.FC = () => {
     window.addEventListener('voice-agent-command', onVoiceCmd);
     return () => window.removeEventListener('voice-agent-command', onVoiceCmd);
   }, []);
+
+  // ─── Braylin (voice robot) — wizard & schedule control events ───
+  useEffect(() => {
+    // Open the study-plan wizard
+    const onOpenWizard = () => {
+      setShowWizard(true);
+      setWizardStep('level');
+    };
+
+    // Control wizard steps via voice
+    const onWizardAction = (e: Event) => {
+      const { action, value } = (e as CustomEvent).detail || {};
+      switch (action) {
+        case 'set-level':
+          setCustomForm(prev => ({ ...prev, currentLevel: Number(value) }));
+          setWizardStep('style');
+          break;
+        case 'set-style':
+          setCustomForm(prev => ({ ...prev, learningStyle: String(value) }));
+          setWizardStep('focus');
+          break;
+        case 'set-focus':
+          setCustomForm(prev => ({ ...prev, focusAreas: String(value) }));
+          setWizardStep('schedule');
+          break;
+        case 'set-time':
+          setCustomForm(prev => ({ ...prev, dailyTime: String(value) }));
+          break;
+        case 'set-difficulty':
+          setCustomForm(prev => ({ ...prev, difficulty: String(value) }));
+          break;
+        case 'set-days':
+          setCustomForm(prev => ({ ...prev, availableDays: value as string[] }));
+          setWizardStep('review');
+          break;
+        case 'generate':
+          // Close wizard visually and trigger generation
+          handleGeneratePlan();
+          break;
+      }
+    };
+
+    // Narrate today's schedule for blind users
+    const onReadSchedule = () => {
+      const today = getTodayName();
+      const daySchedule = weeklySchedule?.[today];
+      if (daySchedule && daySchedule.blocks.length > 0) {
+        const lessons = daySchedule.blocks.map((b, i) => `${i + 1}: ${b.activity}, ${b.duration} minutes`).join('. ');
+        window.dispatchEvent(new CustomEvent('braylin-narrate', {
+          detail: { text: `Today is ${today}. You have ${daySchedule.blocks.length} lessons scheduled, totaling ${daySchedule.totalMinutes} minutes. ${lessons}` }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('braylin-narrate', {
+          detail: { text: `No lessons scheduled for ${today}. Say "Braylin, make me a study plan" to create one.` }
+        }));
+      }
+    };
+
+    window.addEventListener('braylin-open-wizard', onOpenWizard);
+    window.addEventListener('braylin-wizard-action', onWizardAction);
+    window.addEventListener('braylin-read-schedule', onReadSchedule);
+
+    // ─── View lessons for a day (reads names + asks to start) ───
+    const onViewLessons = (e: Event) => {
+      const { day } = (e as CustomEvent).detail || {};
+      const targetDay = day || getTodayName();
+      const daySchedule = weeklySchedule?.[targetDay];
+      if (daySchedule) {
+        const lessonBlocks = daySchedule.blocks.filter(b => b.type === 'lesson');
+        if (lessonBlocks.length > 0) {
+          const list = lessonBlocks.map((b, i) => `${i + 1}: ${b.activity}, ${b.duration} minutes`).join('. ');
+          window.dispatchEvent(new CustomEvent('braylin-narrate', {
+            detail: { text: `${targetDay} has ${lessonBlocks.length} lessons. ${list}. Say "start lesson" to begin the first lesson, or say a day name to switch.` }
+          }));
+        } else {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `No lessons on ${targetDay}. Say another day name.` } }));
+        }
+      } else {
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `No schedule for ${targetDay}. Say "make me a study plan" to create one.` } }));
+      }
+    };
+
+    // ─── Start lesson for a day ───
+    const onStartLesson = (e: Event) => {
+      const { day } = (e as CustomEvent).detail || {};
+      const targetDay = day || getTodayName();
+      const daySchedule = weeklySchedule?.[targetDay];
+      if (daySchedule) {
+        const firstLesson = daySchedule.blocks.find(b => b.type === 'lesson' && b.lessonId);
+        if (firstLesson?.lessonId) {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Starting ${firstLesson.activity}.` } }));
+          // Navigate after short delay so narration fires
+          setTimeout(() => {
+            window.location.href = `/learn/${firstLesson.lessonId}`;
+          }, 800);
+        } else {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `No startable lesson found for ${targetDay}.` } }));
+        }
+      }
+    };
+
+    window.addEventListener('braylin-view-lessons', onViewLessons);
+    window.addEventListener('braylin-start-lesson', onStartLesson);
+    return () => {
+      window.removeEventListener('braylin-open-wizard', onOpenWizard);
+      window.removeEventListener('braylin-wizard-action', onWizardAction);
+      window.removeEventListener('braylin-read-schedule', onReadSchedule);
+      window.removeEventListener('braylin-view-lessons', onViewLessons);
+      window.removeEventListener('braylin-start-lesson', onStartLesson);
+    };
+  }, [weeklySchedule]);
+
+  // ─── Braylin tab switching ───
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const { page, tab, subTab } = (e as CustomEvent).detail || {};
+      if (page !== 'learn') return;
+      if (tab === 'overview' || tab === 'lessons' || tab === 'practice') {
+        setActiveTab(tab as DashboardTab);
+      }
+      if (subTab === 'browse' || subTab === 'week') {
+        setLessonsSubTab(subTab);
+        if (tab !== 'lessons') setActiveTab('lessons');
+      }
+    };
+    window.addEventListener('braylin-tab', onTab);
+    return () => window.removeEventListener('braylin-tab', onTab);
+  }, []);
+
+  // ─── Braylin learn actions (reset plan, select day, dismiss) ───
+  useEffect(() => {
+    const onAction = (e: Event) => {
+      const { action, day } = (e as CustomEvent).detail || {};
+      if (action === 'reset-plan') resetPlan();
+      if (action === 'select-day') setSelectedScheduleDay(day);
+    };
+    const onDismiss = () => {
+      if (showWizard) setShowWizard(false);
+      if (aiChangePopup?.show) setAiChangePopup(null);
+    };
+    const onConfirm = () => {
+      if (showWizard) {
+        // Trigger wizard generate / next step
+        window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'generate' } }));
+      } else if (aiChangePopup?.show) {
+        setAiChangePopup(null); setAiCursorActive(false); setAiCursorLabel('');
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Got it. Changes applied.' } }));
+      }
+    };
+    window.addEventListener('braylin-learn-action', onAction);
+    window.addEventListener('braylin-dismiss', onDismiss);
+    window.addEventListener('braylin-confirm', onConfirm);
+    return () => { window.removeEventListener('braylin-learn-action', onAction); window.removeEventListener('braylin-dismiss', onDismiss); window.removeEventListener('braylin-confirm', onConfirm); };
+  }, [showWizard, aiChangePopup]);
+
+  // ─── Narrate tab switches on Learn page ───
+  useEffect(() => {
+    if (activeTab === 'lessons') {
+      // Build a summary of available lessons
+      if (lessonsSubTab === 'week' && weeklySchedule) {
+        const today = getTodayName();
+        const daySchedule = weeklySchedule[today];
+        if (daySchedule && daySchedule.blocks.length > 0) {
+          const lessonNames = daySchedule.blocks
+            .filter(b => b.type === 'lesson')
+            .map((b, i) => `${i + 1}: ${b.activity}`)
+            .join('. ');
+          window.dispatchEvent(new CustomEvent('braylin-narrate', {
+            detail: { text: `Lessons tab. Your ${today} schedule has ${daySchedule.blocks.filter(b => b.type === 'lesson').length} lessons. ${lessonNames}. Say a day like "select Monday" to switch days, or "start lesson" to begin. Say "exit" in a lesson to come back.` }
+          }));
+        } else {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', {
+            detail: { text: 'Lessons tab. No lessons scheduled for today. Say "browse lessons" to see all lessons, or "make me a study plan" to create a schedule.' }
+          }));
+        }
+      } else if (lessonsSubTab === 'browse') {
+        const count = allLessons.length;
+        const levels = [...new Set(allLessons.map(l => l.level))].sort((a, b) => a - b);
+        window.dispatchEvent(new CustomEvent('braylin-narrate', {
+          detail: { text: `Browse lessons. ${count} lessons across ${levels.length} levels. Say a level number to expand it, or "weekly schedule" to see your plan.` }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('braylin-narrate', {
+          detail: { text: 'Lessons. Say "browse lessons" to see all lessons, or "weekly schedule" to view your plan. Say "view lessons" to hear what\'s available.' }
+        }));
+      }
+    } else {
+      const labels: Record<string, string> = {
+        overview: 'Overview. View your study plan, progress, and stats. Say "make me a study plan" or "edit schedule".',
+        practice: 'Practice. Jump into interactive practice games. Say a game name like "Lightning Reader".'
+      };
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Learn: ${labels[activeTab] || activeTab}` } }));
+    }
+  }, [activeTab, lessonsSubTab, weeklySchedule, allLessons]);
+
+  // ─── Narrate day selection ───
+  useEffect(() => {
+    if (activeTab === 'lessons' && lessonsSubTab === 'week' && selectedScheduleDay) {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `${selectedScheduleDay} selected. Say "read schedule" to hear today's lessons, or "edit schedule" to change it.` } }));
+    }
+  }, [selectedScheduleDay, activeTab, lessonsSubTab]);
+
+  // ─── Braylin auto-narrate AI change popup ───
+  useEffect(() => {
+    if (aiChangePopup?.show && aiChangePopup.changes.length > 0) {
+      const narration = `${aiChangePopup.title}. ` +
+        aiChangePopup.changes.map((c, i) => `${i + 1}: ${c}`).join('. ') +
+        '. Say "Braylin" if you want to make more changes.';
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: narration } }));
+    }
+  }, [aiChangePopup]);
+
+  // ─── Braylin auto-narrate plan generation completion ───
+  useEffect(() => {
+    if (studyPlan && !showWizard && !generatingPlan) {
+      // Narrate after plan generation finishes (slight delay to not overlap)
+      const timer = setTimeout(() => {
+        const dayCount = weeklySchedule ? Object.keys(weeklySchedule).length : 0;
+        const totalLessons = studyPlan.totalLessons || 0;
+        window.dispatchEvent(new CustomEvent('braylin-narrate', {
+          detail: { text: `Your study plan "${studyPlan.title}" is ready! It has ${totalLessons} lessons across ${dayCount} days per week. You can say "Braylin, what's on my schedule" to hear today's lessons, or "Braylin, add more lessons" to customize further.` }
+        }));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [studyPlan, showWizard, generatingPlan]);
 
   // ─── Schedule Generation Helpers ───
   const formatScheduleTime = (minutes: number): string => {
@@ -516,7 +749,6 @@ const LearnPage: React.FC = () => {
     const dayCount = Object.keys(weekly).length;
     addToast('success', '🎉 Plan & Schedule Created!', `Your "${plan.title || 'Braille Journey'}" plan is ready with schedules for ${dayCount} days/week.`);
     setActiveTab('overview');
-    speak('Your personalized study plan and weekly schedule are ready!');
   };
 
   const resetPlan = () => {
@@ -853,6 +1085,7 @@ CRITICAL RULES:
         setAiCursorPos({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
         setAiCursorLabel('🤖 Starting...');
         setAiCursorActive(true);
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Making changes now.' } }));
         const PAUSE_BETWEEN_STEPS = 4500; // 4.5s per step — ultra slow
         const SCROLL_SETTLE = 800; // wait for scroll animation to finish
 
@@ -863,6 +1096,7 @@ CRITICAL RULES:
             // All steps done — show final label, then popup
             setAiCursorLabel('✨ All changes applied!');
             setAiEditingBlocks([]);
+            window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'All changes applied. Plan ready.' } }));
             setTimeout(() => {
               setAiChangePopup({ show: true, title: popupTitle, changes: changeSummary, type: popupType });
             }, 3000);
@@ -889,6 +1123,8 @@ CRITICAL RULES:
               const cursorY = rect.top + rect.height / 2;
               setAiCursorPos({ x: cursorX, y: cursorY });
               setAiCursorLabel(step.label);
+              // Narrate the replacement step
+              window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: step.label.replace(/[^\w\s.,!]/g, '') } }));
               if (step.blocks) setAiEditingBlocks(step.blocks);
 
               // Purple highlight glow on the element
@@ -910,6 +1146,7 @@ CRITICAL RULES:
             const pos = step.fallbackPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             setAiCursorPos({ x: pos.x, y: pos.y });
             setAiCursorLabel(step.label);
+            window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: step.label.replace(/[^\w\s.,!]/g, '') } }));
             if (step.blocks) setAiEditingBlocks(step.blocks);
 
             setTimeout(executeStep, PAUSE_BETWEEN_STEPS);

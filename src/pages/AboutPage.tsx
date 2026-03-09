@@ -19,6 +19,25 @@ const AboutPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  // ─── Braylin voice tab events ───
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const { page, tab } = (e as CustomEvent).detail || {};
+      if (page !== 'about') return;
+      if (tab === 'mission' || tab === 'hardware' || tab === 'design' || tab === 'features' || tab === 'tech') {
+        setActiveTab(tab);
+      }
+    };
+    window.addEventListener('braylin-tab', onTab);
+    return () => window.removeEventListener('braylin-tab', onTab);
+  }, []);
+
+  // ─── Narrate tab switches ───
+  useEffect(() => {
+    const labels: Record<string, string> = { mission: 'Our Mission', hardware: 'Hardware', design: 'Design Process', features: 'Features', tech: 'Tech Stack' };
+    window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `About page: ${labels[activeTab] || activeTab}. Say a section name to switch.` } }));
+  }, [activeTab]);
+
   const impactStats = [
     { value: '285M+', label: 'Visually impaired worldwide', icon: Users, color: 'from-blue-500 to-blue-600' },
     { value: '<10%', label: 'US Braille literacy rate', icon: BookOpen, color: 'from-red-500 to-red-600' },

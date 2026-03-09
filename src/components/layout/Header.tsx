@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, Settings, BookOpen, Home, Volume2, VolumeX, MapPin, LogOut, ChevronDown } from 'lucide-react';
-import { useAudio } from '../../context/AudioContext';
+import { Menu, X, User, Settings, BookOpen, Home, MapPin, LogOut, ChevronDown } from 'lucide-react';
 import { SignInButton, SignUpButton, useUser, useClerk } from '@clerk/clerk-react';
 import Logo from '../common/Logo';
 
@@ -11,9 +10,8 @@ const Header: React.FC = () => {
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const authDropdownRef = useRef<HTMLDivElement>(null);
-  const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
   const { isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { signOut, openSignIn } = useClerk();
   const location = useLocation();
 
   useEffect(() => {
@@ -28,6 +26,33 @@ const Header: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // ─── Braylin voice auth commands ───
+  useEffect(() => {
+    const onAuth = (e: Event) => {
+      const action = (e as CustomEvent).detail?.action;
+      if (action === 'sign-in') {
+        openSignIn();
+        setTimeout(() => window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Sign in dialog opened. You can say "continue with Google" to sign in with Google, or fill in your details.' } })), 800);
+      } else if (action === 'google') {
+        // Open sign-in modal — Clerk shows Google button automatically
+        openSignIn();
+        // Try to auto-click the Google button after modal appears
+        setTimeout(() => {
+          const googleBtn = document.querySelector('[data-provider="google"]') as HTMLElement
+            || document.querySelector('button[aria-label*="Google"]') as HTMLElement
+            || Array.from(document.querySelectorAll('.cl-socialButtonsBlockButton')).find(el => el.textContent?.toLowerCase().includes('google')) as HTMLElement;
+          if (googleBtn) googleBtn.click();
+          else window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Sign in dialog is open. Please click "Continue with Google" on screen.' } }));
+        }, 1500);
+      } else if (action === 'sign-out') {
+        signOut();
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'You have been signed out.' } }));
+      }
+    };
+    window.addEventListener('braylin-auth', onAuth);
+    return () => window.removeEventListener('braylin-auth', onAuth);
+  }, [openSignIn, signOut]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -84,17 +109,6 @@ const Header: React.FC = () => {
             </Link>
 
             <div className="flex items-center space-x-4 ml-4">
-              <button
-                onClick={toggleAudio}
-                className="p-2 rounded-full hover:bg-gray-100"
-                aria-label={isAudioEnabled ? 'Disable audio narration' : 'Enable audio narration'}
-              >
-                {isAudioEnabled ? (
-                  <Volume2 size={20} className="text-primary-600" />
-                ) : (
-                  <VolumeX size={20} className="text-gray-400" />
-                )}
-              </button>
               {isSignedIn ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -179,17 +193,6 @@ const Header: React.FC = () => {
 
           {/* Mobile menu button */}
           <div className="flex items-center md:hidden">
-            <button
-              onClick={toggleAudio}
-              className="p-2 rounded-full hover:bg-gray-100 mr-2"
-              aria-label={isAudioEnabled ? 'Disable audio narration' : 'Enable audio narration'}
-            >
-              {isAudioEnabled ? (
-                <Volume2 size={20} className="text-primary-600" />
-              ) : (
-                <VolumeX size={20} className="text-gray-400" />
-              )}
-            </button>
             <button
               onClick={toggleMenu}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"

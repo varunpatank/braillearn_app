@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
-import { useAudio } from '../../context/AudioContext';
 import { geminiService } from '../../services/geminiService';
 import BrailleCell from '../../components/braille/BrailleCell';
 import BrailleWord from '../../components/braille/BrailleWord';
 import { ChevronLeft, ChevronRight, CheckCircle, Volume2, RotateCcw, Award, Brain, MessageCircle, Lightbulb, Send } from 'lucide-react';
-import { getLessonById } from '../../data/lessons';
+import { getLessonById, braillePatterns } from '../../data/lessons';
 import { Exercise } from '../../types/types';
+
+// Build a reverse map: dot pattern → character name (for narration)
+const dotPatternToLabel = (dots: number[], char?: string): string => {
+  const dotStr = dots.length === 1 ? `dot ${dots[0]}` : `dots ${dots.join(' and ')}`;
+  return char ? `${char}, ${dotStr}` : dotStr;
+};
 
 const LessonPage: React.FC = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { updateLessonProgress, isArduinoConnected } = useAppContext();
-  const { speak } = useAudio();
+  
+  const narrate = (text: string) => window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text } }));
   
   const [lesson, setLesson] = useState(getLessonById(lessonId || ''));
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -36,9 +42,30 @@ const LessonPage: React.FC = () => {
   useEffect(() => {
     if (lesson) {
       document.title = `${lesson.title} - BrailleLearn`;
-      speak(`Starting lesson: ${lesson.title}. ${lesson.description}`);
+      narrate(`Starting lesson: ${lesson.title}. ${lesson.description}`);
     }
-  }, [lesson, speak]);
+  }, [lesson]);
+
+  // ─── Narrate dot patterns for each exercise ───
+  useEffect(() => {
+    if (!lesson) return;
+    const ex = lesson.exercises[currentExerciseIndex];
+    if (!ex) return;
+    // Wait a moment so the lesson-start narration finishes first
+    const timer = setTimeout(() => {
+      let patternNarration = '';
+      if (ex.braillePattern && ex.braillePattern.length > 0) {
+        patternNarration = ex.braillePattern
+          .map(cell => dotPatternToLabel(cell.dots, cell.char))
+          .join('. ');
+      }
+      const text = `Exercise ${currentExerciseIndex + 1} of ${lesson.exercises.length}. ${ex.question}` +
+        (patternNarration ? `. The braille pattern is: ${patternNarration}.` : '') +
+        (ex.options ? ` Options: ${ex.options.join(', ')}.` : ' Type your answer.');
+      narrate(text);
+    }, currentExerciseIndex === 0 ? 2500 : 500);
+    return () => clearTimeout(timer);
+  }, [currentExerciseIndex, lesson]);
 
   if (!lesson) {
     return (
@@ -71,10 +98,10 @@ const LessonPage: React.FC = () => {
 
     if (correct) {
       setScore(score + currentExercise.points);
-      speak('Correct! Well done.');
+      narrate('Correct! Well done.');
       setWrongAnswerCount(0); // Reset wrong answer count on correct answer
     } else {
-      speak(`Incorrect. The correct answer is ${currentExercise.correctAnswer}`);
+      narrate(`Incorrect. The correct answer is ${currentExercise.correctAnswer}`);
       setWrongAnswerCount(prev => prev + 1);
       
       // Show AI instructor after 2 wrong answers
@@ -95,7 +122,7 @@ const LessonPage: React.FC = () => {
         const finalScore = Math.round((score / lesson.exercises.reduce((sum, ex) => sum + ex.points, 0)) * 100);
         setLessonCompleted(true);
         updateLessonProgress(lessonId || '', true, finalScore);
-        speak(`Lesson completed! Your score is ${finalScore} percent.`);
+        narrate(`Lesson completed! Your score is ${finalScore} percent.`);
       }
     }, 2000);
   };
@@ -117,7 +144,7 @@ const LessonPage: React.FC = () => {
         context
       );
       setAiResponse(response);
-      speak(response);
+      narrate(response);
     } catch (error) {
       console.error('Error getting AI help:', error);
       setAiResponse('I\'m having trouble connecting right now. Try breaking down the braille pattern dot by dot, and remember that each character has a unique pattern!');
@@ -178,8 +205,47 @@ const LessonPage: React.FC = () => {
     }
   };
   const speakContent = (text: string) => {
-    speak(text);
+    narrate(text);
   };
+
+  // ─── Braylin voice control for lesson ───
+  useEffect(() => {
+    const onAction = (e: Event) => {
+      const { action, value } = (e as CustomEvent).detail || {};
+      if (action === 'exit-lesson') {
+        sessionStorage.setItem('braillearn-returned-from-lesson', 'true');
+        narrate('Going back to the learn page.');
+        navigate('/learn');
+        window.scrollTo(0, 0);
+      }
+      if (action === 'read-question') {
+        const ex = lesson?.exercises[currentExerciseIndex];
+        if (ex) speakContent(ex.question);
+      }
+      if (action === 'answer' && value) {
+        handleAnswer(value);
+      }
+      if (action === 'repeat-pattern') {
+        const ex = lesson?.exercises[currentExerciseIndex];
+        if (ex?.braillePattern) {
+          const text = ex.braillePattern.map(c => dotPatternToLabel(c.dots, c.char)).join('. ');
+          narrate(`The braille pattern is: ${text}`);
+        }
+      }
+    };
+    window.addEventListener('braylin-lesson-action', onAction);
+    return () => window.removeEventListener('braylin-lesson-action', onAction);
+  }, [currentExerciseIndex, lesson, navigate]);
+
+  // ─── Narrate lesson completion with return prompt ───
+  useEffect(() => {
+    if (lessonCompleted) {
+      const timer = setTimeout(() => {
+        narrate('Say "exit" to go back to the learn page.');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [lessonCompleted]);
 
   if (lessonCompleted) {
     const finalScore = Math.round((score / lesson.exercises.reduce((sum, ex) => sum + ex.points, 0)) * 100);

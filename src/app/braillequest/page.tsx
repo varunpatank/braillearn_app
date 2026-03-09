@@ -246,6 +246,91 @@ export default function BrailleQuestPage() {
   function prevSideTab() { setSideTabIndex(i => i > 0 ? i - 1 : sideTabs.length - 1) }
   function nextSideTab() { setSideTabIndex(i => i < sideTabs.length - 1 ? i + 1 : 0) }
 
+  // ─── Braylin voice tab/action events ───
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const { page, tab } = (e as CustomEvent).detail || {}
+      if (page !== 'braillequest') return
+      const idx = sideTabs.findIndex(t => t.key === tab)
+      if (idx >= 0) setSideTabIndex(idx)
+    }
+    const fileInputRef_braylin = document.querySelector('input[type="file"]') as HTMLInputElement | null
+    const onAction = (e: Event) => {
+      const { action, category, level } = (e as CustomEvent).detail || {}
+      if (action === 'filter') setCategoryFilter(category || 'all')
+      if (action === 'select-level') setSelectedLevel(level)
+      if (action === 'next-mission') {
+        const available = missions.filter(m => !completedMissions.includes(m.id) && (categoryFilter === 'all' || m.category === categoryFilter))
+        if (available.length > 0) {
+          setSelectedMission(available[0])
+          setShowMissionModal(true)
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Mission: ${available[0].title}. ${available[0].description}. Say "take photo" to upload an image, or "close" to go back.` } }))
+          }, 500)
+        } else {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'No available missions in this category. Try "show all missions" or pick a different level.' } }))
+        }
+      }
+      if (action === 'submit') handleSubmit()
+      if (action === 'take-photo') {
+        if (fileInputRef_braylin) fileInputRef_braylin.click()
+      }
+    }
+    const onDismiss = () => {
+      if (showMissionModal) {
+        setShowMissionModal(false)
+        setSelectedMission(null)
+        setFile(null)
+        setPreview(null)
+        setVerifyStatus('idle')
+      }
+      if (showShareModal) setShowShareModal(false)
+      if (showGoalEditor) setShowGoalEditor(false)
+    }
+    const onConfirm = () => {
+      if (showMissionModal && file) {
+        handleSubmit()
+      } else if (showShareModal) {
+        shareToClipboard()
+      } else if (showGoalEditor) {
+        saveDailyGoal(dailyGoal)
+      } else if (showMissionModal && !file) {
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'You need to take a photo first. Say "take photo" to capture an image.' } }))
+      }
+    }
+    window.addEventListener('braylin-tab', onTab)
+    window.addEventListener('braylin-quest-action', onAction)
+    window.addEventListener('braylin-dismiss', onDismiss)
+    window.addEventListener('braylin-confirm', onConfirm)
+    return () => {
+      window.removeEventListener('braylin-tab', onTab)
+      window.removeEventListener('braylin-quest-action', onAction)
+      window.removeEventListener('braylin-dismiss', onDismiss)
+      window.removeEventListener('braylin-confirm', onConfirm)
+    }
+  }, [completedMissions, categoryFilter, showMissionModal, showShareModal, showGoalEditor, file, selectedMission])
+
+  // ─── Narrate mission modal open ───
+  useEffect(() => {
+    if (showMissionModal && selectedMission) {
+      const msg = `Mission opened: ${selectedMission.title}. ${selectedMission.description}. Worth ${selectedMission.xpReward} XP. Say "take photo" to capture an image, "submit" after uploading, or "close" to dismiss.`
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: msg } }))
+    }
+  }, [showMissionModal, selectedMission])
+
+  // ─── Narrate verification status ───
+  useEffect(() => {
+    if (verifyStatus === 'uploading') {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Uploading your photo...' } }))
+    } else if (verifyStatus === 'verifying') {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'AI is verifying your submission. Please wait...' } }))
+    } else if (verifyStatus === 'success') {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Mission complete! ${verifyReason}. You earned XP! A braille lesson is loading now.` } }))
+    } else if (verifyStatus === 'failure') {
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Verification failed. ${verifyReason}. Try taking another photo or say "close" to dismiss.` } }))
+    }
+  }, [verifyStatus, verifyReason])
+
   // ─── DB Integration ───
   useEffect(() => {
     // Wait for Clerk to finish loading before acting on auth state

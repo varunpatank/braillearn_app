@@ -51,7 +51,7 @@ const PracticePage: React.FC = () => {
   const [gameTimer, setGameTimer] = useState<NodeJS.Timeout | null>(null);
   const [questionTimer, setQuestionTimer] = useState<NodeJS.Timeout | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
-  const { speak, playSound } = useAudio();
+  const { playSound } = useAudio();
   const { isArduinoConnected, sendBraillePattern } = useAppContext();
 
   // Enhanced practice modes
@@ -219,7 +219,6 @@ const PracticePage: React.FC = () => {
   useEffect(() => {
     document.title = 'Practice Sessions - BrailleLearn';
     window.scrollTo(0, 0);
-    speak('Welcome to Practice Sessions! Choose a practice mode to improve your braille skills. This app is designed for partially sighted learners, and blind users can navigate by voice.');
     
     // Test Gemini API connection when page loads
     const testAPI = async () => {
@@ -323,7 +322,7 @@ const PracticePage: React.FC = () => {
     setTimeLeft(selectedDuration * 60);
     
     playSound('navigation');
-    speak(`Starting ${practiceModes.find(m => m.id === modeId)?.title}! Good luck!`);
+    window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Starting ${practiceModes.find(m => m.id === modeId)?.title}! Good luck!` } }));
     
     setTimeout(() => {
       setLoading(false);
@@ -566,7 +565,7 @@ const PracticePage: React.FC = () => {
       setStreak(streak + 1);
       setCorrectAnswers(correctAnswers + 1);
       playSound('success');
-      speak('Correct!');
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Correct!' } }));
     } else {
       setStreak(0);
       if (selectedMode === 'marathon-master') {
@@ -577,7 +576,7 @@ const PracticePage: React.FC = () => {
         }
       }
       playSound('error');
-      speak(`Incorrect. The answer was ${currentQuestion.correctAnswer}`);
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Incorrect. The answer was ${currentQuestion.correctAnswer}` } }));
     }
     
     setShowFeedback(true);
@@ -677,7 +676,7 @@ const PracticePage: React.FC = () => {
     const mode = practiceModes.find(m => m.id === selectedMode);
     
     playSound('achievement');
-    speak(`Practice session complete! You scored ${finalScore} percent and earned ${score} points.`);
+    window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Practice session complete! You scored ${finalScore} percent and earned ${score} points.` } }));
   };
 
   const restartGame = () => {
@@ -685,6 +684,53 @@ const PracticePage: React.FC = () => {
       startPracticeSession(selectedMode);
     }
   };
+
+  // ─── Braylin voice control for practice ───
+  useEffect(() => {
+    const onAction = (e: Event) => {
+      const { action, mode, level, duration } = (e as CustomEvent).detail || {};
+      if (action === 'select-mode') {
+        setSelectedMode(mode);
+        setShowCustomization(true);
+      }
+      if (action === 'start-game' && selectedMode) {
+        startPracticeSession(selectedMode);
+      }
+      if (action === 'set-level') setSelectedLevel(level);
+      if (action === 'set-duration') setSelectedDuration(duration);
+      if (action === 'retry') restartGame();
+      if (action === 'new-game') {
+        setSelectedMode(null);
+        setShowCustomization(false);
+        setGameActive(false);
+        setShowResults(false);
+      }
+    };
+    const onDismiss = () => {
+      if (showCustomization && !gameActive) { setSelectedMode(null); setShowCustomization(false); }
+      if (showResults) { setShowResults(false); setSelectedMode(null); setShowCustomization(false); setGameActive(false); }
+    };
+    const onConfirm = () => {
+      if (showCustomization && selectedMode && !gameActive) {
+        startPracticeSession(selectedMode);
+      } else if (showResults) {
+        // "OK" on results → new game
+        setShowResults(false); setSelectedMode(null); setShowCustomization(false); setGameActive(false);
+      }
+    };
+    window.addEventListener('braylin-practice-action', onAction);
+    window.addEventListener('braylin-dismiss', onDismiss);
+    window.addEventListener('braylin-confirm', onConfirm);
+    return () => { window.removeEventListener('braylin-practice-action', onAction); window.removeEventListener('braylin-dismiss', onDismiss); window.removeEventListener('braylin-confirm', onConfirm); };
+  }, [selectedMode, showCustomization, gameActive, showResults]);
+
+  // ─── Narrate game results ───
+  useEffect(() => {
+    if (showResults) {
+      const pct = questionsAnswered > 0 ? Math.round((correctAnswers / questionsAnswered) * 100) : 0;
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Game over! You scored ${pct} percent with ${correctAnswers} correct out of ${questionsAnswered}. Say "retry" to play again, or "new game" for a different mode.` } }));
+    }
+  }, [showResults, correctAnswers, questionsAnswered]);
 
   const sendChatMessage = async () => {
     if (!chatInput.trim()) return;

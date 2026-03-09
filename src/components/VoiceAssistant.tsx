@@ -1,41 +1,59 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, X, Volume2 } from 'lucide-react';
+import { Mic, MicOff, X, Volume2, Bot } from 'lucide-react';
 
-// ─── Route keyword map ───
-const ROUTE_MAP: { keywords: string[]; path: string; label: string }[] = [
-  { keywords: ['home', 'main', 'start', 'beginning', 'welcome'], path: '/', label: 'Home' },
-  { keywords: ['learn', 'lesson', 'study', 'course', 'schedule', 'week', 'classes'], path: '/learn', label: 'Learn' },
-  { keywords: ['practice', 'drill', 'exercise', 'quiz', 'test'], path: '/practice', label: 'Practice' },
-  { keywords: ['speech', 'talk', 'voice', 'speak', 'convert', 'speech to braille', 'dictate'], path: '/speech-to-braille', label: 'Speech to Braille' },
-  { keywords: ['hardware', 'arduino', 'device', 'connect', 'setup', 'physical'], path: '/hardware-setup', label: 'Hardware Setup' },
-  { keywords: ['class', 'classroom', 'teacher', 'hub', 'class hub'], path: '/class-hub', label: 'Class Hub' },
-  { keywords: ['quest', 'mission', 'braille quest', 'explore', 'adventure', 'achievement'], path: '/braillequest', label: 'BrailleQuest' },
-  { keywords: ['about', 'info', 'information', 'help'], path: '/about', label: 'About' },
-  { keywords: ['stats', 'statistics', 'progress', 'data'], path: '/statistics', label: 'Statistics' },
-  { keywords: ['access', 'accessibility', 'settings', 'preferences'], path: '/accessibility', label: 'Accessibility' },
+// ═══════════════════════════════════════════════════════
+//  BRAYLIN — Always-listening BrailleLearn voice robot
+//  No wake word needed — Braylin hears every command.
+//  Compact, sleek UI. Commands for every feature.
+// ═══════════════════════════════════════════════════════
+
+// ─── Page routes ───
+const ROUTE_MAP: { keywords: string[]; path: string; label: string; desc: string }[] = [
+  { keywords: ['home', 'main', 'start', 'beginning', 'welcome', 'front page'], path: '/', label: 'Home', desc: 'the home page' },
+  { keywords: ['learn', 'lesson', 'study', 'course', 'dashboard'], path: '/learn', label: 'Learn', desc: 'the learning dashboard' },
+  { keywords: ['practice', 'drill', 'exercise', 'quiz', 'test', 'game'], path: '/practice', label: 'Practice', desc: 'practice mode' },
+  { keywords: ['speech', 'speech to braille', 'convert', 'dictate', 'translator'], path: '/speech-to-braille', label: 'Speech to Braille', desc: 'the speech to braille converter' },
+  { keywords: ['hardware', 'arduino', 'device', 'connect', 'setup', 'solenoid'], path: '/hardware-setup', label: 'Hardware Setup', desc: 'hardware setup' },
+  { keywords: ['class', 'classroom', 'teacher', 'class hub', 'students'], path: '/class-hub', label: 'Class Hub', desc: 'the class hub' },
+  { keywords: ['quest', 'mission', 'braille quest', 'adventure'], path: '/braillequest', label: 'BrailleQuest', desc: 'BrailleQuest missions' },
+  { keywords: ['about', 'info', 'information'], path: '/about', label: 'About', desc: 'the about page' },
+  { keywords: ['stats', 'statistics', 'progress', 'analytics'], path: '/statistics', label: 'Statistics', desc: 'your statistics' },
+  { keywords: ['access', 'accessibility', 'preferences', 'customize'], path: '/accessibility', label: 'Accessibility', desc: 'accessibility settings' },
 ];
 
-// ─── AI Agent keywords (dispatched as events for LearnPage to pick up) ───
+// ─── Schedule / AI agent keywords ───
 const AI_AGENT_KEYWORDS = [
-  'add', 'remove', 'change', 'schedule', 'create lesson', 'make lesson',
-  'more time', 'less time', 'math', 'letter', 'alphabet', 'contraction',
-  'easier', 'harder', 'advanced', 'beginner', 'random', 'shuffle',
-  'rush', 'slow down', 'clear', 'reset',
+  'add', 'remove', 'change', 'edit', 'modify', 'update',
+  'more time', 'less time', 'extend', 'shorten',
+  'math', 'letter', 'alphabet', 'number', 'contraction', 'word', 'sentence',
+  'punctuation', 'symbol', 'capital', 'music', 'spanish', 'poetry',
+  'computer', 'tech', 'speed', 'compound', 'format', 'document',
+  'easier', 'harder', 'random', 'shuffle', 'rush', 'slow down',
+  'clear schedule', 'reset schedule',
 ];
 
-const PAGE_GREETINGS: Record<string, string> = {
-  '/': 'Welcome to BrailleLearn! Designed for partially sighted learners, with full voice navigation for blind users. Say "learn" to start lessons, "practice" to drill, or tell me anything you\'d like to do.',
-  '/learn': 'You\'re on the Learn page. Say a command like "add letter lessons" to edit your schedule, or "practice" to switch pages.',
-  '/practice': 'Practice page. Here you can drill braille characters. Say "learn" to go back to lessons.',
-  '/speech-to-braille': 'Speech to Braille converter. Speak any text and it will be converted to braille.',
-  '/hardware-setup': 'Hardware Setup. Connect your Arduino braille display here.',
-  '/class-hub': 'Class Hub. Manage your classroom and students.',
-  '/braillequest': 'BrailleQuest! Go on braille missions in the real world.',
-  '/about': 'About BrailleLearn. Learn more about our mission.',
-  '/statistics': 'Your Statistics dashboard. Track your learning progress.',
-  '/accessibility': 'Accessibility settings. Customize your experience.',
+// ─── Wizard keywords ───
+const WIZARD_KEYWORDS = [
+  'create a plan', 'make a plan', 'make me a plan', 'study plan',
+  'make a study plan', 'create study plan', 'new plan', 'build a plan',
+  'set up a plan', 'set up my plan', 'plan my learning', 'learning plan',
+  'personalize', 'personalized plan', 'custom plan',
+];
+
+// ─── Page narrations ───
+const PAGE_NARRATIONS: Record<string, string> = {
+  '/': 'Home page. Say "start learning", "connect hardware", "go to missions", or "help" for all commands.',
+  '/learn': 'Learning Dashboard. Say "view lessons" to hear your lessons for today. "Overview", "lessons", or "practice" tab. "Start lesson" to begin. "Edit schedule" to change your plan. Say a day name like "Monday" to switch days.',
+  '/practice': 'Practice page. Say a mode name: Lightning Reader, Precision Master, Pattern Detective, Braille Architect, Marathon Master, Memory Champion, Speed Demon, or Pattern Ninja.',
+  '/speech-to-braille': 'Speech to Braille converter. Just speak text to convert it.',
+  '/hardware-setup': 'Hardware Setup. Say "setup tab", "test tab", or "troubleshoot tab".',
+  '/class-hub': 'Class Hub. Say "tutors", "classes", "dashboard", "resources". "Create class", "join class", "open meeting", or "view stats".',
+  '/braillequest': 'BrailleQuest missions! Say "next mission", "leaderboard", "rewards", "badges", "achievements". Say "level 1" through "level 6" to filter. "Submit", "close", or "take photo".',
+  '/about': 'About page. Say "mission", "hardware", "design", "features", or "tech".',
+  '/statistics': 'Statistics dashboard.',
+  '/accessibility': 'Accessibility settings.',
 };
 
 const VoiceAssistant: React.FC = () => {
@@ -45,110 +63,838 @@ const VoiceAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [status, setStatus] = useState('');
   const [hasGreeted, setHasGreeted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [lastCommand, setLastCommand] = useState('');
+  const [showLivePreview, setShowLivePreview] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const greetedPagesRef = useRef<Set<string>>(new Set());
   const autoGreetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSpeakingRef = useRef(false);
+  const alwaysListenRef = useRef(true);
+  const isListeningRef = useRef(false);
+  const handleCommandRef = useRef<(text: string) => Promise<void>>(async () => {});
+  const startListeningRef = useRef<() => void>(() => {});
+  const pendingGreetRef = useRef<string | null>(null);
+  const hasUserGestureRef = useRef(false);
+  const livePreviewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ─── Speak helper ───
+  // ─── Speak (Braylin's voice) ───
   const speak = useCallback((text: string): Promise<void> => {
     return new Promise((resolve) => {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.05;
+      utterance.rate = 0.92;
+      utterance.pitch = 1.1;
       utterance.volume = 1;
       const voices = window.speechSynthesis.getVoices();
       const preferred = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) ||
                         voices.find(v => v.lang === 'en-US') ||
                         voices[0];
       if (preferred) utterance.voice = preferred;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => { setIsSpeaking(false); resolve(); };
-      utterance.onerror = () => { setIsSpeaking(false); resolve(); };
+      utterance.onstart = () => { hasUserGestureRef.current = true; setIsSpeaking(true); isSpeakingRef.current = true; };
+      utterance.onend = () => {
+        setIsSpeaking(false); isSpeakingRef.current = false;
+        // Auto-restart listening after speaking finishes
+        if (alwaysListenRef.current) {
+          setTimeout(() => {
+            if (alwaysListenRef.current && !isSpeakingRef.current && !isListeningRef.current) {
+              startListeningRef.current();
+            }
+          }, 200);
+        }
+        resolve();
+      };
+      utterance.onerror = (e) => {
+        setIsSpeaking(false); isSpeakingRef.current = false;
+        // If speech was blocked (no user gesture yet), queue it for later
+        if (!hasUserGestureRef.current && (e as any).error === 'not-allowed') {
+          pendingGreetRef.current = text;
+        }
+        resolve();
+      };
       window.speechSynthesis.speak(utterance);
     });
   }, []);
 
-  // ─── Speech recognition setup ───
-  const initRecognition = useCallback(() => {
+  // ─── Recognition (always-on, continuous) ───
+  const setListening = useCallback((val: boolean) => {
+    isListeningRef.current = val;
+    setIsListening(val);
+  }, []);
+
+  const startListeningInternal = useCallback(() => {
+    if (isSpeakingRef.current) return;
+    if (isListeningRef.current) return; // already listening, skip
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) return null;
+    if (!SpeechRecognitionAPI) return;
+
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* */ }
+      recognitionRef.current = null;
+    }
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: any) => {
       let finalText = '';
       let interimText = '';
-      for (let i = 0; i < event.results.length; i++) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalText += event.results[i][0].transcript;
         } else {
           interimText += event.results[i][0].transcript;
         }
       }
-      setTranscript(finalText || interimText);
+      // Show live preview of what user is saying
+      const previewText = finalText || interimText;
+      setTranscript(previewText);
+      setInterimTranscript(interimText);
+      if (previewText) {
+        setShowLivePreview(true);
+        if (livePreviewTimeoutRef.current) clearTimeout(livePreviewTimeoutRef.current);
+        livePreviewTimeoutRef.current = setTimeout(() => setShowLivePreview(false), 3000);
+      }
       if (finalText) {
-        handleCommand(finalText.trim());
+        // Flash the final text briefly, then fade
+        if (livePreviewTimeoutRef.current) clearTimeout(livePreviewTimeoutRef.current);
+        livePreviewTimeoutRef.current = setTimeout(() => { setShowLivePreview(false); setInterimTranscript(''); }, 2000);
+        handleCommandRef.current(finalText.trim());
       }
     };
 
     recognition.onerror = (event: any) => {
-      if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        setStatus('Could not hear you. Try again.');
-      }
-      setIsListening(false);
+      if (event.error === 'no-speech' || event.error === 'aborted') return;
+      // Permission denied or other error — mark not listening
+      recognitionRef.current = null;
+      setListening(false);
     };
 
     recognition.onend = () => {
-      setIsListening(false);
+      recognitionRef.current = null;
+      isListeningRef.current = false; // allow restart
+      if (alwaysListenRef.current && !isSpeakingRef.current) {
+        // DON'T call setIsListening(false) — avoids the visual flicker
+        restartTimeoutRef.current = setTimeout(() => {
+          if (alwaysListenRef.current && !isSpeakingRef.current) startListeningInternal();
+        }, 300);
+      } else {
+        setIsListening(false); // only update UI when actually stopping
+      }
     };
 
-    return recognition;
-  }, []);
+    recognitionRef.current = recognition;
+    setListening(true);
+    try { recognition.start(); } catch {
+      recognitionRef.current = null;
+      setListening(false);
+    }
+  }, [setListening]);
 
-  // ─── Handle voice command ───
+  // ─── Handle any voice command (no wake word needed) ───
   const handleCommand = useCallback(async (text: string) => {
-    const lower = text.toLowerCase();
-    setStatus(`Heard: "${text}"`);
+    const lower = text.toLowerCase().trim();
+    const stripped = lower.replace(/^(braylin[,]?\s*|navigate\s*(to)?|go\s*(to)?|take\s*me\s*(to)?|open|show|switch\s*(to)?)\s*/i, '').trim();
 
-    // Check if it's a "stop" / "close" / "nevermind"
-    if (/\b(stop|close|never\s?mind|cancel|dismiss)\b/.test(lower)) {
-      await speak('Okay, closing assistant.');
-      setIsOpen(false);
-      setTranscript('');
-      setStatus('');
+    setLastCommand(text);
+    setStatus(`"${text}"`);
+
+    // ─── Mute / unmute Braylin ───
+    if (/\b(mute|shut up|quiet|stop talking|silence)\b/.test(lower)) {
+      window.speechSynthesis.cancel();
+      setStatus('🔇 Muted. Say "unmute" to hear me again.');
+      return;
+    }
+    if (/\b(unmute|speak|talk|volume)\b/.test(lower)) {
+      await speak('I\'m back! What do you need?');
       return;
     }
 
-    // Check if it's an AI agent schedule command (only on /learn page)
-    if (location.pathname === '/learn') {
-      const isAgentCmd = AI_AGENT_KEYWORDS.some(kw => lower.includes(kw));
-      if (isAgentCmd) {
-        setStatus(`Sending to AI Agent: "${text}"`);
-        await speak(`Got it. Sending "${text}" to the AI Agent.`);
-        // Dispatch custom event for LearnPage to pick up
-        window.dispatchEvent(new CustomEvent('voice-agent-command', { detail: { message: text } }));
+    // ─── Help ───
+    if (/\b(what can you do|help|commands|list commands)\b/.test(lower)) {
+      await speak(
+        'I\'m Braylin, your hands-free guide. Everything works by voice! ' +
+        'Navigation: "go to learn", "go to practice", "go to missions", "go to class hub", "go to about". ' +
+        'Learn tabs: "overview", "lessons", "practice". "Edit schedule", "reset plan", "make me a study plan". ' +
+        '"Select Monday" through "Sunday" to pick a day. ' +
+        'Missions: "next mission", "leaderboard", "rewards", "badges", "level 1" to "level 6", "submit", "close". ' +
+        'Class Hub: "tutors", "classes", "dashboard", "resources", "create class", "view stats", "open meeting". ' +
+        'Practice: say any game name like "Lightning Reader" or "Speed Demon", then "start game". ' +
+        'Auth: "sign in", "continue with google", "sign out". ' +
+        'For popups, say "OK", "yes", or "confirm" to continue, or "no", "close", "dismiss" to cancel. ' +
+        '"Where am I" for current page. I show a preview of what you\'re saying at the bottom of the screen.'
+      );
+      setTranscript('');
+      return;
+    }
+
+    // ─── Where am I ───
+    if (/\b(where am i|where are we|what page|current page)\b/.test(lower)) {
+      if (/^\/learn\/.+/.test(location.pathname)) {
+        await speak('You\'re in a lesson. Say "repeat pattern" for the braille dots, "read question" for the question, or "exit" to go back.');
+      } else {
+        await speak(PAGE_NARRATIONS[location.pathname] || `You're on ${location.pathname}.`);
+      }
+      setTranscript('');
+      return;
+    }
+
+    // ─── Sign in / Sign out / Continue with Google ───
+    if (/\b(sign in|log in|login)\b/.test(lower)) {
+      setStatus('Opening sign in...');
+      await speak('Opening the sign in dialog. Say "continue with Google" to sign in with Google.');
+      window.dispatchEvent(new CustomEvent('braylin-auth', { detail: { action: 'sign-in' } }));
+      setTranscript('');
+      return;
+    }
+    if (/\b(sign up|register|create account)\b/.test(lower)) {
+      setStatus('Opening sign up...');
+      await speak('Opening sign up. You can also say "continue with Google".');
+      window.dispatchEvent(new CustomEvent('braylin-auth', { detail: { action: 'sign-in' } }));
+      setTranscript('');
+      return;
+    }
+    if (/\b(continue\s*with\s*google|google\s*sign\s*in|use\s*google|google\s*login)\b/.test(lower)) {
+      setStatus('Signing in with Google...');
+      await speak('Signing in with Google now.');
+      window.dispatchEvent(new CustomEvent('braylin-auth', { detail: { action: 'google' } }));
+      setTranscript('');
+      return;
+    }
+    if (/\b(sign out|log out|logout)\b/.test(lower)) {
+      setStatus('Signing out...');
+      await speak('Signing you out now.');
+      window.dispatchEvent(new CustomEvent('braylin-auth', { detail: { action: 'sign-out' } }));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Read schedule ───
+    if (/\b(what('s| is) on my schedule|today('s| s) (lesson|schedule)|my schedule|read schedule)\b/.test(lower)) {
+      window.dispatchEvent(new CustomEvent('braylin-read-schedule'));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Edit schedule (go to lessons tab, ask what to change) ───
+    if (/\b(edit\s*(my\s*)?(schedule|plan|lessons?)?|change\s*(my\s*)?(schedule|plan)|modify\s*(my\s*)?(schedule|plan))\b/.test(lower) && /\b(edit|change|modify)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+      await speak('Here\'s your weekly schedule. What would you like to change? For example, say "add letter lessons" or "remove math" or "more practice time".');
+      setTranscript('');
+      return;
+    }
+
+    // ─── Reset plan ───
+    if (/\b(reset\s*(my\s*)?(plan|schedule)|clear\s*(my\s*)?(plan|schedule)|start\s*over|new\s*plan)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-learn-action', { detail: { action: 'reset-plan' } }));
+      await speak('Plan reset. Say "make me a study plan" to create a new one.');
+      setTranscript('');
+      return;
+    }
+
+    // ─── Select day in schedule (Mon-Sun) ───
+    if (/\b(select|pick|choose|show)\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(lower)) {
+      const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
+      if (dayMatch) {
+        await ensurePage('/learn', 'Learn');
+        window.dispatchEvent(new CustomEvent('braylin-learn-action', { detail: { action: 'select-day', day: dayMatch[1] } }));
+        await speak(`Selected ${dayMatch[1]}.`);
         setTranscript('');
         return;
       }
     }
 
-    // Check for navigation keywords
-    for (const route of ROUTE_MAP) {
-      if (route.keywords.some(kw => lower.includes(kw))) {
-        if (location.pathname === route.path) {
-          setStatus(`Already on ${route.label}`);
-          await speak(`You're already on the ${route.label} page.`);
+    // ─── Study plan wizard ───
+    if (WIZARD_KEYWORDS.some(kw => lower.includes(kw))) {
+      if (location.pathname !== '/learn') {
+        await speak('Going to Learn to create your plan.');
+        navigate('/learn');
+        window.scrollTo(0, 0);
+        await new Promise(r => setTimeout(r, 1200));
+      }
+      await speak(
+        'Let\'s build your study plan. What\'s your braille level? ' +
+        'Brand New, Some Basics, Beginner, Intermediate, Advanced, or Expert.'
+      );
+      window.dispatchEvent(new CustomEvent('braylin-open-wizard'));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Wizard answers (level) ───
+    if (/\b(brand new|some basics)\b/.test(lower) || /^(beginner|intermediate|advanced|expert)$/i.test(stripped)) {
+      const levelMap: Record<string, { val: number; label: string }> = {
+        'brand new': { val: 1, label: 'Brand New' },
+        'some basics': { val: 5, label: 'Some Basics' },
+        'beginner': { val: 10, label: 'Beginner' },
+        'intermediate': { val: 15, label: 'Intermediate' },
+        'advanced': { val: 20, label: 'Advanced' },
+        'expert': { val: 25, label: 'Expert' },
+      };
+      for (const [key, info] of Object.entries(levelMap)) {
+        if (lower.includes(key)) {
+          window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-level', value: info.val } }));
+          await speak(`Level: ${info.label}. Learning style? Visual, Tactile, Auditory, Kinesthetic, or Mixed.`);
+          setTranscript('');
+          return;
+        }
+      }
+    }
+
+    // ─── Wizard answers (style) ───
+    const styleMatch = stripped.match(/^(visual|tactile|auditory|kinesthetic|mixed)$/);
+    if (styleMatch) {
+      window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-style', value: styleMatch[1] } }));
+      await speak(`Style: ${styleMatch[1]}. Focus area? Fundamentals, Words, Sentences, Contractions, Writing, or Everything.`);
+      setTranscript('');
+      return;
+    }
+
+    // ─── Wizard answers (focus) ───
+    if (/^(fundamentals|words|vocabulary|sentences|contractions|writing|everything)$/i.test(stripped)) {
+      const focusMap: Record<string, string> = { 'fundamentals': 'basics', 'words': 'words', 'vocabulary': 'words', 'sentences': 'sentences', 'contractions': 'contractions', 'writing': 'writing', 'everything': 'all' };
+      const key = Object.keys(focusMap).find(k => stripped.includes(k));
+      if (key) {
+        window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-focus', value: focusMap[key] } }));
+        await speak(`Focus: ${key}. Daily study time? 15 minutes, 30 minutes, or 1 hour.`);
+        setTranscript('');
+        return;
+      }
+    }
+
+    // ─── Wizard answers (time) ───
+    if (/\b(15 min|30 min|1 hour|one hour|60 min|half hour)\b/.test(lower)) {
+      let m = '30';
+      if (/15/.test(lower)) m = '15';
+      else if (/60|1 hour|one hour/.test(lower)) m = '60';
+      window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-time', value: m } }));
+      await speak(`${m} minutes. Difficulty? Easy, Medium, or Hard.`);
+      setTranscript('');
+      return;
+    }
+
+    // ─── Wizard answers (difficulty) ───
+    if (/^(easy|medium|hard)$/i.test(stripped)) {
+      const map: Record<string, string> = { 'easy': 'beginner', 'medium': 'intermediate', 'hard': 'advanced' };
+      window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-difficulty', value: map[stripped] || 'intermediate' } }));
+      await speak(`Difficulty: ${stripped}. Which days? Say "every day", "weekdays", or list specific days.`);
+      setTranscript('');
+      return;
+    }
+
+    // ─── Wizard answers (days) ───
+    if (/\b(every day|weekday|weekend)\b/.test(lower) || /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(lower)) {
+      let days: string[] = [];
+      if (/every\s*day/.test(lower)) days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      else if (/weekday/.test(lower)) days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      else if (/weekend/.test(lower)) days = ['saturday', 'sunday'];
+      else {
+        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(d => { if (lower.includes(d)) days.push(d); });
+      }
+      if (days.length === 0) days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-days', value: days } }));
+      await speak(`Days set. Say "confirm" or "generate" to create your plan.`);
+      setTranscript('');
+      return;
+    }
+
+    // ─── Wizard confirm ───
+    if (/\b(confirm|generate|create it|build it|go ahead|do it|generate my plan)\b/.test(lower)) {
+      window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'generate' } }));
+      await speak('Generating your study plan now.');
+      setTranscript('');
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    //  SUB-TAB COMMANDS — Learn page
+    // ═══════════════════════════════════════
+    if (/\b(overview\s*tab|overview\s*in\s*learn|show\s*overview)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'overview' } }));
+      await speak('Switched to the overview tab.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(lessons?\s*tab|lessons?\s*in\s*learn|browse\s*lessons?|show\s*lessons?)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons' } }));
+      await speak('Switched to the lessons tab.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(practice\s*tab|practice\s*in\s*learn|show\s*practice)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'practice' } }));
+      await speak('Switched to the practice tab.');
+      setTranscript('');
+      return;
+    }
+    // Learn lessons sub-tabs
+    if (/\b(browse\s*tab|browse\s*all|all\s*lessons?)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'browse' } }));
+      await speak('Showing all lessons to browse.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(week(ly)?\s*(schedule|tab|view)|my\s*week|schedule\s*tab)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+      await speak('Showing your weekly schedule.');
+      setTranscript('');
+      return;
+    }
+
+    // ─── View lessons (read them out) ───
+    if (/\b(view\s*lessons?|read\s*lessons?|what\s*lessons?|list\s*lessons?)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+      const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|today)\b/);
+      const day = dayMatch ? (dayMatch[1] === 'today' ? undefined : dayMatch[1]) : undefined;
+      await new Promise(r => setTimeout(r, 800));
+      window.dispatchEvent(new CustomEvent('braylin-view-lessons', { detail: { day } }));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Start lesson (for a specific day or today) ───
+    if (/\b(start\s*(a\s*)?lesson|begin\s*(a\s*)?lesson|launch\s*lesson)\b/.test(lower)) {
+      await ensurePage('/learn', 'Learn');
+      const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|today)\b/);
+      const day = dayMatch ? (dayMatch[1] === 'today' ? undefined : dayMatch[1]) : undefined;
+      window.dispatchEvent(new CustomEvent('braylin-start-lesson', { detail: { day } }));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Repeat braille pattern (while in a lesson) ───
+    if (/\b(repeat\s*(the\s*)?(pattern|dots|braille)|what\s*(are\s*)?(the\s*)?(dots|pattern))\b/.test(lower) && /^\/learn\/.+/.test(location.pathname)) {
+      window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'repeat-pattern' } }));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Read question (while in a lesson) ───
+    if (/\b(read\s*(the\s*)?question|what('s| is)\s*(the\s*)?question|repeat\s*question)\b/.test(lower) && /^\/learn\/.+/.test(location.pathname)) {
+      window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'read-question' } }));
+      setTranscript('');
+      return;
+    }
+
+    // ─── Answer by voice in a lesson ───
+    if (/\b(answer|my answer is|i think it's|it's|the answer is)\s+(.+)/i.test(lower) && /^\/learn\/.+/.test(location.pathname)) {
+      const answerMatch = lower.match(/\b(?:answer|my answer is|i think it's|it's|the answer is)\s+(.+)/i);
+      if (answerMatch) {
+        window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'answer', value: answerMatch[1].trim() } }));
+        setTranscript('');
+        return;
+      }
+    }
+
+    // ─── Select day by just saying the day name (for lesson view) ───
+    if (/^(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i.test(stripped)) {
+      if (location.pathname === '/learn') {
+        const day = stripped === 'today' ? undefined : stripped;
+        if (stripped === 'today') {
+          window.dispatchEvent(new CustomEvent('braylin-view-lessons', { detail: {} }));
         } else {
-          setStatus(`Navigating to ${route.label}...`);
-          await speak(`Taking you to ${route.label}.`);
+          window.dispatchEvent(new CustomEvent('braylin-learn-action', { detail: { action: 'select-day', day: stripped } }));
+          await new Promise(r => setTimeout(r, 500));
+          window.dispatchEvent(new CustomEvent('braylin-view-lessons', { detail: { day } }));
+        }
+        setTranscript('');
+        return;
+      }
+    }
+
+    // ═══════════════════════════════════════
+    //  SUB-TAB COMMANDS — BrailleQuest / Missions
+    // ═══════════════════════════════════════
+    if (/\b(xp|experience|xp\s*progress)\b/.test(lower) && !(/\b(navigate|go)\b/.test(lower))) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'xp' } }));
+      await speak('Showing XP progress.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(leaderboard|rankings?|top\s*(players?|users?))\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'leaderboard' } }));
+      await speak('Showing leaderboard.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(rewards?\s*(shop|store|tab)?|redeem)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'rewards' } }));
+      await speak('Showing rewards.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(badges?)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'badges' } }));
+      await speak('Showing badges.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(activity|recent\s*activity)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'activity' } }));
+      await speak('Showing activity feed.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(achievements?)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'achievements' } }));
+      await speak('Showing achievements.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(share|share\s*progress)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'share' } }));
+      await speak('Showing share options.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(next\s*mission|new\s*mission|start\s*mission|do\s*a\s*mission)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'next-mission' } }));
+      await speak('Selecting next available mission for you.');
+      setTranscript('');
+      return;
+    }
+    // Mission category filters
+    if (/\b(signage|transport|food|education|public|medical|recreation|government)\s*(missions?|category|filter)?\b/.test(lower)) {
+      const catMatch = lower.match(/\b(signage|transport|food|education|public|medical|recreation|government)\b/);
+      if (catMatch) {
+        await ensurePage('/braillequest', 'BrailleQuest');
+        window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'filter', category: catMatch[1] } }));
+        await speak(`Filtering missions to ${catMatch[1]}.`);
+        setTranscript('');
+        return;
+      }
+    }
+    if (/\b(all\s*missions?|show\s*all|clear\s*filter)\b/.test(lower)) {
+      await ensurePage('/braillequest', 'BrailleQuest');
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'filter', category: 'all' } }));
+      await speak('Showing all missions.');
+      setTranscript('');
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    //  SUB-TAB COMMANDS — Class Hub
+    // ═══════════════════════════════════════
+    if (/\b(tutors?\s*tab|show\s*tutors?|browse\s*tutors?|find\s*tutor)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'tutors' } }));
+      await speak('Showing tutors.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(classes\s*tab|show\s*classes|my\s*classes|view\s*classes)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'classes' } }));
+      await speak('Showing classes.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(class\s*)?dashboard\s*tab\b/.test(lower) && (location.pathname === '/class-hub' || /class/i.test(lower))) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'dashboard' } }));
+      await speak('Showing class dashboard.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(resources?\s*tab|show\s*resources?|materials?)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'resources' } }));
+      await speak('Showing resources.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(create\s*(a\s*)?class|new\s*class|start\s*(a\s*)?class)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'create-class' } }));
+      await speak('Opening create class dialog.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(join\s*(a\s*)?class)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'classes' } }));
+      await speak('Showing available classes to join.');
+      setTranscript('');
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    //  SUB-TAB COMMANDS — About page
+    // ═══════════════════════════════════════
+    if (/\b(mission\s*tab|about\s*mission|our\s*mission)\b/.test(lower)) {
+      await ensurePage('/about', 'About');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'about', tab: 'mission' } }));
+      await speak('Showing mission.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(hardware\s*tab|about\s*hardware|hardware\s*specs)\b/.test(lower)) {
+      await ensurePage('/about', 'About');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'about', tab: 'hardware' } }));
+      await speak('Showing hardware specs.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(design\s*tab|about\s*design|design\s*phases?)\b/.test(lower)) {
+      await ensurePage('/about', 'About');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'about', tab: 'design' } }));
+      await speak('Showing design phases.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(features?\s*tab|about\s*features?|core\s*features?)\b/.test(lower)) {
+      await ensurePage('/about', 'About');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'about', tab: 'features' } }));
+      await speak('Showing features.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(tech\s*tab|tech\s*stack|about\s*tech)\b/.test(lower)) {
+      await ensurePage('/about', 'About');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'about', tab: 'tech' } }));
+      await speak('Showing tech stack.');
+      setTranscript('');
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    //  SUB-TAB COMMANDS — Hardware Setup
+    // ═══════════════════════════════════════
+    if (/\b(setup\s*tab|connection\s*tab|bluetooth\s*tab)\b/.test(lower)) {
+      await ensurePage('/hardware-setup', 'Hardware Setup');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'hardware-setup', tab: 'setup' } }));
+      await speak('Showing setup tab.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(test\s*tab|test\s*dots?|test\s*cells?)\b/.test(lower)) {
+      await ensurePage('/hardware-setup', 'Hardware Setup');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'hardware-setup', tab: 'test' } }));
+      await speak('Showing test tab.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(troubleshoot|troubleshooting|diagnos)\b/.test(lower)) {
+      await ensurePage('/hardware-setup', 'Hardware Setup');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'hardware-setup', tab: 'troubleshoot' } }));
+      await speak('Showing troubleshooting.');
+      setTranscript('');
+      return;
+    }
+
+    // ═══════════════════════════════════════
+    //  PRACTICE PAGE — game modes
+    // ═══════════════════════════════════════
+    if (/\b(lightning\s*reader)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'lightning-reader' } }));
+      await speak('Lightning Reader selected. Choose difficulty and say "start game" when ready.');
+      setTranscript(''); return;
+    }
+    if (/\b(precision\s*master)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'precision-master' } }));
+      await speak('Precision Master selected. Choose difficulty and say "start game".');
+      setTranscript(''); return;
+    }
+    if (/\b(pattern\s*detective)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'pattern-detective' } }));
+      await speak('Pattern Detective selected.');
+      setTranscript(''); return;
+    }
+    if (/\b(braille\s*architect)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'braille-architect' } }));
+      await speak('Braille Architect selected.');
+      setTranscript(''); return;
+    }
+    if (/\b(marathon\s*master)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'marathon-master' } }));
+      await speak('Marathon Master selected.');
+      setTranscript(''); return;
+    }
+    if (/\b(memory\s*champion)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'memory-champion' } }));
+      await speak('Memory Champion selected.');
+      setTranscript(''); return;
+    }
+    if (/\b(speed\s*demon)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'speed-demon' } }));
+      await speak('Speed Demon selected.');
+      setTranscript(''); return;
+    }
+    if (/\b(pattern\s*ninja)\b/.test(lower)) {
+      await ensurePage('/practice', 'Practice');
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'pattern-ninja' } }));
+      await speak('Pattern Ninja selected.');
+      setTranscript(''); return;
+    }
+    // Practice customization
+    if (/\b(start\s*(the\s*)?(game|practice|session|playing))\b/.test(lower)) {
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'start-game' } }));
+      await speak('Starting the game!');
+      setTranscript(''); return;
+    }
+    if (/\b(basics?\s*(level)?|words?\s*(level)?|sentences?\s*(level)?|contractions?\s*(level)?|advanced\s*level)\b/.test(lower) && (location.pathname === '/practice')) {
+      const lvlMatch = lower.match(/\b(basics?|words?|sentences?|contractions?|advanced)\b/);
+      if (lvlMatch) {
+        const lvl = lvlMatch[1].replace(/s$/, '');
+        window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'set-level', level: lvl === 'basic' ? 'basics' : lvl === 'word' ? 'words' : lvl === 'sentence' ? 'sentences' : lvl } }));
+        await speak(`Level set to ${lvl}.`);
+        setTranscript(''); return;
+      }
+    }
+    if (/\b(5\s*min|10\s*min|15\s*min|20\s*min)\b/.test(lower) && location.pathname === '/practice') {
+      const durMatch = lower.match(/\b(\d+)\s*min/);
+      if (durMatch) {
+        window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'set-duration', duration: parseInt(durMatch[1]) } }));
+        await speak(`Duration set to ${durMatch[1]} minutes.`);
+        setTranscript(''); return;
+      }
+    }
+    if (/\b(retry|try again|play again|restart)\b/.test(lower) && location.pathname === '/practice') {
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'retry' } }));
+      await speak('Restarting the game.');
+      setTranscript(''); return;
+    }
+    if (/\b(new game|different game|back to modes|change mode)\b/.test(lower) && location.pathname === '/practice') {
+      window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'new-game' } }));
+      await speak('Back to mode selection.');
+      setTranscript(''); return;
+    }
+
+    // ═══════════════════════════════════════
+    //  MISSION — level select, submit, close
+    // ═══════════════════════════════════════
+    if (/\b(level\s*([1-6]))\b/.test(lower) && (location.pathname === '/braillequest' || /mission|quest/i.test(lower))) {
+      const lvl = lower.match(/level\s*([1-6])/);
+      if (lvl) {
+        await ensurePage('/braillequest', 'BrailleQuest');
+        window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'select-level', level: parseInt(lvl[1]) } }));
+        await speak(`Showing level ${lvl[1]} missions.`);
+        setTranscript(''); return;
+      }
+    }
+    if (/\b(submit|upload|verify|send photo|submit photo)\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'submit' } }));
+      await speak('Submitting for verification.');
+      setTranscript(''); return;
+    }
+    if (/\b(take photo|open camera|camera|capture)\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'take-photo' } }));
+      await speak('Opening camera to take a photo.');
+      setTranscript(''); return;
+    }
+    if (/\b(buy|purchase)\s/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'purchase' } }));
+      await speak('Purchasing reward.');
+      setTranscript(''); return;
+    }
+
+    // ═══════════════════════════════════════
+    //  CLASS HUB — extra actions
+    // ═══════════════════════════════════════
+    if (/\b(view\s*stats|class\s*stats|statistics)\b/.test(lower) && (location.pathname === '/class-hub' || /class/i.test(lower))) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'view-stats' } }));
+      await speak('Opening class statistics.');
+      setTranscript(''); return;
+    }
+    if (/\b(open\s*meeting|join\s*meeting|meeting\s*room|start\s*meeting)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'open-meeting' } }));
+      await speak('Opening meeting room.');
+      setTranscript(''); return;
+    }
+    if (/\b(add\s*resource|new\s*resource|upload\s*resource)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'add-resource' } }));
+      await speak('Opening add resource dialog.');
+      setTranscript(''); return;
+    }
+
+    // ═══════════════════════════════════════
+    //  OK / Yes / Confirm / Continue — for popups
+    // ═══════════════════════════════════════
+    if (/^(ok(ay)?|yes|yep|yeah|confirm|continue|proceed|accept|agree|next|sure|alright|sounds good|do it|go ahead|let's go|that's fine)$/i.test(lower)
+      || (/\b(ok(ay)?|yes|confirm|continue|proceed|sure)\b/.test(lower) && lower.length < 30)) {
+      window.dispatchEvent(new CustomEvent('braylin-confirm'));
+      setTranscript(''); return;
+    }
+
+    // ═══════════════════════════════════════
+    //  No / Decline — for popups
+    // ═══════════════════════════════════════
+    if (/^(no|nope|nah|deny|decline|reject|skip|not now|no thanks)$/i.test(lower)) {
+      window.dispatchEvent(new CustomEvent('braylin-dismiss'));
+      await speak('Dismissed.');
+      setTranscript(''); return;
+    }
+
+    // ═══════════════════════════════════════
+    //  UNIVERSAL — Close / Dismiss / Go Back
+    // ═══════════════════════════════════════
+    if (/\b(close|dismiss|cancel|go back|never\s*mind|exit)\b/.test(lower)) {
+      // If on a lesson page, "exit" navigates back to learn
+      if (/^\/learn\/.+/.test(location.pathname) && /\b(exit|go back)\b/.test(lower)) {
+        window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'exit-lesson' } }));
+        setTranscript(''); return;
+      }
+      window.dispatchEvent(new CustomEvent('braylin-dismiss'));
+      await speak('Closed.');
+      setTranscript(''); return;
+    }
+
+    // ═══════════════════════════════════════
+    //  HOME PAGE — CTAs
+    // ═══════════════════════════════════════
+    if (/\b(start\s*learning|begin\s*learning|get\s*started)\b/.test(lower)) {
+      await speak('Starting your learning journey!');
+      navigate('/learn');
+      window.scrollTo(0, 0);
+      setTranscript(''); return;
+    }
+    if (/\b(connect\s*hardware|setup\s*hardware|pair\s*device)\b/.test(lower)) {
+      await speak('Going to hardware setup.');
+      navigate('/hardware-setup');
+      window.scrollTo(0, 0);
+      setTranscript(''); return;
+    }
+
+    // ─── Navigation (page-level) — check after sub-tabs ───
+    for (const route of ROUTE_MAP) {
+      if (route.keywords.some(kw => stripped.includes(kw) || lower.includes(kw))) {
+        if (location.pathname === route.path) {
+          await speak(`Already on ${route.label}. ${PAGE_NARRATIONS[route.path] || ''}`);
+        } else {
+          await speak(`Going to ${route.label}.`);
           navigate(route.path);
           window.scrollTo(0, 0);
         }
@@ -157,219 +903,275 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // If on any page other than /learn, but user seems to want the AI agent
-    const isAgentIntent = AI_AGENT_KEYWORDS.some(kw => lower.includes(kw));
-    if (isAgentIntent) {
-      setStatus('Navigating to Learn page for AI Agent...');
-      await speak(`I'll take you to the Learn page and send your command to the AI Agent.`);
-      navigate('/learn');
-      window.scrollTo(0, 0);
-      // Short delay to let LearnPage mount, then dispatch
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('voice-agent-command', { detail: { message: text } }));
-      }, 1500);
+    // ─── Schedule AI agent commands ───
+    const isAgentCmd = AI_AGENT_KEYWORDS.some(kw => lower.includes(kw));
+    if (isAgentCmd) {
+      // Translate spoken text into clearer keywords for the AI
+      let cleaned = text;
+      cleaned = cleaned.replace(/\b(um|uh|like|you know|basically|I want to|can you|please|could you)\b/gi, '').trim();
+      cleaned = cleaned.replace(/\bput\s+more\b/gi, 'add more');
+      cleaned = cleaned.replace(/\btake\s+away\b/gi, 'remove');
+      cleaned = cleaned.replace(/\bget\s+rid\s+of\b/gi, 'remove');
+      cleaned = cleaned.replace(/\bswap\b/gi, 'change');
+      cleaned = cleaned.replace(/\bmake\s+it\s+longer\b/gi, 'extend time');
+      cleaned = cleaned.replace(/\bmake\s+it\s+shorter\b/gi, 'shorten time');
+      cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+
+      if (location.pathname !== '/learn') {
+        await speak('Going to Learn page to edit your schedule.');
+        navigate('/learn');
+        window.scrollTo(0, 0);
+        await new Promise(r => setTimeout(r, 1500));
+        // Switch to weekly schedule tab
+        window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+        await new Promise(r => setTimeout(r, 500));
+      }
+      await speak(`Sending to AI: "${cleaned}".`);
+      window.dispatchEvent(new CustomEvent('voice-agent-command', { detail: { message: cleaned } }));
       setTranscript('');
       return;
     }
 
-    // Fallback
-    setStatus('Not sure what you meant. Try "learn", "practice", or "add letter lessons".');
-    await speak('I didn\'t quite get that. Try saying "learn" to start lessons, "practice" to drill, or any schedule command like "add letter lessons".');
+    // ─── Fallback ───
+    await speak(`Didn't catch that. Say "help" for all commands.`);
     setTranscript('');
   }, [location.pathname, navigate, speak]);
 
-  // ─── Start / stop listening ───
-  const startListening = useCallback(() => {
-    window.speechSynthesis.cancel();
-    if (!recognitionRef.current) {
-      recognitionRef.current = initRecognition();
-    }
-    if (!recognitionRef.current) {
-      setStatus('Speech recognition not supported in this browser.');
-      return;
-    }
-    setTranscript('');
-    setStatus('Listening...');
-    setIsListening(true);
-    try {
-      recognitionRef.current.start();
-    } catch {
-      // Already started — ignore
-    }
-  }, [initRecognition]);
+  // Keep handleCommandRef up to date so recognition always uses latest
+  useEffect(() => { handleCommandRef.current = handleCommand; }, [handleCommand]);
+  useEffect(() => { startListeningRef.current = startListeningInternal; }, [startListeningInternal]);
 
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+  // ─── Helper: ensure we're on the right page before sending tab event ───
+  const ensurePage = useCallback(async (path: string, label: string) => {
+    if (location.pathname !== path) {
+      navigate(path);
+      window.scrollTo(0, 0);
+      await new Promise(r => setTimeout(r, 1000));
     }
-    setIsListening(false);
-  }, []);
+  }, [location.pathname, navigate]);
 
-  // ─── Auto-greet on page change ───
+  // ─── Auto-start always-on listening ───
+  // Try immediately on mount. Also add gesture fallback in case browser blocks
+  // auto-start (first visit). A watchdog interval guarantees we stay listening.
+  useEffect(() => {
+    // Attempt start right away (works if mic permission was already granted)
+    const timer = setTimeout(() => startListeningInternal(), 600);
+
+    // Gesture fallback: if browser blocks auto-start, start on first interaction
+    // Also play any queued greeting that was blocked before user gesture
+    const onGesture = () => {
+      if (!hasUserGestureRef.current) {
+        hasUserGestureRef.current = true;
+        if (pendingGreetRef.current) {
+          const text = pendingGreetRef.current;
+          pendingGreetRef.current = null;
+          speak(text);
+        }
+      }
+      if (!isListeningRef.current && alwaysListenRef.current) {
+        startListeningInternal();
+      }
+    };
+    document.addEventListener('click', onGesture, true);
+    document.addEventListener('touchstart', onGesture, true);
+    document.addEventListener('keydown', onGesture, true);
+
+    // Watchdog: ensure we're always listening (catches silent mic drops)
+    const watchdog = setInterval(() => {
+      if (alwaysListenRef.current && !isSpeakingRef.current) {
+        // Force restart if not listening or recognition died
+        if (!isListeningRef.current || !recognitionRef.current) {
+          try { if (recognitionRef.current) recognitionRef.current.stop(); } catch { /* */ }
+          recognitionRef.current = null;
+          isListeningRef.current = false;
+          startListeningInternal();
+        }
+      }
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(watchdog);
+      document.removeEventListener('click', onGesture, true);
+      document.removeEventListener('touchstart', onGesture, true);
+      document.removeEventListener('keydown', onGesture, true);
+    };
+  }, [startListeningInternal]);
+
+  // ─── Auto-greet + page narration ───
   useEffect(() => {
     const path = location.pathname;
-
-    // Only auto-greet once per page per session
     if (greetedPagesRef.current.has(path)) return;
-
-    // Check if this is the first visit ever (greet on homepage)
     const isFirstVisit = !hasGreeted && path === '/';
-
     if (autoGreetTimeoutRef.current) clearTimeout(autoGreetTimeoutRef.current);
-
     autoGreetTimeoutRef.current = setTimeout(async () => {
       greetedPagesRef.current.add(path);
+      const greetText = isFirstVisit
+        ? 'Hello! I\'m Braylin, your BrailleLearn voice assistant. I\'m always listening — just speak any command. Say "help" to hear everything I can do, or "go to learn" to start lessons.'
+        : PAGE_NARRATIONS[path]?.split('.')[0] || `You're on ${path}`;
+      if (isFirstVisit) setHasGreeted(true);
+      // Save greeting as pending so it plays on first user gesture if speech is blocked
+      if (!hasUserGestureRef.current) pendingGreetRef.current = greetText;
+      await speak(greetText);
+    }, isFirstVisit ? 1500 : 500);
+    return () => { if (autoGreetTimeoutRef.current) clearTimeout(autoGreetTimeoutRef.current); };
+  }, [location.pathname, hasGreeted, speak]);
 
-      const greeting = PAGE_GREETINGS[path] || 'You can say where you\'d like to go, or ask me to do anything.';
-
-      if (isFirstVisit) {
-        setHasGreeted(true);
-        setIsOpen(true);
-        setStatus('Welcome! Listening after greeting...');
-        await speak(greeting);
-        // Auto-start listening after greeting
-        startListening();
-      } else if (isFirstVisit === false && path !== '/') {
-        // Brief narration on page change (non-intrusive)
-        const shortGreeting = PAGE_GREETINGS[path]?.split('.')[0] || `You're on ${path}`;
-        await speak(shortGreeting);
-      }
-    }, isFirstVisit ? 1500 : 800);
-
-    return () => {
-      if (autoGreetTimeoutRef.current) clearTimeout(autoGreetTimeoutRef.current);
+  // ─── Listen for narration events ───
+  useEffect(() => {
+    const onNarrate = (e: Event) => {
+      const text = (e as CustomEvent).detail?.text;
+      if (text) speak(text);
     };
-  }, [location.pathname, hasGreeted, speak, startListening]);
+    window.addEventListener('braylin-narrate', onNarrate);
+    return () => window.removeEventListener('braylin-narrate', onNarrate);
+  }, [speak]);
 
-  // ─── Clean up on unmount ───
+  // ─── Cleanup ───
   useEffect(() => {
     return () => {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch { /* */ }
-      }
+      alwaysListenRef.current = false;
+      if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { /* */ }
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       window.speechSynthesis.cancel();
     };
   }, []);
-
-  // ─── Toggle panel ───
-  const togglePanel = async () => {
-    if (isOpen) {
-      stopListening();
-      window.speechSynthesis.cancel();
-      setIsOpen(false);
-    } else {
-      setIsOpen(true);
-      const greeting = PAGE_GREETINGS[location.pathname] ||
-        'What would you like to do? Say a page name or a command.';
-      await speak(greeting);
-      startListening();
-    }
-  };
 
   return (
     <>
-      {/* ─── Floating Mic Button ─── */}
+      {/* ─── Floating live speech preview ─── */}
+      <AnimatePresence>
+        {showLivePreview && (transcript || interimTranscript) && (
+          <motion.div
+            className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[10000] max-w-xs px-4 py-2 rounded-full shadow-lg border border-blue-200 bg-white/95 backdrop-blur-sm"
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          >
+            <div className="flex items-center gap-2">
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 0.6 }}
+              >
+                <Mic className="w-3.5 h-3.5 text-red-500" />
+              </motion.div>
+              <span className={`text-xs font-medium truncate max-w-[200px] ${
+                interimTranscript ? 'text-gray-400 italic' : 'text-gray-800'
+              }`}>
+                {transcript || interimTranscript}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Compact Braylin pill ─── */}
       <motion.button
-        onClick={togglePanel}
-        className={`fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-colors ${
+        onClick={() => setIsOpen(o => !o)}
+        className={`fixed bottom-4 right-4 z-[9999] h-10 px-3 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-bold transition-colors ${
           isListening
-            ? 'bg-red-500 hover:bg-red-600'
+            ? 'bg-red-500 text-white'
             : isSpeaking
-              ? 'bg-yellow-500 hover:bg-yellow-600'
-              : 'bg-blue-600 hover:bg-blue-700'
-        } text-white`}
-        whileHover={{ scale: 1.1 }}
+              ? 'bg-yellow-500 text-white'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white'
+        }`}
         whileTap={{ scale: 0.95 }}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 2, type: 'spring' }}
-        aria-label="Voice Assistant — click to speak commands"
-        title="Voice Assistant"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 1, type: 'spring' }}
+        aria-label="Braylin voice assistant"
       >
         {isListening ? (
-          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }}>
-            <Mic className="w-6 h-6" />
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>
+            <Mic className="w-4 h-4" />
           </motion.div>
         ) : isSpeaking ? (
-          <Volume2 className="w-6 h-6" />
+          <Volume2 className="w-4 h-4" />
         ) : (
-          <Mic className="w-6 h-6" />
+          <Bot className="w-4 h-4" />
         )}
-        {/* Pulse ring when listening */}
+        <span>Braylin</span>
         {isListening && (
           <motion.div
-            className="absolute inset-0 rounded-full border-2 border-red-400"
-            animate={{ scale: [1, 1.6], opacity: [0.6, 0] }}
-            transition={{ repeat: Infinity, duration: 1.2 }}
+            className="absolute inset-0 rounded-full border border-red-300"
+            animate={{ scale: [1, 1.4], opacity: [0.5, 0] }}
+            transition={{ repeat: Infinity, duration: 1 }}
           />
         )}
       </motion.button>
 
-      {/* ─── Voice Panel ─── */}
+      {/* ─── Compact panel ─── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed bottom-24 right-6 z-[9999] w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-16 right-4 z-[9999] w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden text-xs"
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ type: 'spring', damping: 25 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 30 }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Mic className="w-4 h-4" />
-                <span className="font-bold text-sm">Voice Navigator</span>
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 text-white flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Bot className="w-3.5 h-3.5" />
+                <span className="font-bold text-xs">Braylin</span>
+                <span className="text-[9px] opacity-70">always listening</span>
               </div>
-              <button onClick={() => { stopListening(); window.speechSynthesis.cancel(); setIsOpen(false); }}
-                className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/40 transition-colors">
-                <X className="w-3.5 h-3.5" />
+              <button onClick={() => setIsOpen(false)} className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/40">
+                <X className="w-3 h-3" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-4 space-y-3">
-              {/* Accessibility callout */}
-              <div className="bg-blue-50 rounded-xl px-3 py-2 text-xs text-blue-700 border border-blue-100">
-                <span className="font-bold">♿ Accessible to all —</span> Designed for partially sighted learners. Blind users can navigate entirely by voice.
-              </div>
-
+            <div className="p-2.5 space-y-2 max-h-[40vh] overflow-y-auto">
               {/* Status */}
-              <div className="text-sm text-gray-600 min-h-[20px]">
-                {status || (isListening ? '🎤 Listening... say where to go or what to do' : 'Tap the mic or say a command')}
+              <div className={`text-[11px] font-medium truncate ${isListening ? 'text-red-600' : isSpeaking ? 'text-yellow-600' : 'text-gray-500'}`}>
+                {status || (isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : '🤖 Ready')}
               </div>
 
               {/* Transcript */}
               {transcript && (
-                <div className="bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-800 font-medium italic">
+                <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 italic border border-gray-100 truncate">
                   "{transcript}"
                 </div>
               )}
 
-              {/* Quick Actions */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Quick voice commands</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Learn', 'Practice', 'Quest', 'Add letter lessons', 'Home'].map(cmd => (
-                    <button key={cmd}
-                      onClick={() => handleCommand(cmd)}
-                      className="px-2.5 py-1 bg-gray-100 hover:bg-blue-100 text-xs font-medium rounded-lg text-gray-700 hover:text-blue-700 transition-colors">
-                      "{cmd}"
-                    </button>
-                  ))}
+              {lastCommand && (
+                <div className="bg-green-50 rounded-lg px-2 py-1 text-[10px] text-green-700 border border-green-100 truncate">
+                  ✓ {lastCommand}
                 </div>
+              )}
+
+              {/* Quick commands */}
+              <div className="flex flex-wrap gap-1">
+                {['Help', 'Go to learn', 'Lessons tab', 'Missions', 'Leaderboard', 'Sign in'].map(cmd => (
+                  <button key={cmd} onClick={() => handleCommand(cmd)}
+                    className="px-2 py-0.5 bg-gray-100 hover:bg-blue-100 text-[10px] font-medium rounded-md text-gray-600 hover:text-blue-700 transition-colors">
+                    {cmd}
+                  </button>
+                ))}
               </div>
 
               {/* Mic toggle */}
               <button
-                onClick={isListening ? stopListening : startListening}
-                className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors ${
-                  isListening
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                onClick={() => {
+                  if (isListening) {
+                    alwaysListenRef.current = false;
+                    if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+                    if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { /* */ }
+                    recognitionRef.current = null;
+                    setListening(false);
+                  } else {
+                    alwaysListenRef.current = true;
+                    startListeningInternal();
+                  }
+                }}
+                className={`w-full py-1.5 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5 ${
+                  isListening ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'
                 }`}
               >
-                {isListening ? <><MicOff className="w-4 h-4" /> Stop Listening</> : <><Mic className="w-4 h-4" /> Start Listening</>}
+                {isListening ? <><MicOff className="w-3 h-3" /> Pause</> : <><Mic className="w-3 h-3" /> Resume</>}
               </button>
             </div>
           </motion.div>

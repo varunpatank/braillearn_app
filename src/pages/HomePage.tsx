@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Mic, Settings, HardDrive, CheckCircle } from 'lucide-react';
-import { useAudio } from '../context/AudioContext';
 import { useAudioNavigation } from '../hooks/useAudioNavigation';
 
 const HomePage: React.FC = () => {
   const [showFeatures, setShowFeatures] = useState(false);
-  const { speak } = useAudio();
   
   useAudioNavigation('start-learning-btn', {
     description: 'Start your braille learning journey',
@@ -24,13 +22,10 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     document.title = 'BrailleLearn - Interactive Braille Learning';
     window.scrollTo(0, 0);
-    if (speak) {
-      speak('Welcome to BrailleLearn. Designed for partially sighted learners, with full voice navigation for blind users. Tap the microphone button or say what you\'d like to do.');
-    }
     
     // Show features immediately
     setShowFeatures(true);
-  }, [speak]);
+  }, []);
 
   const features = [
     {
