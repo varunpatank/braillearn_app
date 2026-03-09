@@ -16,7 +16,8 @@ import {
   Share2, Brain,
   Flame,
   BookOpen, Zap, Crown, Medal, Shield,
-  Heart, Sparkles, ChevronLeft, ChevronRight
+  Heart, Sparkles, ChevronLeft, ChevronRight,
+  Volume2, Bot
 } from 'lucide-react'
 
 interface Mission {
@@ -1628,39 +1629,43 @@ Return ONLY the JSON object.`,
           <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={(e) => { e.stopPropagation(); resetSubmission(); }}>
-            <motion.div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full flex flex-col" style={{ maxHeight: '70vh' }}
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+            <motion.div className="bg-white rounded-2xl shadow-2xl max-w-md w-full flex flex-col overflow-hidden" style={{ maxHeight: '75vh' }}
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
               onClick={e => e.stopPropagation()}>
-              <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-4 py-3 rounded-t-2xl text-white relative flex-shrink-0">
-                <div className="absolute inset-0 opacity-10 pointer-events-none">
-                  <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full border-2 border-white" />
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); resetSubmission(); }} className="absolute top-3 right-3 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/40 transition-colors z-20 cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-                <div className="flex items-center gap-3 relative z-10">
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl border border-white/20">{selectedMission.icon}</div>
-                  <div>
-                    <h3 className="text-base font-bold leading-tight">{selectedMission.title}</h3>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="flex items-center gap-1 bg-yellow-400/90 text-yellow-900 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                        <Star className="w-2.5 h-2.5" /> {selectedMission.xpReward} XP
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold backdrop-blur-sm ${
-                        selectedMission.difficulty === 'easy' ? 'bg-green-400/90 text-green-900' :
-                        selectedMission.difficulty === 'medium' ? 'bg-yellow-400/90 text-yellow-900' :
-                        selectedMission.difficulty === 'hard' ? 'bg-red-400/90 text-white' :
-                        'bg-purple-400/90 text-white'
-                      }`}>{selectedMission.difficulty}</span>
+              {/* Blue banner header — matches LearnPage style */}
+              <div className="relative bg-blue-600 px-5 pt-4 pb-4 flex-shrink-0 overflow-hidden">
+                <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center text-2xl backdrop-blur-sm border border-white/20">{selectedMission.icon}</div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white leading-tight">{selectedMission.title}</h3>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="flex items-center gap-1 bg-white/15 text-white px-2 py-0.5 rounded-md text-[10px] font-semibold backdrop-blur-sm">
+                          <Star className="w-2.5 h-2.5" /> {selectedMission.xpReward} XP
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/15 text-white backdrop-blur-sm">{selectedMission.difficulty}</span>
+                      </div>
                     </div>
                   </div>
+                  <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); resetSubmission(); }}
+                    className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors">
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+                {/* Braylin character pill */}
+                <div className="relative z-10 flex items-center gap-2 mt-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 w-fit border border-white/15">
+                  <Bot className="w-3.5 h-3.5 text-white" />
+                  <span className="text-[10px] font-medium text-blue-100">Braylin will verify your braille photo</span>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto px-4 py-3">
-                <p className="text-gray-600 mb-3 text-xs leading-relaxed">{selectedMission.description}</p>
+
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                <p className="text-gray-500 mb-3 text-xs leading-relaxed">{selectedMission.description}</p>
                 {selectedMission.bonusObjective && (
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-2 mb-3 border border-purple-200/60">
-                    <span className="text-xs font-bold text-purple-700 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Bonus: {selectedMission.bonusObjective}</span>
+                  <div className="bg-blue-50 rounded-lg px-3 py-2 mb-3 border border-blue-100">
+                    <span className="text-xs font-semibold text-blue-600 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Bonus: {selectedMission.bonusObjective}</span>
                   </div>
                 )}
                 {verifyStatus === 'idle' && (
@@ -1668,85 +1673,91 @@ Return ONLY the JSON object.`,
                     <label className="block cursor-pointer">
                       <input type="file" accept="image/*" capture="environment" className="hidden"
                         onChange={e => handleFileChange(e.target.files?.[0] ?? null)} />
-                      <div className={`relative rounded-xl transition-all duration-200 ${preview ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300' : 'bg-gradient-to-br from-gray-50 to-slate-100 border-2 border-dashed border-gray-300 hover:border-blue-400 hover:from-blue-50/50 hover:to-indigo-50/50'}`}>
-                        {preview ? (
-                          <div className="p-2">
-                            <div className="relative group rounded-lg overflow-hidden">
-                              <img src={preview} alt="Preview" className="w-full max-h-52 object-contain rounded-lg bg-gray-900/5" />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={(e) => { e.preventDefault(); setFile(null); setPreview(null); }}
-                                    className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600">
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                      {preview ? (
+                        <div className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
+                          <div className="relative group">
+                            <img src={preview} alt="Preview" className="w-full max-h-56 object-contain bg-white" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={(e) => { e.preventDefault(); setFile(null); setPreview(null); }}
+                                  className="w-9 h-9 bg-white text-red-500 rounded-lg flex items-center justify-center shadow-md hover:bg-red-50 border border-gray-200">
+                                  <X className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between mt-1.5 px-1">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                                <span className="text-[10px] font-semibold text-gray-600">Photo ready</span>
+                          </div>
+                          <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-white">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                              <span className="text-[11px] font-medium text-gray-600">Ready to submit</span>
+                            </div>
+                            {fileCoords && (
+                              <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                <MapPin className="w-2.5 h-2.5" />{fileCoords.latitude?.toFixed(3)}, {fileCoords.longitude?.toFixed(3)}
                               </div>
-                              {fileCoords && (
-                                <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-                                  <MapPin className="w-2.5 h-2.5" />{fileCoords.latitude?.toFixed(3)}, {fileCoords.longitude?.toFixed(3)}
-                                </div>
-                              )}
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-400 transition-colors bg-blue-50/50">
+                          <div className="py-8 px-6 text-center">
+                            <div className="w-14 h-14 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center mx-auto mb-3">
+                              <Camera className="w-7 h-7 text-blue-500" />
+                            </div>
+                            <p className="text-sm font-semibold text-gray-800 mb-1">Upload your braille photo</p>
+                            <p className="text-xs text-gray-400 mb-4">Take a clear, close-up photo of the braille sign</p>
+                            <div className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                              <Upload className="w-3.5 h-3.5" /> Choose Photo
                             </div>
                           </div>
-                        ) : (
-                          <div className="py-5 px-4 text-center">
-                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-3">
-                              <Camera className="w-6 h-6 text-blue-500" />
-                            </div>
-                            <p className="text-xs font-bold text-gray-800 mb-0.5">Snap or upload your braille find</p>
-                            <p className="text-[10px] text-gray-500 mb-3">Click to browse</p>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                              <Upload className="w-3 h-3" /> Choose Photo
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </label>
                     {preview && (
-                      <Button onClick={handleSubmit} className="w-full mt-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-2.5 rounded-lg text-sm shadow-md transition-all">
-                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Submit for Verification
-                      </Button>
+                      <button onClick={handleSubmit}
+                        className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                        <CheckCircle className="w-4 h-4" /> Submit for Verification
+                      </button>
                     )}
                   </>
                 )}
                 {verifyStatus === 'uploading' && (
-                  <div className="text-center py-6">
+                  <div className="text-center py-10">
                     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                      className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-3" />
-                    <p className="text-gray-600 font-semibold text-sm">Uploading your photo...</p>
+                      className="w-10 h-10 border-3 border-blue-100 border-t-blue-600 rounded-full mx-auto mb-4" />
+                    <p className="text-gray-800 font-semibold text-sm">Uploading...</p>
+                    <p className="text-gray-400 text-xs mt-1">This won't take long</p>
                   </div>
                 )}
                 {verifyStatus === 'verifying' && (
-                  <div className="text-center py-6">
-                    <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.5 }} className="text-4xl mb-3">🤖</motion.div>
-                    <p className="text-gray-800 font-bold text-sm mb-1">Analyzing your photo...</p>
-                    <p className="text-gray-500 text-xs">Checking for braille patterns</p>
-                    <div className="mt-3 flex justify-center gap-1">
+                  <div className="text-center py-10">
+                    <div className="w-12 h-12 bg-blue-50 rounded-2xl border border-blue-200 flex items-center justify-center mx-auto mb-4">
+                      <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+                        <Bot className="w-6 h-6 text-blue-600" />
+                      </motion.div>
+                    </div>
+                    <p className="text-gray-800 font-semibold text-sm mb-1">Braylin is analyzing your photo</p>
+                    <p className="text-gray-400 text-xs">Looking for braille patterns...</p>
+                    <div className="mt-4 flex justify-center gap-1.5">
                       {[0, 1, 2].map(i => (
-                        <motion.div key={i} className="w-3 h-3 bg-blue-500 rounded-full"
-                          animate={{ y: [-4, 4, -4] }} transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.2 }} />
+                        <motion.div key={i} className="w-2 h-2 bg-blue-300 rounded-full"
+                          animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.2 }} />
                       ))}
                     </div>
                   </div>
                 )}
 
                 {verifyStatus === 'success' && (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                     {/* Confetti */}
                     {showConfetti && (
                       <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
-                        {Array.from({ length: 60 }).map((_, i) => {
-                          const colors = ['#6366f1', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#f43f5e', '#06b6d4']
+                        {Array.from({ length: 50 }).map((_, i) => {
+                          const colors = ['#6366f1', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899']
                           const color = colors[i % colors.length]
                           const left = Math.random() * 100
                           const delay = Math.random() * 1.5
-                          const size = 4 + Math.random() * 8
+                          const size = 4 + Math.random() * 6
                           const rotation = Math.random() * 360
                           return (
                             <motion.div key={i}
@@ -1761,28 +1772,25 @@ Return ONLY the JSON object.`,
                       </div>
                     )}
 
-                    {/* XP Earned banner */}
-                    <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 mb-4 text-center">
-                      <motion.div className="text-5xl mb-2"
-                        animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
-                        transition={{ duration: 0.6, delay: 0.3 }}>
-                        🎉
-                      </motion.div>
-                      <h3 className="text-lg font-extrabold text-green-800 mb-1">Mission Complete!</h3>
-                      <p className="text-sm text-green-600 mb-3">Amazing find! You've earned XP for this discovery.</p>
-                      <motion.div
-                        className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-amber-400 px-5 py-2 rounded-full shadow-lg"
-                        initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        transition={{ type: 'spring', delay: 0.5 }}>
-                        <Star className="w-5 h-5 text-yellow-900" fill="#713f12" />
-                        <span className="text-lg font-extrabold text-yellow-900">+{selectedMission.xpReward} XP</span>
-                      </motion.div>
+                    {/* Success card — blue themed with Braylin */}
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                      className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-4 text-center">
+                      <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-200">
+                        <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 0.5, delay: 0.3 }}>
+                          <Bot className="w-7 h-7 text-blue-600" />
+                        </motion.div>
+                      </div>
+                      <h3 className="text-base font-bold text-blue-900 mb-1">Mission Complete!</h3>
+                      <p className="text-sm text-blue-600 mb-3">Braylin verified your discovery</p>
+                      <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-lg border border-blue-200">
+                        <Star className="w-4 h-4 text-amber-500" fill="#f59e0b" />
+                        <span className="text-sm font-bold text-gray-900">+{selectedMission.xpReward} XP</span>
+                      </div>
                     </motion.div>
 
                     {/* Action buttons */}
-                    <div className="flex flex-col gap-2.5">
+                    <div className="space-y-2">
                       <motion.button
                         onClick={() => {
                           if (lessonContent) {
@@ -1791,60 +1799,61 @@ Return ONLY the JSON object.`,
                           }
                         }}
                         disabled={lessonLoading && !lessonContent}
-                        className="w-full relative overflow-hidden bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 hover:from-indigo-700 hover:via-blue-700 hover:to-purple-700 text-white font-extrabold py-4 rounded-2xl shadow-xl disabled:opacity-50 transition-all text-base"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl disabled:opacity-40 transition-colors text-sm flex items-center justify-center gap-2"
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8 }}>
+                        transition={{ delay: 0.5 }}>
                         {lessonLoading ? (
-                          <span className="flex items-center justify-center gap-2">
+                          <span className="flex items-center gap-2">
                             <motion.div className="flex gap-1">
                               {[0,1,2].map(i => (
-                                <motion.div key={i} className="w-2 h-2 bg-white rounded-full"
-                                  animate={{ y: [-2, 2, -2] }}
+                                <motion.div key={i} className="w-1.5 h-1.5 bg-white rounded-full"
+                                  animate={{ opacity: [0.3, 1, 0.3] }}
                                   transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.12 }} />
                               ))}
                             </motion.div>
                             Preparing lesson...
                           </span>
                         ) : (
-                          <span className="flex items-center justify-center gap-2">
-                            <BookOpen className="w-5 h-5" />
-                            Learn More About This
-                            <Sparkles className="w-4 h-4" />
-                          </span>
+                          <>
+                            <BookOpen className="w-4 h-4" />
+                            Learn About This Discovery
+                          </>
                         )}
-                        {/* Shimmer effect */}
-                        <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
-                          animate={{ x: ['-200%', '200%'] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} />
                       </motion.button>
 
                       <div className="flex gap-2">
-                        <Button onClick={() => handleShare(`Just completed "${selectedMission.title}" on BrailleQuest! +${selectedMission.xpReward} XP`)}
-                          className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-bold py-2.5 rounded-xl border border-gray-200 text-xs shadow-sm">
-                          <Share2 className="w-3.5 h-3.5 mr-1" /> Share
-                        </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); resetSubmission(); }}
-                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-xs">
+                        <button onClick={() => handleShare(`Just completed "${selectedMission.title}" on BrailleQuest! +${selectedMission.xpReward} XP`)}
+                          className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-2.5 rounded-xl border border-gray-200 text-xs flex items-center justify-center gap-1.5">
+                          <Share2 className="w-3.5 h-3.5" /> Share
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); resetSubmission(); }}
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl text-xs">
                           Next Mission →
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   </motion.div>
                 )}
                 {verifyStatus === 'failure' && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center py-4">
-                    <div className="text-4xl mb-2">😅</div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">Not quite...</h3>
-                    <p className="text-gray-600 mb-3 text-xs">{verifyReason || "We couldn't verify braille in this photo. Try again with a clearer image!"}</p>
-                    <div className="bg-blue-50 rounded-lg p-3 text-left mb-4">
-                      <h4 className="font-bold text-blue-800 mb-1 text-xs">Tips:</h4>
-                      <ul className="space-y-0.5 text-xs text-blue-700">
-                        <li>• Good lighting</li><li>• Get close to the braille</li><li>• Avoid blurry images</li>
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-4 text-center">
+                      <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-blue-200">
+                        <Bot className="w-6 h-6 text-blue-400" />
+                      </div>
+                      <h3 className="text-base font-bold text-gray-900 mb-1">Not quite right</h3>
+                      <p className="text-sm text-gray-600">{verifyReason || "Braylin couldn't verify braille in this photo."}</p>
+                    </div>
+                    <div className="bg-blue-50/50 rounded-xl p-4 mb-4 border border-blue-100">
+                      <h4 className="font-semibold text-gray-800 mb-2 text-xs flex items-center gap-1.5"><Bot className="w-3 h-3 text-blue-500" /> Braylin's tips</h4>
+                      <ul className="space-y-1 text-xs text-gray-600">
+                        <li className="flex items-center gap-2"><span className="w-1 h-1 bg-blue-400 rounded-full" />Good, even lighting</li>
+                        <li className="flex items-center gap-2"><span className="w-1 h-1 bg-blue-400 rounded-full" />Get close to the braille sign</li>
+                        <li className="flex items-center gap-2"><span className="w-1 h-1 bg-blue-400 rounded-full" />Keep the camera steady</li>
                       </ul>
                     </div>
-                    <Button onClick={() => setVerifyStatus('idle')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm">
+                    <button onClick={() => setVerifyStatus('idle')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
                       Try Again
-                    </Button>
+                    </button>
                   </motion.div>
                 )}
               </div>
@@ -2011,62 +2020,56 @@ Return ONLY the JSON object.`,
         {/* ═══ FULLSCREEN LESSON TIMELINE ═══ */}
         {showFullLesson && lessonContent && (
           <motion.div
-            className="fixed inset-0 z-[200] flex flex-col"
+            className="fixed inset-0 z-[200] flex flex-col bg-white"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950" />
-
-            {/* Animated ambient dots */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {Array.from({ length: 40 }).map((_, i) => (
-                <motion.div key={i}
-                  className="absolute rounded-full"
-                  style={{
-                    width: 3 + Math.random() * 5,
-                    height: 3 + Math.random() * 5,
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    background: ['#818cf8', '#a78bfa', '#60a5fa', '#34d399', '#f472b6'][i % 5]
-                  }}
-                  animate={{ opacity: [0.1, 0.5, 0.1], scale: [0.8, 1.2, 0.8] }}
-                  transition={{ duration: 3 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 2, ease: 'easeInOut' }}
-                />
-              ))}
-            </div>
-
-            {/* Header */}
-            <motion.div className="relative z-10 flex items-center justify-between px-6 pt-6 pb-3"
-              initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-              <div>
-                <h2 className="text-2xl font-extrabold text-white tracking-tight">{lessonContent.title}</h2>
-                <p className="text-indigo-300 text-sm font-medium mt-0.5">AI-Generated Lesson • {(() => {
-                  const sections = []
-                  if (lessonContent.explanation) sections.push('overview')
-                  if (lessonContent.braillePreview?.length) sections.push('braille')
-                  if (lessonContent.facts?.length) sections.push('facts')
-                  if (lessonContent.commonPatterns?.length) sections.push('patterns')
-                  if (lessonContent.realWorldExamples?.length) sections.push('real-world')
-                  if (lessonContent.practiceTips?.length) sections.push('tips')
-                  sections.push('fun fact')
-                  return `${sections.length} sections`
-                })()}</p>
+            {/* Blue banner header — matching app theme */}
+            <motion.div className="relative z-10 bg-blue-600 px-6 pt-5 pb-4 overflow-hidden"
+              initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+              <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+              <div className="absolute -top-16 -right-16 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <BookOpen className="w-4 h-4 text-white" />
+                    </div>
+                    <h2 className="text-base font-bold text-white truncate">{lessonContent.title}</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/15">
+                      <Bot className="w-3 h-3 text-blue-200" />
+                      <span className="text-[10px] font-medium text-blue-100">Braylin’s Lesson</span>
+                    </div>
+                    <span className="text-[10px] text-blue-200">{selectedMission?.icon} {selectedMission?.title} • {(() => {
+                      const sections: string[] = []
+                      if (lessonContent.explanation) sections.push('overview')
+                      if (lessonContent.braillePreview?.length) sections.push('braille')
+                      if (lessonContent.facts?.length) sections.push('facts')
+                      if (lessonContent.commonPatterns?.length) sections.push('patterns')
+                      if (lessonContent.realWorldExamples?.length) sections.push('real-world')
+                      if (lessonContent.practiceTips?.length) sections.push('tips')
+                      sections.push('fun fact')
+                      return `${sections.length} sections`
+                    })()}</span>
+                  </div>
+                </div>
+                <button onClick={() => setShowFullLesson(false)}
+                  className="w-9 h-9 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors ml-3 flex-shrink-0">
+                  <X className="w-4 h-4 text-white" />
+                </button>
               </div>
-              <button onClick={() => setShowFullLesson(false)}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all backdrop-blur-sm">
-                <X className="w-5 h-5 text-white" />
-              </button>
             </motion.div>
 
-            {/* Timeline progress */}
-            <div className="relative z-10 px-6 py-2">
+            {/* Progress bar */}
+            <div className="relative z-10 px-6 py-3 bg-blue-50 border-b border-blue-100">
               {(() => {
                 const sections: { id: string; icon: string; label: string }[] = []
                 if (lessonContent.explanation) sections.push({ id: 'overview', icon: '🔍', label: 'Overview' })
-                if (lessonContent.braillePreview?.length) sections.push({ id: 'braille', icon: '⠿', label: 'Braille Preview' })
-                if (lessonContent.facts?.length) sections.push({ id: 'facts', icon: '📖', label: 'Key Facts' })
+                if (lessonContent.braillePreview?.length) sections.push({ id: 'braille', icon: '⠿', label: 'Braille' })
+                if (lessonContent.facts?.length) sections.push({ id: 'facts', icon: '📖', label: 'Facts' })
                 if (lessonContent.commonPatterns?.length) sections.push({ id: 'patterns', icon: '🧩', label: 'Patterns' })
                 if (lessonContent.realWorldExamples?.length) sections.push({ id: 'world', icon: '🌍', label: 'Real World' })
                 if (lessonContent.practiceTips?.length) sections.push({ id: 'tips', icon: '💪', label: 'Practice' })
@@ -2075,17 +2078,15 @@ Return ONLY the JSON object.`,
                 return (
                   <div className="flex items-center gap-1">
                     {sections.map((s, i) => (
-                      <button key={s.id} onClick={() => setTimelineIndex(i)}
-                        className="flex-1 group">
-                        <div className={`h-1.5 rounded-full transition-all duration-300 ${
-                          i < timelineIndex ? 'bg-indigo-400' :
-                          i === timelineIndex ? 'bg-gradient-to-r from-indigo-400 to-purple-400 shadow-[0_0_12px_rgba(129,140,248,0.5)]' :
-                          'bg-white/10'
+                      <button key={s.id} onClick={() => setTimelineIndex(i)} className="flex-1 group">
+                        <div className={`h-1 rounded-full transition-all duration-300 ${
+                          i < timelineIndex ? 'bg-blue-600' :
+                          i === timelineIndex ? 'bg-blue-600' :
+                          'bg-blue-200'
                         }`} />
-                        <p className={`text-[10px] font-bold mt-1.5 transition-colors text-center ${
-                          i === timelineIndex ? 'text-white' : 'text-white/30'
+                        <p className={`text-[9px] font-semibold mt-1 transition-colors text-center ${
+                          i === timelineIndex ? 'text-blue-700' : 'text-blue-300'
                         }`}>
-                          <span className="block text-sm mb-0.5">{s.icon}</span>
                           {s.label}
                         </p>
                       </button>
@@ -2096,210 +2097,280 @@ Return ONLY the JSON object.`,
             </div>
 
             {/* Main content area */}
-            <div className="relative z-10 flex-1 px-6 pb-6 overflow-y-auto">
+            <div className="relative z-10 flex-1 overflow-y-auto bg-slate-50">
               <AnimatePresence mode="wait">
                 {(() => {
                   const sections: React.ReactNode[] = []
 
                   // Section: Overview
                   if (lessonContent.explanation) sections.push(
-                    <motion.div key="overview" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 mb-4">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">🔍</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-white">What You Discovered</h3>
+                    <motion.div key="overview" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+                          <span className="text-xl">🔍</span>
                         </div>
-                        <p className="text-base text-indigo-100 leading-relaxed">{lessonContent.explanation}</p>
-                        {imageDescription && (
-                          <div className="mt-4 bg-white/5 rounded-2xl px-5 py-3 border border-white/10">
-                            <p className="text-xs text-indigo-300 font-bold uppercase tracking-wider mb-1">📸 From Your Photo</p>
-                            <p className="text-sm text-white/80">{imageDescription}</p>
-                          </div>
-                        )}
+                        <h3 className="text-lg font-bold text-gray-900">What You Discovered</h3>
                       </div>
+                      <p className="text-base text-gray-600 leading-relaxed mb-6">{lessonContent.explanation}</p>
+                      {imageDescription && (
+                        <div className="bg-blue-50 rounded-xl px-5 py-4 border border-blue-100">
+                          <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider mb-1">From your photo</p>
+                          <p className="text-sm text-gray-700">{imageDescription}</p>
+                        </div>
+                      )}
+                      {/* Braille type diagrams for overview */}
+                      {lessonContent.brailleTypes?.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="text-sm font-semibold text-gray-800 mb-3">Braille Types Found</h4>
+                          <div className="space-y-2">
+                            {lessonContent.brailleTypes.map((bt, i) => (
+                              <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-blue-100">
+                                <BrailleCell dots={bt.dots || [1]} size={32} />
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-900">{bt.name}</p>
+                                  <p className="text-xs text-gray-500">{bt.desc}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Narrate button */}
+                      <button onClick={() => {
+                        const narration = `${lessonContent.explanation}${imageDescription ? `. From your photo: ${imageDescription}` : ''}${lessonContent.brailleTypes?.length ? `. Braille types: ${lessonContent.brailleTypes.map(bt => `${bt.name} — ${bt.desc}`).join('. ')}` : ''}`
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: narration } }))
+                      }} className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read aloud
+                      </button>
                     </motion.div>
                   )
 
-                  // Section: Braille Preview
+                  // Section: Braille Preview — Interactive cells with large diagrams
                   if (lessonContent.braillePreview?.length) sections.push(
-                    <motion.div key="braille" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">⠿</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-white">Interactive Braille</h3>
+                    <motion.div key="braille" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+                          <span className="text-xl">⠿</span>
                         </div>
-                        <div className="flex justify-center gap-4 flex-wrap mb-6">
-                          {lessonContent.braillePreview.map((cell, i) => (
-                            <motion.div key={i} className="flex flex-col items-center cursor-pointer"
-                              initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: i * 0.08, type: 'spring' }}
-                              onClick={() => setActiveDotCell(activeDotCell === i ? null : i)}>
-                              <div className={`bg-white/10 rounded-2xl p-4 border-2 transition-all ${
-                                activeDotCell === i ? 'border-indigo-400 bg-indigo-500/20 shadow-[0_0_20px_rgba(129,140,248,0.3)]' : 'border-white/10 hover:border-white/30'
-                              }`}>
-                                <BrailleCell dots={cell.dots} size={44} active={activeDotCell === i} />
-                              </div>
-                              <span className={`text-lg font-bold mt-2 transition-colors ${
-                                activeDotCell === i ? 'text-indigo-300' : 'text-white/50'
-                              }`}>{cell.letter.toUpperCase()}</span>
-                            </motion.div>
-                          ))}
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Interactive Braille</h3>
+                          <p className="text-xs text-gray-400">Tap each cell to explore the dot pattern</p>
                         </div>
-                        {activeDotCell !== null && lessonContent.braillePreview[activeDotCell] && (
-                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                            className="bg-indigo-500/20 rounded-2xl px-5 py-3 border border-indigo-400/30 text-center">
-                            <p className="text-indigo-200 text-sm">
-                              Letter <span className="font-extrabold text-white text-lg">"{lessonContent.braillePreview[activeDotCell].letter.toUpperCase()}"</span>
-                              {' '}uses dots{' '}
-                              <span className="font-mono font-bold bg-indigo-500/30 px-2 py-1 rounded-lg text-white">{lessonContent.braillePreview[activeDotCell].dots.join(', ')}</span>
-                            </p>
-                          </motion.div>
-                        )}
                       </div>
+                      <div className="flex justify-center gap-3 flex-wrap mb-6">
+                        {lessonContent.braillePreview.map((cell, i) => (
+                          <motion.div key={i} className="flex flex-col items-center"
+                            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.06, type: 'spring' }}
+                            onClick={() => {
+                              setActiveDotCell(activeDotCell === i ? null : i)
+                              window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Letter ${cell.letter.toUpperCase()}, dots ${cell.dots.join(', ')}` } }))
+                            }}>
+                            <div className={`rounded-xl p-3 border-2 transition-all cursor-pointer ${
+                              activeDotCell === i ? 'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:border-blue-300'
+                            }`}>
+                              <BrailleCell dots={cell.dots} size={48} active={activeDotCell === i} />
+                            </div>
+                            <span className={`text-base font-bold mt-2 transition-colors ${
+                              activeDotCell === i ? 'text-blue-700' : 'text-gray-400'
+                            }`}>{cell.letter.toUpperCase()}</span>
+                          </motion.div>
+                        ))}
+                      </div>
+                      {activeDotCell !== null && lessonContent.braillePreview[activeDotCell] && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                          className="bg-blue-50 rounded-xl px-5 py-4 border border-blue-200">
+                          <div className="flex items-center gap-4">
+                            <BrailleCell dots={lessonContent.braillePreview[activeDotCell].dots} size={56} active />
+                            <div>
+                              <p className="text-sm text-gray-500">Letter</p>
+                              <p className="text-2xl font-bold text-gray-900">{lessonContent.braillePreview[activeDotCell].letter.toUpperCase()}</p>
+                              <p className="text-xs text-gray-400 mt-1 font-mono">Dots: {lessonContent.braillePreview[activeDotCell].dots.join(', ')}</p>
+                            </div>
+                          </div>
+                          {/* 3×2 grid diagram */}
+                          <div className="mt-3 grid grid-cols-2 gap-1 w-fit">
+                            {[1,4,2,5,3,6].map(dot => (
+                              <div key={dot} className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                                lessonContent!.braillePreview![activeDotCell!].dots.includes(dot)
+                                  ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'
+                              }`}>{dot}</div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                      <button onClick={() => {
+                        const narration = lessonContent.braillePreview!.map(c => `Letter ${c.letter.toUpperCase()}, dots ${c.dots.join(' ')}`).join('. ')
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Braille spelling: ${narration}` } }))
+                      }} className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read all cells
+                      </button>
                     </motion.div>
                   )
 
                   // Section: Key Facts
                   if (lessonContent.facts?.length) sections.push(
-                    <motion.div key="facts" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">📖</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-white">Key Facts</h3>
+                    <motion.div key="facts" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+                          <span className="text-xl">📖</span>
                         </div>
-                        <div className="space-y-3">
-                          {lessonContent.facts.map((fact, i) => (
-                            <motion.div key={i}
-                              className="flex items-start gap-4 bg-white/5 rounded-2xl px-5 py-4 border border-white/5 hover:bg-white/10 transition-all"
-                              initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.06 }}>
-                              <div className="w-8 h-8 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm font-extrabold text-blue-300">{i + 1}</span>
-                              </div>
-                              <p className="text-sm text-indigo-100 leading-relaxed">{fact}</p>
-                            </motion.div>
-                          ))}
-                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Key Facts</h3>
                       </div>
+                      <div className="space-y-2">
+                        {lessonContent.facts.map((fact, i) => (
+                          <motion.div key={i}
+                            className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 border border-blue-100 hover:border-blue-200 transition-colors"
+                            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.04 }}>
+                            <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-[10px] font-bold text-blue-600">{i + 1}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">{fact}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+                      <button onClick={() => {
+                        const narration = lessonContent.facts!.map((f, i) => `Fact ${i + 1}: ${f}`).join('. ')
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: narration } }))
+                      }} className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read all facts
+                      </button>
                     </motion.div>
                   )
 
-                  // Section: Common Patterns
+                  // Section: Common Patterns — with large braille diagrams
                   if (lessonContent.commonPatterns?.length) sections.push(
-                    <motion.div key="patterns" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">🧩</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-white">Braille Patterns</h3>
+                    <motion.div key="patterns" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+                          <span className="text-xl">🧩</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          {lessonContent.commonPatterns.map((pat, i) => (
-                            <motion.div key={i}
-                              className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3 border border-white/5"
-                              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: i * 0.05 }}>
-                              <div className="bg-purple-500/20 rounded-xl p-2">
-                                <BrailleCell dots={pat.dots || [1]} size={28} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-bold text-white truncate">{pat.symbol}</p>
-                                <p className="text-xs text-purple-300 truncate">{pat.meaning}</p>
-                              </div>
-                            </motion.div>
-                          ))}
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Braille Patterns</h3>
+                          <p className="text-xs text-gray-400">Common contractions and symbols</p>
                         </div>
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {lessonContent.commonPatterns.map((pat, i) => (
+                          <motion.div key={i}
+                            className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-blue-100 hover:border-blue-200 transition-colors cursor-pointer"
+                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.04 }}
+                            onClick={() => {
+                              window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `${pat.symbol}: ${pat.meaning}. Dots ${(pat.dots || []).join(', ')}` } }))
+                            }}>
+                            <div className="bg-blue-50 rounded-xl p-2.5 border border-blue-100 flex-shrink-0">
+                              <BrailleCell dots={pat.dots || [1]} size={32} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-gray-900">{pat.symbol}</p>
+                              <p className="text-xs text-gray-500 leading-snug">{pat.meaning}</p>
+                              <p className="text-[10px] text-gray-300 font-mono mt-0.5">dots {(pat.dots || []).join('-')}</p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                      <button onClick={() => {
+                        const narration = lessonContent.commonPatterns!.map(p => `${p.symbol}: ${p.meaning}, dots ${(p.dots || []).join(' ')}`).join('. ')
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Common patterns: ${narration}` } }))
+                      }} className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read all patterns
+                      </button>
                     </motion.div>
                   )
 
                   // Section: Real World Examples
                   if (lessonContent.realWorldExamples?.length) sections.push(
-                    <motion.div key="world" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">🌍</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-white">Where You'll Find This</h3>
+                    <motion.div key="world" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+                          <span className="text-xl">🌍</span>
                         </div>
-                        <div className="grid grid-cols-1 gap-3">
-                          {lessonContent.realWorldExamples.map((ex, i) => (
-                            <motion.div key={i}
-                              className="flex items-start gap-4 bg-white/5 rounded-2xl px-5 py-4 border border-white/5"
-                              initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.08 }}>
-                              <div className="w-8 h-8 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <MapPin className="w-4 h-4 text-emerald-400" />
-                              </div>
-                              <p className="text-sm text-emerald-100 leading-relaxed">{ex}</p>
-                            </motion.div>
-                          ))}
-                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Where You'll Find This</h3>
                       </div>
+                      <div className="space-y-2">
+                        {lessonContent.realWorldExamples.map((ex, i) => (
+                          <motion.div key={i}
+                            className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 border border-blue-100"
+                            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.06 }}>
+                            <div className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <MapPin className="w-3 h-3 text-blue-500" />
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">{ex}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+                      <button onClick={() => {
+                        const narration = lessonContent.realWorldExamples!.map((e, i) => `${i + 1}: ${e}`).join('. ')
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Where you'll find this: ${narration}` } }))
+                      }} className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read aloud
+                      </button>
                     </motion.div>
                   )
 
                   // Section: Practice Tips
                   if (lessonContent.practiceTips?.length) sections.push(
-                    <motion.div key="tips" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl">💪</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-white">Practice Tips</h3>
+                    <motion.div key="tips" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+                          <span className="text-xl">💪</span>
                         </div>
-                        <div className="space-y-3">
-                          {lessonContent.practiceTips.map((tip, i) => (
-                            <motion.div key={i}
-                              className="flex items-start gap-4 bg-white/5 rounded-2xl px-5 py-4 border border-white/5"
-                              initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.08 }}>
-                              <div className="w-8 h-8 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <Zap className="w-4 h-4 text-amber-400" />
-                              </div>
-                              <p className="text-sm text-amber-100 leading-relaxed">{tip}</p>
-                            </motion.div>
-                          ))}
-                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Practice Tips</h3>
                       </div>
+                      <div className="space-y-2">
+                        {lessonContent.practiceTips.map((tip, i) => (
+                          <motion.div key={i}
+                            className="flex items-start gap-3 bg-white rounded-xl px-4 py-3 border border-blue-100"
+                            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.06 }}>
+                            <div className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Zap className="w-3 h-3 text-blue-500" />
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">{tip}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+                      <button onClick={() => {
+                        const narration = lessonContent.practiceTips!.map((t, i) => `Tip ${i + 1}: ${t}`).join('. ')
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: narration } }))
+                      }} className="mt-4 flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read all tips
+                      </button>
                     </motion.div>
                   )
 
                   // Section: Fun Fact (always last)
                   sections.push(
-                    <motion.div key="funfact" className="max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.4 }}>
-                      <div className="bg-gradient-to-br from-amber-500/10 to-yellow-500/10 backdrop-blur-xl rounded-3xl border border-amber-500/20 p-8 text-center">
-                        <motion.div className="text-6xl mb-4"
-                          animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
-                          💡
-                        </motion.div>
-                        <h3 className="text-xl font-bold text-white mb-3">Fun Fact</h3>
-                        <p className="text-base text-amber-100 leading-relaxed max-w-md mx-auto">{lessonContent.funFact}</p>
+                    <motion.div key="funfact" className="max-w-2xl mx-auto px-6 py-8"
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}>
+                      <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6 text-center">
+                        <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-200">
+                          <span className="text-2xl">💡</span>
+                        </div>
+                        <h3 className="text-base font-bold text-gray-900 mb-2">Did You Know?</h3>
+                        <p className="text-sm text-gray-600 leading-relaxed max-w-md mx-auto">{lessonContent.funFact}</p>
                       </div>
+                      <button onClick={() => {
+                        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Fun fact: ${lessonContent.funFact}` } }))
+                      }} className="mt-4 mx-auto flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-600 transition-colors">
+                        <Volume2 className="w-3.5 h-3.5" /> Read aloud
+                      </button>
                     </motion.div>
                   )
 
@@ -2309,14 +2380,14 @@ Return ONLY the JSON object.`,
             </div>
 
             {/* Bottom navigation */}
-            <motion.div className="relative z-10 px-6 pb-6 pt-2"
-              initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
+            <motion.div className="relative z-10 px-6 pb-5 pt-3 border-t border-blue-100 bg-white"
+              initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
               <div className="max-w-2xl mx-auto flex items-center gap-3">
                 <button
                   onClick={() => setTimelineIndex(Math.max(0, timelineIndex - 1))}
                   disabled={timelineIndex === 0}
-                  className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:hover:bg-white/10 flex items-center justify-center transition-all backdrop-blur-sm">
-                  <ChevronLeft className="w-6 h-6 text-white" />
+                  className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 disabled:opacity-20 flex items-center justify-center transition-colors">
+                  <ChevronLeft className="w-5 h-5 text-blue-600" />
                 </button>
 
                 <button
@@ -2337,7 +2408,7 @@ Return ONLY the JSON object.`,
                       setShowFullLesson(false)
                     }
                   }}
-                  className="flex-1 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/25 transition-all text-base">
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm">
                   {(() => {
                     const totalSections = [
                       lessonContent.explanation,
@@ -2348,14 +2419,14 @@ Return ONLY the JSON object.`,
                       lessonContent.practiceTips?.length,
                       true
                     ].filter(Boolean).length
-                    return timelineIndex < totalSections - 1 ? 'Next →' : 'Complete Lesson ✨'
+                    return timelineIndex < totalSections - 1 ? 'Next Section →' : 'Complete Lesson ✓'
                   })()}
                 </button>
 
                 <button
                   onClick={() => setShowFullLesson(false)}
-                  className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all backdrop-blur-sm">
-                  <ChevronRight className="w-6 h-6 text-white" />
+                  className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors">
+                  <X className="w-4 h-4 text-blue-500" />
                 </button>
               </div>
             </motion.div>
