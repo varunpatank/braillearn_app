@@ -275,6 +275,63 @@ export default function BrailleQuestPage() {
       if (action === 'take-photo') {
         if (fileInputRef_braylin) fileInputRef_braylin.click()
       }
+      if (action === 'view-lesson') {
+        if (lessonContent) {
+          setTimelineIndex(0)
+          setShowFullLesson(true)
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Lesson opened: ${lessonContent.title}. Say "next" to advance, "read this" to hear the current section, or "close" to exit.` } }))
+          }, 600)
+        } else if (lessonLoading) {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'The lesson is still loading. Please wait a moment and try again.' } }))
+        } else {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'No lesson available yet. Complete a mission first to unlock a braille lesson.' } }))
+        }
+      }
+      if (action === 'next-section' && showFullLesson && lessonContent) {
+        const totalSections = [lessonContent.explanation, lessonContent.braillePreview?.length, lessonContent.facts?.length, lessonContent.commonPatterns?.length, lessonContent.realWorldExamples?.length, lessonContent.practiceTips?.length, true].filter(Boolean).length
+        if (timelineIndex < totalSections - 1) {
+          setTimelineIndex(prev => prev + 1)
+        } else {
+          setShowFullLesson(false)
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Lesson complete! Great work. Say "next mission" to continue exploring.' } }))
+        }
+      }
+      if (action === 'prev-section' && showFullLesson && lessonContent) {
+        if (timelineIndex > 0) {
+          setTimelineIndex(prev => prev - 1)
+        } else {
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Already at the first section.' } }))
+        }
+      }
+      if (action === 'read-section' && showFullLesson && lessonContent) {
+        const sectionNames: string[] = []
+        if (lessonContent.explanation) sectionNames.push('overview')
+        if (lessonContent.braillePreview?.length) sectionNames.push('braille')
+        if (lessonContent.facts?.length) sectionNames.push('facts')
+        if (lessonContent.commonPatterns?.length) sectionNames.push('patterns')
+        if (lessonContent.realWorldExamples?.length) sectionNames.push('real-world')
+        if (lessonContent.practiceTips?.length) sectionNames.push('tips')
+        sectionNames.push('fun fact')
+        const idx = Math.min(timelineIndex, sectionNames.length - 1)
+        const name = sectionNames[idx]
+        let narration = ''
+        if (name === 'overview') narration = lessonContent.explanation || ''
+        else if (name === 'braille') narration = `Interactive braille preview: ${lessonContent.braillePreview!.map(c => `${c.letter.toUpperCase()} uses dots ${c.dots.join(', ')}`).join('. ')}.`
+        else if (name === 'facts') narration = `Key facts: ${lessonContent.facts!.slice(0, 4).join('. ')}.`
+        else if (name === 'patterns') narration = `Braille patterns: ${lessonContent.commonPatterns!.slice(0, 4).map(p => `${p.symbol} means ${p.meaning}`).join('. ')}.`
+        else if (name === 'real-world') narration = `Real world examples: ${lessonContent.realWorldExamples!.join('. ')}.`
+        else if (name === 'tips') narration = `Practice tips: ${lessonContent.practiceTips!.join('. ')}.`
+        else if (name === 'fun fact') narration = `Fun fact: ${lessonContent.funFact}`
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: narration || 'This section has visual content. Try "next" to continue.' } }))
+      }
+      if (action === 'complete-lesson') {
+        if (showFullLesson) {
+          setShowFullLesson(false)
+          setTimelineIndex(0)
+          window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Lesson complete! Great work. Say "next mission" to keep exploring.' } }))
+        }
+      }
     }
     const onDismiss = () => {
       if (showMissionModal) {
@@ -308,7 +365,7 @@ export default function BrailleQuestPage() {
       window.removeEventListener('braylin-dismiss', onDismiss)
       window.removeEventListener('braylin-confirm', onConfirm)
     }
-  }, [completedMissions, categoryFilter, showMissionModal, showShareModal, showGoalEditor, file, selectedMission])
+  }, [completedMissions, categoryFilter, showMissionModal, showShareModal, showGoalEditor, file, selectedMission, showFullLesson, timelineIndex, lessonContent, lessonLoading])
 
   // ─── Narrate mission modal open ───
   useEffect(() => {
@@ -330,6 +387,31 @@ export default function BrailleQuestPage() {
       window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Verification failed. ${verifyReason}. Try taking another photo or say "close" to dismiss.` } }))
     }
   }, [verifyStatus, verifyReason])
+
+  // ─── Auto-narrate section on lesson timeline change ───
+  useEffect(() => {
+    if (!showFullLesson || !lessonContent) return
+    const sectionNames: string[] = []
+    if (lessonContent.explanation) sectionNames.push('Overview')
+    if (lessonContent.braillePreview?.length) sectionNames.push('Braille Preview')
+    if (lessonContent.facts?.length) sectionNames.push('Key Facts')
+    if (lessonContent.commonPatterns?.length) sectionNames.push('Patterns')
+    if (lessonContent.realWorldExamples?.length) sectionNames.push('Real World')
+    if (lessonContent.practiceTips?.length) sectionNames.push('Practice Tips')
+    sectionNames.push('Fun Fact')
+    const idx = Math.min(timelineIndex, sectionNames.length - 1)
+    const total = sectionNames.length
+    window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Section ${idx + 1} of ${total}: ${sectionNames[idx]}. Say "read this" to hear it, or "next" to continue.` } }))
+  }, [timelineIndex, showFullLesson])
+
+  // ─── Narrate when lesson finishes loading (prompt user to view) ───
+  useEffect(() => {
+    if (!lessonLoading && lessonContent && verifyStatus === 'success' && !showFullLesson) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Your braille lesson "${lessonContent.title}" is ready! Say "view lesson" to start learning, or "close" to dismiss.` } }))
+      }, 2000)
+    }
+  }, [lessonLoading, lessonContent, verifyStatus])
 
   // ─── DB Integration ───
   useEffect(() => {

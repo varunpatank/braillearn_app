@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { useUser } from '@clerk/clerk-react';
 import { useSupabase } from '@/hooks/useSupabase';
+import { saveStudyPlan, getStudyPlan, deleteStudyPlan } from '@/services/dbService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, BookOpen, TrendingUp,
@@ -12,7 +13,7 @@ import {
   X, ArrowRight, BarChart,
   Rocket,
   Calendar, Gamepad2,
-  Play, Users, Wand2,
+  Play, Wand2,
   ChevronRight, Coffee,
   CheckCircle, AlertTriangle, Info,
   MousePointer2, Clock
@@ -188,29 +189,51 @@ const LearnPage: React.FC = () => {
 
       try {
         setAllLessons(lessons);
-        const savedPlan = localStorage.getItem('braillearn-study-plan');
-        const savedConfirmation = localStorage.getItem('braillearn-schedule-confirmed');
-        if (savedPlan && savedConfirmation === 'true') {
-          setStudyPlan(JSON.parse(savedPlan));
-          setScheduleConfirmed(true);
-          setUseCustomPlan(true);
-        }
-        const savedWeekly = localStorage.getItem('braillearn-weekly-schedule');
-        if (savedWeekly) setWeeklySchedule(JSON.parse(savedWeekly));
 
+        // Signed-in users: load from Supabase first, then cache to localStorage
+        let loadedFromDb = false;
         if (user && supabaseRef.current) {
           try {
-            const { data: progress } = await Promise.race([
-              supabaseRef.current
-                .from('lesson_progress')
-                .select('*')
-                .eq('user_id', user.id),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 4000)),
+            const [dbPlan, progressResult] = await Promise.all([
+              Promise.race([
+                getStudyPlan(supabaseRef.current, user.id),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+              ]),
+              Promise.race([
+                supabaseRef.current.from('lesson_progress').select('*').eq('user_id', user.id),
+                new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 4000)),
+              ]),
             ]);
-            if (!cancelled && progress) setLessonProgress(progress);
+            if (!cancelled && dbPlan?.study_plan) {
+              const plan = dbPlan.study_plan as any;
+              setStudyPlan(plan);
+              setScheduleConfirmed(true);
+              setUseCustomPlan(true);
+              localStorage.setItem('braillearn-study-plan', JSON.stringify(plan));
+              localStorage.setItem('braillearn-schedule-confirmed', 'true');
+              if (dbPlan.weekly_schedule) {
+                setWeeklySchedule(dbPlan.weekly_schedule as any);
+                localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(dbPlan.weekly_schedule));
+              }
+              loadedFromDb = true;
+            }
+            if (!cancelled && progressResult?.data) setLessonProgress(progressResult.data);
           } catch (dbError) {
             console.warn('Supabase fetch skipped:', dbError);
           }
+        }
+
+        // Fallback to localStorage (for guests or if DB had nothing)
+        if (!loadedFromDb) {
+          const savedPlan = localStorage.getItem('braillearn-study-plan');
+          const savedConfirmation = localStorage.getItem('braillearn-schedule-confirmed');
+          if (savedPlan && savedConfirmation === 'true') {
+            setStudyPlan(JSON.parse(savedPlan));
+            setScheduleConfirmed(true);
+            setUseCustomPlan(true);
+          }
+          const savedWeekly = localStorage.getItem('braillearn-weekly-schedule');
+          if (savedWeekly) setWeeklySchedule(JSON.parse(savedWeekly));
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -251,6 +274,10 @@ const LearnPage: React.FC = () => {
   useEffect(() => {
     // Open the study-plan wizard
     const onOpenWizard = () => {
+      if (!user) {
+        window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'You need to sign in first to create a study plan. Say "go to sign in".' } }));
+        return;
+      }
       setShowWizard(true);
       setWizardStep('level');
     };
@@ -607,6 +634,12 @@ const LearnPage: React.FC = () => {
   };
 
   const handleGeneratePlan = async () => {
+    // Require sign-in to create a plan
+    if (!user) {
+      addToast('warning', '🔒 Sign In Required', 'Please sign in to create and save a study plan. Your plan will be saved to your account.');
+      window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'You need to sign in first to create a study plan. Say "go to sign in" or click Sign In above.' } }));
+      return;
+    }
     setGeneratingPlan(true);
     setGenerationProgress(0);
 
@@ -740,6 +773,11 @@ const LearnPage: React.FC = () => {
     setWeeklySchedule(weekly);
     localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(weekly));
 
+    // Persist to Supabase for signed-in users
+    if (user && supabaseRef.current) {
+      saveStudyPlan(supabaseRef.current, user.id, plan, weekly).catch(e => console.warn('Failed to save plan to DB:', e));
+    }
+
     setScheduleConfirmed(true);
     setUseCustomPlan(true);
     setShowWizard(false);
@@ -760,6 +798,10 @@ const LearnPage: React.FC = () => {
     setScheduleConfirmed(false);
     setUseCustomPlan(false);
     addToast('info', 'Plan Reset', 'Your study plan and schedule have been cleared. Create a new one anytime from the Overview tab.');
+    // Also delete from Supabase
+    if (user && supabaseRef.current) {
+      deleteStudyPlan(supabaseRef.current, user.id).catch(e => console.warn('Failed to delete plan from DB:', e));
+    }
   };
 
   // AI Agent — translates natural language to schedule commands, feeds ALL lessons + current schedule to Gemini
@@ -1218,6 +1260,11 @@ CRITICAL RULES:
                   motivationalMessage: ws[day]?.motivationalMessage || 'Great progress! 🌟'
                 };
                 localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
+                // Sync updated schedule to Supabase
+                if (user && supabaseRef.current) {
+                  const currentPlan = studyPlan;
+                  saveStudyPlan(supabaseRef.current, user.id, currentPlan, updated).catch(e => console.warn('Failed to sync schedule to DB:', e));
+                }
                 return updated;
               });
             }
@@ -1536,7 +1583,6 @@ CRITICAL RULES:
                       { label: useCustomPlan ? 'Edit Plan' : 'Create Plan', icon: Brain, color: 'from-blue-500 to-blue-600', action: () => setShowWizard(true) },
                       { label: 'Browse Lessons', icon: BookOpen, color: 'from-green-500 to-emerald-600', action: () => setActiveTab('lessons') },
                       { label: 'Practice', icon: Wand2, color: 'from-purple-500 to-purple-600', action: () => setActiveTab('lessons') },
-                      { label: 'Study Groups', icon: Users, color: 'from-orange-500 to-orange-600', action: () => setActiveTab('lessons') },
                     ].map((action, i) => (
                       <motion.button key={action.label} onClick={action.action}
                         className="relative overflow-hidden bg-white rounded-3xl shadow-lg border-2 border-blue-100 p-5 text-left group hover:shadow-xl hover:border-blue-300 transition-all"

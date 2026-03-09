@@ -1349,15 +1349,9 @@ const ClassHubPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
-        {/* Wave divider at bottom */}
-        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
-          <svg viewBox="0 0 1200 60" preserveAspectRatio="none" className="w-full h-8">
-            <path d="M0,20 C200,60 400,0 600,25 C800,50 1000,5 1200,30 L1200,60 L0,60 Z" fill="#eff6ff" />
-          </svg>
-        </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-5 relative z-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 relative z-20">
         <div className="bg-white rounded-2xl shadow-xl border-2 border-indigo-100 p-1.5 flex gap-1">
           {[
             { id: 'tutors', label: 'Find Tutors', icon: Users },

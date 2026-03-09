@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, X, Volume2, Bot } from 'lucide-react';
+import { Mic, MicOff, X, Volume2, VolumeX, Bot } from 'lucide-react';
+import { geminiService } from '../services/geminiService';
 
 // ═══════════════════════════════════════════════════════
 //  BRAYLIN — Always-listening BrailleLearn voice robot
@@ -11,16 +12,16 @@ import { Mic, MicOff, X, Volume2, Bot } from 'lucide-react';
 
 // ─── Page routes ───
 const ROUTE_MAP: { keywords: string[]; path: string; label: string; desc: string }[] = [
-  { keywords: ['home', 'main', 'start', 'beginning', 'welcome', 'front page'], path: '/', label: 'Home', desc: 'the home page' },
-  { keywords: ['learn', 'lesson', 'study', 'course', 'dashboard'], path: '/learn', label: 'Learn', desc: 'the learning dashboard' },
-  { keywords: ['practice', 'drill', 'exercise', 'quiz', 'test', 'game'], path: '/practice', label: 'Practice', desc: 'practice mode' },
-  { keywords: ['speech', 'speech to braille', 'convert', 'dictate', 'translator'], path: '/speech-to-braille', label: 'Speech to Braille', desc: 'the speech to braille converter' },
-  { keywords: ['hardware', 'arduino', 'device', 'connect', 'setup', 'solenoid'], path: '/hardware-setup', label: 'Hardware Setup', desc: 'hardware setup' },
-  { keywords: ['class', 'classroom', 'teacher', 'class hub', 'students'], path: '/class-hub', label: 'Class Hub', desc: 'the class hub' },
-  { keywords: ['quest', 'mission', 'braille quest', 'adventure'], path: '/braillequest', label: 'BrailleQuest', desc: 'BrailleQuest missions' },
-  { keywords: ['about', 'info', 'information'], path: '/about', label: 'About', desc: 'the about page' },
-  { keywords: ['stats', 'statistics', 'progress', 'analytics'], path: '/statistics', label: 'Statistics', desc: 'your statistics' },
-  { keywords: ['access', 'accessibility', 'preferences', 'customize'], path: '/accessibility', label: 'Accessibility', desc: 'accessibility settings' },
+  { keywords: ['home', 'main', 'start', 'beginning', 'welcome', 'front page', 'homepage', 'landing'], path: '/', label: 'Home', desc: 'the home page' },
+  { keywords: ['learn', 'lesson', 'study', 'course', 'dashboard', 'learning', 'curriculum', 'schedule'], path: '/learn', label: 'Learn', desc: 'the learning dashboard' },
+  { keywords: ['practice', 'drill', 'exercise', 'quiz', 'test', 'game', 'play', 'training', 'games'], path: '/practice', label: 'Practice', desc: 'practice mode' },
+  { keywords: ['speech', 'speech to braille', 'convert', 'dictate', 'translator', 'translate', 'voice to braille'], path: '/speech-to-braille', label: 'Speech to Braille', desc: 'the speech to braille converter' },
+  { keywords: ['hardware', 'arduino', 'device', 'connect', 'setup', 'solenoid', 'bluetooth', 'display'], path: '/hardware-setup', label: 'Hardware Setup', desc: 'hardware setup' },
+  { keywords: ['class', 'classroom', 'teacher', 'class hub', 'students', 'tutor', 'tutoring', 'classes'], path: '/class-hub', label: 'Class Hub', desc: 'the class hub' },
+  { keywords: ['quest', 'mission', 'braille quest', 'adventure', 'missions', 'quests', 'challenges', 'explore'], path: '/braillequest', label: 'BrailleQuest', desc: 'BrailleQuest missions' },
+  { keywords: ['about', 'info', 'information', 'team', 'who made this'], path: '/about', label: 'About', desc: 'the about page' },
+  { keywords: ['stats', 'statistics', 'progress', 'analytics', 'my progress', 'how am i doing'], path: '/statistics', label: 'Statistics', desc: 'your statistics' },
+  { keywords: ['access', 'accessibility', 'preferences', 'customize', 'settings', 'accessible'], path: '/accessibility', label: 'Accessibility', desc: 'accessibility settings' },
 ];
 
 // ─── Schedule / AI agent keywords ───
@@ -32,6 +33,8 @@ const AI_AGENT_KEYWORDS = [
   'computer', 'tech', 'speed', 'compound', 'format', 'document',
   'easier', 'harder', 'random', 'shuffle', 'rush', 'slow down',
   'clear schedule', 'reset schedule',
+  'replace', 'swap', 'increase', 'decrease', 'double', 'halve',
+  'focus on', 'skip', 'prioritize', 'reorder', 'rearrange',
 ];
 
 // ─── Wizard keywords ───
@@ -40,6 +43,9 @@ const WIZARD_KEYWORDS = [
   'make a study plan', 'create study plan', 'new plan', 'build a plan',
   'set up a plan', 'set up my plan', 'plan my learning', 'learning plan',
   'personalize', 'personalized plan', 'custom plan',
+  'generate a plan', 'i need a plan', 'give me a plan', 'design a plan',
+  'start a plan', 'build my plan', 'help me plan', 'plan for me',
+  'set up my schedule', 'create a schedule', 'make me a schedule',
 ];
 
 // ─── Page narrations ───
@@ -50,7 +56,7 @@ const PAGE_NARRATIONS: Record<string, string> = {
   '/speech-to-braille': 'Speech to Braille converter. Just speak text to convert it.',
   '/hardware-setup': 'Hardware Setup. Say "setup tab", "test tab", or "troubleshoot tab".',
   '/class-hub': 'Class Hub. Say "tutors", "classes", "dashboard", "resources". "Create class", "join class", "open meeting", or "view stats".',
-  '/braillequest': 'BrailleQuest missions! Say "next mission", "leaderboard", "rewards", "badges", "achievements". Say "level 1" through "level 6" to filter. "Submit", "close", or "take photo".',
+  '/braillequest': 'BrailleQuest missions! Say "next mission", "leaderboard", "rewards", "badges", "achievements". Say "level 1" through "level 6" to filter. "Submit", "take photo", "view lesson", "next section", "previous section", "read this", or "close".',
   '/about': 'About page. Say "mission", "hardware", "design", "features", or "tech".',
   '/statistics': 'Statistics dashboard.',
   '/accessibility': 'Accessibility settings.',
@@ -69,6 +75,7 @@ const VoiceAssistant: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastCommand, setLastCommand] = useState('');
   const [showLivePreview, setShowLivePreview] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const greetedPagesRef = useRef<Set<string>>(new Set());
@@ -82,10 +89,13 @@ const VoiceAssistant: React.FC = () => {
   const pendingGreetRef = useRef<string | null>(null);
   const hasUserGestureRef = useRef(false);
   const livePreviewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mutedRef = useRef(false);
 
   // ─── Speak (Braylin's voice) ───
   const speak = useCallback((text: string): Promise<void> => {
     return new Promise((resolve) => {
+      // If muted, skip speech entirely
+      if (mutedRef.current) { resolve(); return; }
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.92;
@@ -144,6 +154,8 @@ const VoiceAssistant: React.FC = () => {
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: any) => {
+      // If we're getting results, mic access is confirmed
+      hasUserGestureRef.current = true;
       let finalText = '';
       let interimText = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -201,24 +213,41 @@ const VoiceAssistant: React.FC = () => {
   // ─── Handle any voice command (no wake word needed) ───
   const handleCommand = useCallback(async (text: string) => {
     const lower = text.toLowerCase().trim();
-    const stripped = lower.replace(/^(braylin[,]?\s*|navigate\s*(to)?|go\s*(to)?|take\s*me\s*(to)?|open|show|switch\s*(to)?)\s*/i, '').trim();
+    // Strip conversational prefixes so "can I edit my plan" → "edit my plan"
+    const stripped = lower
+      .replace(/^(hey\s+)?braylin[,]?\s*/i, '')
+      .replace(/^(can (you|i|we)|could (you|i|we)|would (you|i)|will (you|i)|i('d| would) like (to|you to)?|i want (to|you to)?|i need (to|you to)?|i('d| would) love to|let me|let's|help me|please|show me|take me (to)?|bring me (to)?|navigate\s*(me\s*)?(to)?|go\s*(to)?|(switch|change)\s*(to|over to)?|open\s*(up)?|give me|tell me (about)?|how (do|can) (i|you)|where (is|are|can i find)|what (is|are|about))\s*/i, '')
+      .replace(/^\s*(the|a|an|my|some|that|this)\s+/i, '')
+      .trim();
 
     setLastCommand(text);
     setStatus(`"${text}"`);
 
     // ─── Mute / unmute Braylin ───
-    if (/\b(mute|shut up|quiet|stop talking|silence)\b/.test(lower)) {
+    if (/\b(mute|shut up|quiet|stop talking|silence|be quiet|hush)\b/.test(lower)) {
       window.speechSynthesis.cancel();
-      setStatus('🔇 Muted. Say "unmute" to hear me again.');
+      mutedRef.current = true;
+      setIsMuted(true);
+      // Stop mic too
+      alwaysListenRef.current = false;
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+      if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { /* */ }
+      recognitionRef.current = null;
+      setListening(false);
+      setStatus('🔇 Fully muted. Tap the pill to unmute.');
       return;
     }
-    if (/\b(unmute|speak|talk|volume)\b/.test(lower)) {
+    if (/\b(unmute|speak|talk|volume|wake up|come back|turn on)\b/.test(lower)) {
+      mutedRef.current = false;
+      setIsMuted(false);
+      alwaysListenRef.current = true;
+      startListeningInternal();
       await speak('I\'m back! What do you need?');
       return;
     }
 
     // ─── Help ───
-    if (/\b(what can you do|help|commands|list commands)\b/.test(lower)) {
+    if (/\b(what can you do|help|commands|list commands|what do you do|how does this work|what are my options|what should i say)\b/.test(lower)) {
       await speak(
         'I\'m Braylin, your hands-free guide. Everything works by voice! ' +
         'Navigation: "go to learn", "go to practice", "go to missions", "go to class hub", "go to about". ' +
@@ -236,7 +265,7 @@ const VoiceAssistant: React.FC = () => {
     }
 
     // ─── Where am I ───
-    if (/\b(where am i|where are we|what page|current page)\b/.test(lower)) {
+    if (/\b(where am i|where are we|what page|current page|which page|what screen|what's this page)\b/.test(lower)) {
       if (/^\/learn\/.+/.test(location.pathname)) {
         await speak('You\'re in a lesson. Say "repeat pattern" for the braille dots, "read question" for the question, or "exit" to go back.');
       } else {
@@ -247,7 +276,7 @@ const VoiceAssistant: React.FC = () => {
     }
 
     // ─── Sign in / Sign out / Continue with Google ───
-    if (/\b(sign in|log in|login)\b/.test(lower)) {
+    if (/\b(sign in|log in|login|sign me in|i want to log in|get me signed in|authenticate)\b/.test(lower)) {
       setStatus('Opening sign in...');
       await speak('Opening the sign in dialog. Say "continue with Google" to sign in with Google.');
       window.dispatchEvent(new CustomEvent('braylin-auth', { detail: { action: 'sign-in' } }));
@@ -277,17 +306,17 @@ const VoiceAssistant: React.FC = () => {
     }
 
     // ─── Read schedule ───
-    if (/\b(what('s| is) on my schedule|today('s| s) (lesson|schedule)|my schedule|read schedule)\b/.test(lower)) {
+    if (/\b(what('s| is) on (my |the )?schedule|today('s| s) (lesson|schedule)|my schedule|read (my )?schedule|what('s| do i) (have )?today|what should i (study|learn|do)|show (my )?schedule|what lessons do i have|what am i studying|my lessons for today)\b/.test(lower)) {
       window.dispatchEvent(new CustomEvent('braylin-read-schedule'));
       setTranscript('');
       return;
     }
 
     // ─── Edit schedule (go to lessons tab, ask what to change) ───
-    if (/\b(edit\s*(my\s*)?(schedule|plan|lessons?)?|change\s*(my\s*)?(schedule|plan)|modify\s*(my\s*)?(schedule|plan))\b/.test(lower) && /\b(edit|change|modify)\b/.test(lower)) {
+    if (/\b(edit|change|modify|update|adjust|fix|rearrange|tweak|customize|manage)\s*(my\s*)?(schedule|plan|lessons?|week|study|curriculum)?\b/.test(lower) && /\b(edit|change|modify|update|adjust|fix|rearrange|tweak|customize|manage)\b/.test(lower) && !/\b(next|go|navigate)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
-      await speak('Here\'s your weekly schedule. What would you like to change? For example, say "add letter lessons" or "remove math" or "more practice time".');
+      await speak('Here\'s your weekly schedule. What would you like to change? Say things like "add letter lessons", "remove math", "more practice time", or describe any change.');
       setTranscript('');
       return;
     }
@@ -456,7 +485,7 @@ const VoiceAssistant: React.FC = () => {
     }
 
     // ─── View lessons (read them out) ───
-    if (/\b(view\s*lessons?|read\s*lessons?|what\s*lessons?|list\s*lessons?)\b/.test(lower)) {
+    if (/\b(view\s*(my\s*)?lessons?|read\s*(my\s*)?lessons?|what\s*(are\s*)?(my\s*)?lessons?|list\s*(my\s*)?lessons?|show\s*(my\s*)?lessons?|what('s| is)\s*(on|for)\s*(my\s*)?(today|this week)|tell me (about )?my lessons?)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
       const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|today)\b/);
@@ -818,6 +847,28 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
+    // ─── Mission lesson navigation (after verification) ───
+    if (/\b(view\s*(the\s*)?lesson|open\s*(the\s*)?lesson|show\s*(the\s*)?lesson|start\s*(the\s*)?lesson|learn\s*more|see\s*(the\s*)?lesson|read\s*(the\s*)?lesson)\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'view-lesson' } }));
+      setTranscript(''); return;
+    }
+    if (/\b(next\s*(section|part|slide|page)?|forward|continue|move\s*on|keep going|go on|more|next one)\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'next-section' } }));
+      setTranscript(''); return;
+    }
+    if (/\b(previous\s*(section|part|slide|page)?|back\s*(one|a\s*section)?|go\s*back|before|last\s*(one|section|part)?)\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'prev-section' } }));
+      setTranscript(''); return;
+    }
+    if (/\b(read\s*(this|it|section|current|aloud|out\s*loud|to\s*me)?|what('s| is|does)\s*(this|it)\s*(say|about|mean)?|tell\s*me|explain\s*(this|it)?|what\s*am\s*i\s*(looking|reading))\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'read-section' } }));
+      setTranscript(''); return;
+    }
+    if (/\b(complete\s*(the\s*)?lesson|finish\s*(the\s*)?lesson|done\s*(with\s*)?lesson|close\s*(the\s*)?lesson|i('m| am) done|finished|all done|lesson complete)\b/.test(lower) && location.pathname === '/braillequest') {
+      window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'complete-lesson' } }));
+      setTranscript(''); return;
+    }
+
     // ═══════════════════════════════════════
     //  CLASS HUB — extra actions
     // ═══════════════════════════════════════
@@ -843,8 +894,8 @@ const VoiceAssistant: React.FC = () => {
     // ═══════════════════════════════════════
     //  OK / Yes / Confirm / Continue — for popups
     // ═══════════════════════════════════════
-    if (/^(ok(ay)?|yes|yep|yeah|confirm|continue|proceed|accept|agree|next|sure|alright|sounds good|do it|go ahead|let's go|that's fine)$/i.test(lower)
-      || (/\b(ok(ay)?|yes|confirm|continue|proceed|sure)\b/.test(lower) && lower.length < 30)) {
+    if (/^(ok(ay)?|yes|yep|yeah|confirm|continue|proceed|accept|agree|next|sure|alright|sounds good|do it|go ahead|let's go|that's fine|absolutely|definitely|of course|right|correct|affirmative|perfect|great|awesome|bet|for sure|you got it|yup)$/i.test(lower)
+      || (/\b(ok(ay)?|yes|confirm|continue|proceed|sure|go ahead|do it)\b/.test(lower) && lower.length < 30)) {
       window.dispatchEvent(new CustomEvent('braylin-confirm'));
       setTranscript(''); return;
     }
@@ -852,7 +903,7 @@ const VoiceAssistant: React.FC = () => {
     // ═══════════════════════════════════════
     //  No / Decline — for popups
     // ═══════════════════════════════════════
-    if (/^(no|nope|nah|deny|decline|reject|skip|not now|no thanks)$/i.test(lower)) {
+    if (/^(no|nope|nah|deny|decline|reject|skip|not now|no thanks|never mind|forget it|i don't want to|cancel that|stop)$/i.test(lower)) {
       window.dispatchEvent(new CustomEvent('braylin-dismiss'));
       await speak('Dismissed.');
       setTranscript(''); return;
@@ -861,7 +912,7 @@ const VoiceAssistant: React.FC = () => {
     // ═══════════════════════════════════════
     //  UNIVERSAL — Close / Dismiss / Go Back
     // ═══════════════════════════════════════
-    if (/\b(close|dismiss|cancel|go back|never\s*mind|exit)\b/.test(lower)) {
+    if (/\b(close|dismiss|cancel|go back|never\s*mind|exit|leave|get out|back out|return)\b/.test(lower)) {
       // If on a lesson page, "exit" navigates back to learn
       if (/^\/learn\/.+/.test(location.pathname) && /\b(exit|go back)\b/.test(lower)) {
         window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'exit-lesson' } }));
@@ -932,8 +983,196 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Fallback ───
-    await speak(`Didn't catch that. Say "help" for all commands.`);
+    // ─── Smart fallback: fuzzy route match → Gemini NLU → page tips ───
+    const words = lower.split(/\s+/).filter(w => w.length > 2);
+    // Try partial route matching first (instant)
+    for (const route of ROUTE_MAP) {
+      if (route.keywords.some(kw => words.some(w => kw.includes(w) || w.includes(kw)))) {
+        await speak(`Going to ${route.label}.`);
+        navigate(route.path);
+        window.scrollTo(0, 0);
+        setTranscript('');
+        return;
+      }
+    }
+
+    // ─── Gemini NLU fallback — parse ANY natural language into an action ───
+    try {
+      setStatus('🤔 Thinking...');
+      const nluPrompt = `You are Braylin, a voice assistant for the BrailleLearn app. The user said: "${text}"
+Current page: ${location.pathname}
+
+Available actions (respond with EXACTLY one JSON object):
+- {"action":"navigate","path":"/learn"} — paths: /, /learn, /practice, /braillequest, /class-hub, /hardware-setup, /about, /speech-to-braille, /accessibility, /statistics
+- {"action":"tab","page":"learn","tab":"overview"|"lessons"|"practice"}
+- {"action":"tab","page":"learn","tab":"lessons","subTab":"browse"|"week"}
+- {"action":"tab","page":"braillequest","tab":"xp"|"leaderboard"|"rewards"|"badges"|"activity"|"achievements"|"share"}
+- {"action":"tab","page":"class-hub","tab":"tutors"|"classes"|"dashboard"|"resources"}
+- {"action":"tab","page":"about","tab":"mission"|"hardware"|"design"|"features"|"tech"}
+- {"action":"tab","page":"hardware-setup","tab":"setup"|"test"|"troubleshoot"}
+- {"action":"practice","mode":"lightning-reader"|"precision-master"|"pattern-detective"|"braille-architect"|"marathon-master"|"memory-champion"|"speed-demon"|"pattern-ninja"}
+- {"action":"practice-ctrl","ctrl":"start-game"|"retry"|"new-game"}
+- {"action":"quest","ctrl":"next-mission"|"submit"|"take-photo"|"view-lesson"|"next-section"|"prev-section"|"read-section"|"complete-lesson"}
+- {"action":"quest-filter","category":"signage"|"transport"|"food"|"education"|"public"|"medical"|"recreation"|"government"|"all"}
+- {"action":"quest-level","level":1-6}
+- {"action":"schedule","command":"edit"|"reset"|"view-lessons"|"create-plan"}
+- {"action":"schedule-agent","message":"<cleaned instruction>"}  — for AI schedule edits like adding/removing/changing lessons
+- {"action":"auth","method":"sign-in"|"sign-out"|"google"}
+- {"action":"mute"} or {"action":"unmute"}
+- {"action":"help"}
+- {"action":"confirm"} or {"action":"dismiss"}
+- {"action":"class","ctrl":"create-class"|"open-meeting"|"add-resource"}
+- {"action":"speak","text":"<response to user>"} — for questions, chitchat, or when no app action fits
+
+Respond ONLY with a single JSON object, no markdown, no explanation.`;
+
+      const raw = await geminiService.askInstructor(nluPrompt, `page:${location.pathname}`);
+      const cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+      const result = JSON.parse(cleaned);
+
+      // Dispatch the parsed action
+      switch (result.action) {
+        case 'navigate':
+          await speak(`Going to ${ROUTE_MAP.find(r => r.path === result.path)?.label || result.path}.`);
+          navigate(result.path);
+          window.scrollTo(0, 0);
+          break;
+
+        case 'tab':
+          await ensurePage(
+            result.page === 'learn' ? '/learn' :
+            result.page === 'braillequest' ? '/braillequest' :
+            result.page === 'class-hub' ? '/class-hub' :
+            result.page === 'about' ? '/about' :
+            result.page === 'hardware-setup' ? '/hardware-setup' : `/${result.page}`,
+            result.page
+          );
+          window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: result.page, tab: result.tab, subTab: result.subTab } }));
+          await speak(`Switched to ${result.tab}${result.subTab ? ` — ${result.subTab}` : ''}.`);
+          break;
+
+        case 'practice': {
+          await ensurePage('/practice', 'Practice');
+          window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: result.mode } }));
+          await speak(`${result.mode.replace(/-/g, ' ')} selected.`);
+          break;
+        }
+        case 'practice-ctrl':
+          window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: result.ctrl } }));
+          await speak(result.ctrl === 'start-game' ? 'Starting!' : result.ctrl === 'retry' ? 'Restarting.' : 'Back to modes.');
+          break;
+
+        case 'quest':
+          await ensurePage('/braillequest', 'BrailleQuest');
+          window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: result.ctrl } }));
+          break;
+
+        case 'quest-filter':
+          await ensurePage('/braillequest', 'BrailleQuest');
+          window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'filter', category: result.category } }));
+          await speak(`Filtering to ${result.category}.`);
+          break;
+
+        case 'quest-level':
+          await ensurePage('/braillequest', 'BrailleQuest');
+          window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'select-level', level: result.level } }));
+          await speak(`Level ${result.level}.`);
+          break;
+
+        case 'schedule':
+          await ensurePage('/learn', 'Learn');
+          if (result.command === 'edit') {
+            window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+            await speak('Here\'s your schedule. What would you like to change?');
+          } else if (result.command === 'reset') {
+            window.dispatchEvent(new CustomEvent('braylin-learn-action', { detail: { action: 'reset-plan' } }));
+            await speak('Plan reset.');
+          } else if (result.command === 'view-lessons') {
+            window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+            await new Promise(r => setTimeout(r, 800));
+            window.dispatchEvent(new CustomEvent('braylin-view-lessons', { detail: {} }));
+          } else if (result.command === 'create-plan') {
+            window.dispatchEvent(new CustomEvent('braylin-open-wizard'));
+            await speak('Let\'s build your study plan!');
+          }
+          break;
+
+        case 'schedule-agent':
+          await ensurePage('/learn', 'Learn');
+          window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
+          await new Promise(r => setTimeout(r, 500));
+          window.dispatchEvent(new CustomEvent('voice-agent-command', { detail: { message: result.message } }));
+          await speak(`Sending to AI: "${result.message}".`);
+          break;
+
+        case 'auth':
+          window.dispatchEvent(new CustomEvent('braylin-auth', { detail: { action: result.method } }));
+          await speak(result.method === 'sign-out' ? 'Signing out.' : 'Opening sign in.');
+          break;
+
+        case 'mute':
+          window.speechSynthesis.cancel();
+          mutedRef.current = true;
+          setIsMuted(true);
+          alwaysListenRef.current = false;
+          if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { /* */ }
+          recognitionRef.current = null;
+          setListening(false);
+          setStatus('🔇 Fully muted');
+          break;
+
+        case 'unmute':
+          mutedRef.current = false;
+          setIsMuted(false);
+          alwaysListenRef.current = true;
+          startListeningInternal();
+          await speak('I\'m back!');
+          break;
+
+        case 'help':
+          await handleCommand('help');
+          return; // already handled transcript clear
+
+        case 'confirm':
+          window.dispatchEvent(new CustomEvent('braylin-confirm'));
+          break;
+
+        case 'dismiss':
+          window.dispatchEvent(new CustomEvent('braylin-dismiss'));
+          await speak('Dismissed.');
+          break;
+
+        case 'class':
+          await ensurePage('/class-hub', 'Class Hub');
+          window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: result.ctrl } }));
+          break;
+
+        case 'speak':
+          await speak(result.text);
+          break;
+
+        default:
+          await speak(result.text || 'I\'m not sure what to do with that. Say "help" for commands.');
+      }
+
+      setTranscript('');
+      return;
+    } catch (nluError) {
+      // Gemini NLU failed — fall back to page tips
+      console.warn('Gemini NLU fallback failed:', nluError);
+    }
+
+    // Last-resort: context-aware suggestion
+    const pageTips: Record<string, string> = {
+      '/': 'Try "start learning", "go to missions", or "help".',
+      '/learn': 'Try "view lessons", "edit schedule", "start lesson", or a day name like "Monday".',
+      '/practice': 'Try a game name like "Lightning Reader", or "start game".',
+      '/braillequest': 'Try "next mission", "take photo", "view lesson", "next section", or "leaderboard".',
+      '/class-hub': 'Try "tutors", "classes", "create class", or "join class".',
+      '/hardware-setup': 'Try "setup tab", "test tab", or "troubleshoot".',
+    };
+    const tip = pageTips[location.pathname] || 'Say "help" to hear all commands, or say a page name to navigate.';
+    await speak(`I heard "${stripped}". ${tip}`);
     setTranscript('');
   }, [location.pathname, navigate, speak]);
 
@@ -951,14 +1190,16 @@ const VoiceAssistant: React.FC = () => {
   }, [location.pathname, navigate]);
 
   // ─── Auto-start always-on listening ───
-  // Try immediately on mount. Also add gesture fallback in case browser blocks
-  // auto-start (first visit). A watchdog interval guarantees we stay listening.
+  // Triple strategy: immediate start, gesture fallback, watchdog.
+  // Also restart on tab focus / visibility change so refresh works.
   useEffect(() => {
-    // Attempt start right away (works if mic permission was already granted)
-    const timer = setTimeout(() => startListeningInternal(), 600);
+    // Attempt start immediately (0ms) and again shortly after (600ms)
+    startListeningInternal();
+    const timer = setTimeout(() => {
+      if (!isListeningRef.current) startListeningInternal();
+    }, 600);
 
     // Gesture fallback: if browser blocks auto-start, start on first interaction
-    // Also play any queued greeting that was blocked before user gesture
     const onGesture = () => {
       if (!hasUserGestureRef.current) {
         hasUserGestureRef.current = true;
@@ -976,10 +1217,25 @@ const VoiceAssistant: React.FC = () => {
     document.addEventListener('touchstart', onGesture, true);
     document.addEventListener('keydown', onGesture, true);
 
+    // Restart on tab focus / visibility change (handles refresh & tab-switch)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && alwaysListenRef.current && !isSpeakingRef.current) {
+        setTimeout(() => {
+          if (!isListeningRef.current) startListeningInternal();
+        }, 300);
+      }
+    };
+    const onFocus = () => {
+      if (alwaysListenRef.current && !isSpeakingRef.current && !isListeningRef.current) {
+        startListeningInternal();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+
     // Watchdog: ensure we're always listening (catches silent mic drops)
     const watchdog = setInterval(() => {
       if (alwaysListenRef.current && !isSpeakingRef.current) {
-        // Force restart if not listening or recognition died
         if (!isListeningRef.current || !recognitionRef.current) {
           try { if (recognitionRef.current) recognitionRef.current.stop(); } catch { /* */ }
           recognitionRef.current = null;
@@ -987,7 +1243,7 @@ const VoiceAssistant: React.FC = () => {
           startListeningInternal();
         }
       }
-    }, 3000);
+    }, 2000);
 
     return () => {
       clearTimeout(timer);
@@ -995,6 +1251,8 @@ const VoiceAssistant: React.FC = () => {
       document.removeEventListener('click', onGesture, true);
       document.removeEventListener('touchstart', onGesture, true);
       document.removeEventListener('keydown', onGesture, true);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
     };
   }, [startListeningInternal]);
 
@@ -1020,6 +1278,7 @@ const VoiceAssistant: React.FC = () => {
   // ─── Listen for narration events ───
   useEffect(() => {
     const onNarrate = (e: Event) => {
+      if (mutedRef.current) return; // respect mute
       const text = (e as CustomEvent).detail?.text;
       if (text) speak(text);
     };
@@ -1067,10 +1326,44 @@ const VoiceAssistant: React.FC = () => {
       </AnimatePresence>
 
       {/* ─── Compact Braylin pill ─── */}
-      <motion.button
-        onClick={() => setIsOpen(o => !o)}
-        className={`fixed bottom-4 right-4 z-[9999] h-10 px-3 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-bold transition-colors ${
-          isListening
+      <div className="fixed bottom-4 right-4 z-[9999] flex items-center gap-1.5">
+        {/* Mute toggle button */}
+        <motion.button
+          onClick={() => {
+            const newMuted = !mutedRef.current;
+            mutedRef.current = newMuted;
+            setIsMuted(newMuted);
+            if (newMuted) {
+              window.speechSynthesis.cancel();
+              alwaysListenRef.current = false;
+              if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+              if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { /* */ }
+              recognitionRef.current = null;
+              setListening(false);
+              setStatus('🔇 Fully muted');
+            } else {
+              alwaysListenRef.current = true;
+              startListeningInternal();
+              setStatus('🎤 Unmuted');
+              speak('I\'m back!');
+            }
+          }}
+          className={`h-10 w-10 rounded-full shadow-lg flex items-center justify-center transition-colors ${
+            isMuted ? 'bg-gray-500 text-white' : 'bg-green-500 text-white'
+          }`}
+          whileTap={{ scale: 0.9 }}
+          aria-label={isMuted ? 'Unmute Braylin' : 'Mute Braylin'}
+        >
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </motion.button>
+
+        {/* Main pill */}
+        <motion.button
+          onClick={() => setIsOpen(o => !o)}
+        className={`h-10 px-3 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-bold transition-colors ${
+          isMuted
+            ? 'bg-gray-500 text-white'
+            : isListening
             ? 'bg-red-500 text-white'
             : isSpeaking
               ? 'bg-yellow-500 text-white'
@@ -1082,7 +1375,9 @@ const VoiceAssistant: React.FC = () => {
         transition={{ delay: 1, type: 'spring' }}
         aria-label="Braylin voice assistant"
       >
-        {isListening ? (
+        {isMuted ? (
+          <VolumeX className="w-4 h-4" />
+        ) : isListening ? (
           <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>
             <Mic className="w-4 h-4" />
           </motion.div>
@@ -1091,8 +1386,8 @@ const VoiceAssistant: React.FC = () => {
         ) : (
           <Bot className="w-4 h-4" />
         )}
-        <span>Braylin</span>
-        {isListening && (
+        <span>{isMuted ? 'Muted' : 'Braylin'}</span>
+        {isListening && !isMuted && (
           <motion.div
             className="absolute inset-0 rounded-full border border-red-300"
             animate={{ scale: [1, 1.4], opacity: [0.5, 0] }}
@@ -1100,6 +1395,7 @@ const VoiceAssistant: React.FC = () => {
           />
         )}
       </motion.button>
+      </div>
 
       {/* ─── Compact panel ─── */}
       <AnimatePresence>

@@ -362,3 +362,68 @@ export async function getUserAchievements(supabase: SupabaseClient, userId: stri
   if (error) return []
   return data || []
 }
+
+// ═══ User Study Plans ═══
+
+export interface UserStudyPlanRow {
+  id: string
+  user_id: string
+  study_plan: Record<string, unknown>
+  weekly_schedule: Record<string, unknown> | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function saveStudyPlan(
+  supabase: SupabaseClient,
+  userId: string,
+  studyPlan: unknown,
+  weeklySchedule: unknown | null
+): Promise<UserStudyPlanRow | null> {
+  const { data, error } = await supabase
+    .from('user_study_plans')
+    .upsert({
+      user_id: userId,
+      study_plan: studyPlan,
+      weekly_schedule: weeklySchedule,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+    .select()
+    .single()
+
+  if (error) { console.error('[db] saveStudyPlan error:', error); return null }
+  return data
+}
+
+export async function getStudyPlan(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UserStudyPlanRow | null> {
+  const { data, error } = await supabase
+    .from('user_study_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .single()
+
+  if (error) {
+    if (error.code !== 'PGRST116') console.error('[db] getStudyPlan error:', error) // PGRST116 = no rows
+    return null
+  }
+  return data
+}
+
+export async function deleteStudyPlan(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('user_study_plans')
+    .delete()
+    .eq('user_id', userId)
+
+  if (error) { console.error('[db] deleteStudyPlan error:', error); return false }
+  return true
+}
