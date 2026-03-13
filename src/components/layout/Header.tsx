@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, Settings, BookOpen, Home, MapPin, LogOut, ChevronDown } from 'lucide-react';
-import { SignInButton, SignUpButton, useUser, useClerk } from '@clerk/clerk-react';
+import { SignInButton, SignUpButton, useUser, useClerk } from '@clerk/react';
 import Logo from '../common/Logo';
 
 const Header: React.FC = () => {

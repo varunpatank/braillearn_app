@@ -16,7 +16,7 @@ import {
   UserPlus, FileText, Hash, Bell, CheckCircle2
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { useUser } from '@clerk/clerk-react';
+import { useUser } from '@clerk/react';
 import { useSupabase } from '@/hooks/useSupabase';
 import {
   createCourse, getMyCourses, getPublicCourses, enrollInCourse,

@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { useSession } from '@clerk/clerk-react'
+import { useSession } from '@clerk/react'
 import { createClerkSupabase } from '@/lib/supabaseClerk'
 
 export function useSupabase() {

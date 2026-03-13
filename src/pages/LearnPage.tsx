@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useUser } from '@clerk/clerk-react';
+import { useUser } from '@clerk/react';
 import { useSupabase } from '@/hooks/useSupabase';
 import { saveStudyPlan, getStudyPlan, deleteStudyPlan } from '@/services/dbService';
 import { motion, AnimatePresence } from 'framer-motion';

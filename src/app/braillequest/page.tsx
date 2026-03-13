@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { useUser } from '@clerk/clerk-react'
+import { useUser } from '@clerk/react'
 import { useSupabase } from '@/hooks/useSupabase'
 import { getProfile, getUserMissions, completeMission as dbCompleteMission, updateProfile, getUserBadges, awardBadge, getUserAchievements, updateAchievementProgress, getLeaderboard } from '@/services/dbService'
 
