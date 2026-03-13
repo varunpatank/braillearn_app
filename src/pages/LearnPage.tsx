@@ -1144,7 +1144,10 @@ CRITICAL RULES:
                 updated[day] = {
                   date: day,
                   totalMinutes: dayMins,
-                  blocks: dayBlocks.map((b: any, i: number) => ({ ...b, id: b.id || `${day}-${i}` })),
+                  blocks: dayBlocks.map((b: any, i: number) => {
+                    const matched = b.lessonId ? allLessons.find(l => l.id === b.lessonId) : null;
+                    return { ...b, id: b.id || `${day}-${i}`, description: matched?.description || b.description, activity: matched ? `✨ ${matched.title}` : b.activity };
+                  }),
                   tips: ws[day]?.tips || ['Keep learning!'],
                   motivationalMessage: ws[day]?.motivationalMessage || 'Great progress! 🌟'
                 };
@@ -1564,6 +1567,7 @@ CRITICAL RULES:
                               </div>
                               <div className="space-y-2">
                                 {weeklySchedule[selectedScheduleDay].blocks.map((block, i) => {
+                                  const matchedLesson = block.lessonId ? allLessons.find(l => l.id === block.lessonId) : null;
                                   const typeStyles: Record<string, string> = {
                                     lesson: 'border-l-blue-500 bg-blue-50',
                                     practice: 'border-l-purple-500 bg-purple-50',
@@ -1582,8 +1586,8 @@ CRITICAL RULES:
                                         <div className="flex items-center gap-2.5">
                                           <Icon className="w-4 h-4 text-gray-500" />
                                           <div>
-                                            <div className="font-bold text-sm text-gray-900">{block.activity}</div>
-                                            <div className="text-xs text-gray-500">{block.description}</div>
+                                            <div className="font-bold text-sm text-gray-900">{matchedLesson?.title || block.activity}</div>
+                                            <div className="text-xs text-gray-500">{matchedLesson?.description || block.description}</div>
                                           </div>
                                         </div>
                                         <div className="text-right flex-shrink-0">
@@ -1846,7 +1850,7 @@ CRITICAL RULES:
                                             <div className={`w-2.5 h-2.5 rounded-full ${style.dot} flex-shrink-0`} />
                                             <div className="flex-1 min-w-0">
                                               <div className="font-bold text-sm text-gray-900 truncate">{matchedLesson?.title || block.activity}</div>
-                                              <div className="text-xs text-gray-500 truncate">{block.description}</div>
+                                              <div className="text-xs text-gray-500 truncate">{matchedLesson?.description || block.description}</div>
                                             </div>
                                             {block.type === 'lesson' && block.lessonId && (
                                               <Link to={`/learn/${block.lessonId}`}

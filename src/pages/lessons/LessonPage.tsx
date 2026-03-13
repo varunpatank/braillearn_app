@@ -372,7 +372,7 @@ const LessonPage: React.FC = () => {
                       key={index}
                       cell={cell}
                       size="lg"
-                      showText={currentExercise.type === 'multiple-choice'}
+                      showText={false}
                       animateIn={true}
                       triggerSolenoids={isArduinoConnected}
                     />
