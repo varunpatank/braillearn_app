@@ -1,6 +1,3 @@
-// Lightweight `cn` helper (small, dependency-free substitute for `clsx` + `tailwind-merge`).
-// This avoids bundling `clsx` / `tailwind-merge` in the dev server while remaining
-// compatible with the project's `cn(...)` usage.
 
 type ClassValue = string | number | null | undefined | Record<string, any> | Array<ClassValue>;
 
@@ -26,8 +23,5 @@ function simpleClsx(...inputs: ClassValue[]): string {
 }
 
 export function cn(...inputs: ClassValue[]) {
-  // For now we don't perform sophisticated `twMerge` conflicts resolution; return
-  // the class string produced by `simpleClsx`. This is enough for dev + most UI cases.
   return simpleClsx(...inputs);
 }
-

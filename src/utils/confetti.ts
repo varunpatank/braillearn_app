@@ -1,7 +1,6 @@
 import confetti from 'canvas-confetti';
 
 export const showSuccessConfetti = () => {
-  // First burst
   confetti({
     particleCount: 100,
     spread: 70,
@@ -9,7 +8,6 @@ export const showSuccessConfetti = () => {
     colors: ['#4CAF50', '#8BC34A', '#CDDC39'],
   });
 
-  // Second burst
   setTimeout(() => {
     confetti({
       particleCount: 50,
@@ -20,7 +18,6 @@ export const showSuccessConfetti = () => {
     });
   }, 200);
 
-  // Third burst
   setTimeout(() => {
     confetti({
       particleCount: 50,

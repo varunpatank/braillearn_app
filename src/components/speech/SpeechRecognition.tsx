@@ -29,26 +29,21 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
   const finalTranscriptRef = useRef('');
 
   useEffect(() => {
-    // Create audio element for feedback
     audioFeedbackRef.current = new Audio();
     
-    // Check if browser supports SpeechRecognition
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       setErrorMessage('Speech recognition is not supported in this browser.');
       if (onError) onError('Speech recognition not supported');
       return;
     }
 
-    // Initialize the SpeechRecognition object
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognitionAPI();
     
-    // Configure recognition
     recognitionRef.current.continuous = continuous;
     recognitionRef.current.interimResults = interimResults;
     recognitionRef.current.lang = language;
 
-    // Set up event handlers
     recognitionRef.current.onresult = (event: any) => {
       let interimTranscript = '';
       
@@ -70,7 +65,6 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
         confidence: event.results[event.results.length - 1][0].confidence
       });
       
-      // If stopAfterResult is true and we have a final result, stop listening
       if (stopAfterResult && event.results[event.results.length - 1].isFinal) {
         stopListening();
       }
@@ -83,18 +77,15 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
     };
 
     recognitionRef.current.onend = () => {
-      // Only update state if we didn't explicitly stop
       if (isListening) {
         setIsListening(false);
       }
     };
 
-    // Start recognition automatically if autoStart is true
     if (autoStart) {
       startListening();
     }
 
-    // Cleanup on unmount
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
@@ -114,7 +105,6 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
     try {
       recognitionRef.current.start();
       
-      // Play audio feedback for start
       if (audioFeedbackRef.current) {
         audioFeedbackRef.current.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAkJCQkJCQkJCQkJCQkJCQwMDAwMDAwMDAwMDAwMDAwMD/////////////////////////////////////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQCQAAAAAAAAAGwuLWBVDEAAAAAAAAAAAAAAABBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAANcAJeGUEQAQL7iKdJDJESQgj4kQdM/+MYxAYNOAJyeUAQAgEQbnP//JJIYyD/wxjE/+MYxAkAAANIAAAAABERERE';
         audioFeedbackRef.current.volume = 0.3;
@@ -134,7 +124,6 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
       recognitionRef.current.stop();
       setIsListening(false);
       
-      // Play audio feedback for stop
       if (audioFeedbackRef.current) {
         audioFeedbackRef.current.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAeAAkJCQkJCQkJCQkJCQkJCQwMDAwMDAwMDAwMDAwMDAwMD/////////////////////////////////////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQCQAAAAAAAAAHguC1GWjEAAAAAAAAAAAAAAABBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAAN0AKeGUEQAYASgKfrPnJJCYgl4Rf4/+MYxAYPGAJ+eUEQAAEn//ySSW/hD/MEY/+MYxAcAAANIAAAAABERERE';
         audioFeedbackRef.current.volume = 0.3;

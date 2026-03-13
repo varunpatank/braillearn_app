@@ -7,7 +7,6 @@ export function UserDashboard({ userId }: { userId: number }) {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // Fetch user's points/level from Supabase `users` profile
       try {
         const { data: user } = await supabase.from('users').select('total_points, level').eq('id', userId).maybeSingle();
         if (user) setReward({ points: user.total_points ?? 0, level: user.level ?? 1 });
@@ -15,7 +14,6 @@ export function UserDashboard({ userId }: { userId: number }) {
         console.error('Failed to fetch user reward from Supabase', err);
       }
 
-      // Fetch unread notifications from Supabase (fallback to empty array if table missing)
       try {
         const { data: notifs, error } = await supabase
           .from('notifications')

@@ -12,7 +12,6 @@ const BrailleKeyboard: React.FC<BrailleKeyboardProps> = ({
 }) => {
   const [activeDots, setActiveDots] = useState<number[]>([]);
   
-  // Common braille patterns with corresponding characters
   const commonPatterns: Record<string, number[]> = {
     'a': [1],
     'b': [1, 2],
@@ -42,7 +41,6 @@ const BrailleKeyboard: React.FC<BrailleKeyboardProps> = ({
 
   const createCell = () => {
     if (onCellCreated) {
-      // Determine the character based on the pattern
       let char = '';
       for (const [letter, pattern] of Object.entries(commonPatterns)) {
         if (arraysEqual(pattern, activeDots)) {
@@ -57,12 +55,10 @@ const BrailleKeyboard: React.FC<BrailleKeyboardProps> = ({
         description: char ? `Letter ${char.toUpperCase()}` : 'Custom pattern'
       });
       
-      // Optionally clear after creating
       clearDots();
     }
   };
 
-  // Helper function to compare arrays
   const arraysEqual = (a: number[], b: number[]) => {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
@@ -71,7 +67,6 @@ const BrailleKeyboard: React.FC<BrailleKeyboardProps> = ({
     return true;
   };
 
-  // Find matching character for the current pattern
   const currentChar = Object.entries(commonPatterns).find(
     ([_, pattern]) => arraysEqual(pattern, activeDots)
   )?.[0] || '';
@@ -83,7 +78,6 @@ const BrailleKeyboard: React.FC<BrailleKeyboardProps> = ({
       </h3>
       
       <div className="flex flex-col items-center mb-6">
-        {/* Current Cell Preview */}
         <div className="w-20 h-32 bg-gray-50 border border-gray-200 rounded-lg mb-4 relative">
           <div className="absolute inset-0 grid grid-cols-2 grid-rows-3 gap-2 p-3">
             {[1, 4, 2, 5, 3, 6].map((dotNumber, index) => (
@@ -112,7 +106,6 @@ const BrailleKeyboard: React.FC<BrailleKeyboardProps> = ({
         )}
       </div>
       
-      {/* Dot Input Buttons */}
       <div className="grid grid-cols-2 grid-rows-3 gap-4 w-40 h-60 mx-auto mb-6">
         {[1, 4, 2, 5, 3, 6].map((dotNumber) => (
           <button

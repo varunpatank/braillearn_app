@@ -21,7 +21,6 @@ const dotsToUnicode = (dots: boolean[]): string => {
   return String.fromCodePoint(val);
 };
 
-// Braille education data organized by mission category
 const educationData: Record<string, EducationSlide[]> = {
   signage: [
     {
@@ -166,7 +165,6 @@ const educationData: Record<string, EducationSlide[]> = {
   ],
 };
 
-// Braille alphabet for the "learn more" section
 const brailleAlphabet: BrailleChar[] = [
   { char: 'A', dots: [true, false, false, false, false, false], unicode: '⠁' },
   { char: 'B', dots: [true, true, false, false, false, false], unicode: '⠃' },
@@ -186,7 +184,6 @@ function BrailleDotCell({ dots, size = 'lg', animate = true }: { dots: boolean[]
 
   return (
     <div className={`${s.cell} bg-white/10 backdrop-blur-sm rounded-xl border-2 border-white/20 flex flex-col items-center justify-center ${s.gap} p-2`}>
-      {/* Braille dots arranged in 2 columns, 3 rows: [0,3], [1,4], [2,5] */}
       {[0, 1, 2].map(row => (
         <div key={row} className={`flex ${s.gap}`}>
           {[row, row + 3].map(idx => (
@@ -294,7 +291,6 @@ export default function BrailleEducationAnimation({ missionCategory, missionTitl
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              {/* Header */}
               <div className="p-6 border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
@@ -313,7 +309,6 @@ export default function BrailleEducationAnimation({ missionCategory, missionTitl
                 </button>
               </div>
 
-              {/* Content */}
               {!showAlphabet ? (
                 <div className="p-6">
                   <AnimatePresence mode="wait">
@@ -327,7 +322,6 @@ export default function BrailleEducationAnimation({ missionCategory, missionTitl
                       <h4 className="text-xl font-bold text-white mb-2">{slides[currentSlide].title}</h4>
                       <p className="text-blue-200 mb-6">{slides[currentSlide].description}</p>
 
-                      {/* Braille Characters Display */}
                       <div className="flex flex-wrap items-center justify-center gap-6 mb-6">
                         {slides[currentSlide].characters.map((ch, i) => (
                           <motion.div
@@ -346,7 +340,6 @@ export default function BrailleEducationAnimation({ missionCategory, missionTitl
                         ))}
                       </div>
 
-                      {/* Word Preview */}
                       <div className="bg-white/5 rounded-2xl p-4 text-center border border-white/10 mb-4">
                         <p className="text-blue-300 text-xs mb-2">Together they spell:</p>
                         <div className="flex items-center justify-center gap-1">
@@ -359,7 +352,6 @@ export default function BrailleEducationAnimation({ missionCategory, missionTitl
                         </p>
                       </div>
 
-                      {/* Fun Fact */}
                       {slides[currentSlide].funFact && (
                         <motion.div
                           className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4"
@@ -376,7 +368,6 @@ export default function BrailleEducationAnimation({ missionCategory, missionTitl
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* Navigation */}
                   <div className="flex items-center justify-between mt-6">
                     <button
                       onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}

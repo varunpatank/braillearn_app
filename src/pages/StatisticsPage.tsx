@@ -21,7 +21,6 @@ import {
   Filler
 } from 'chart.js';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -53,7 +52,6 @@ const StatisticsPage: React.FC = () => {
     document.title = 'Statistics & Analytics - BrailleLearn';
     window.scrollTo(0, 0);
     
-    // Animate numbers on load
     const targetValues: Record<string, number> = {
       users: 1247,
       lessons: 8934,
@@ -88,7 +86,6 @@ const StatisticsPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Stat cards data
   const statCards: StatCard[] = [
     {
       title: 'Active Learners',
@@ -140,7 +137,6 @@ const StatisticsPage: React.FC = () => {
     }
   ];
 
-  // Chart data for learning progress over time
   const progressChartData = {
     labels: timeRange === 'week' 
       ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -175,7 +171,6 @@ const StatisticsPage: React.FC = () => {
     ]
   };
 
-  // Lesson category distribution
   const categoryChartData = {
     labels: ['Basics', 'Words', 'Sentences', 'Contractions', 'Advanced'],
     datasets: [{
@@ -192,7 +187,6 @@ const StatisticsPage: React.FC = () => {
     }]
   };
 
-  // Practice mode popularity
   const practiceModeData = {
     labels: ['Lightning Reader', 'Precision Master', 'Pattern Detective', 'Braille Architect', 'Memory Champion'],
     datasets: [{
@@ -208,7 +202,6 @@ const StatisticsPage: React.FC = () => {
     }]
   };
 
-  // Skill radar chart
   const skillRadarData = {
     labels: ['Letter Recognition', 'Word Reading', 'Speed', 'Accuracy', 'Contractions', 'Sentence Reading'],
     datasets: [{
@@ -223,7 +216,6 @@ const StatisticsPage: React.FC = () => {
     }]
   };
 
-  // Accessibility feature usage
   const accessibilityStats = [
     { feature: 'Screen Reader Support', usage: 78, icon: Accessibility },
     { feature: 'Audio Narration', usage: 92, icon: Activity },
@@ -232,7 +224,6 @@ const StatisticsPage: React.FC = () => {
     { feature: 'Hardware (Arduino)', usage: 23, icon: Zap }
   ];
 
-  // Global impact stats
   const globalStats = [
     { region: 'North America', users: 523, percentage: 42 },
     { region: 'Europe', users: 312, percentage: 25 },
@@ -243,13 +234,10 @@ const StatisticsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Banner — Data Grid Theme */}
       <section className="relative bg-gradient-to-tr from-indigo-800 via-blue-700 to-blue-600 text-white py-16 overflow-hidden">
-        {/* Grid lines pattern */}
         <div className="absolute inset-0 opacity-[0.06]">
           <svg width="100%" height="100%"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/></svg>
         </div>
-        {/* Animated horizontal bars */}
         <div className="absolute inset-0 overflow-hidden opacity-[0.08] pointer-events-none">
           {[0,1,2,3,4].map(i => (
             <motion.div key={i} className="absolute h-px bg-gradient-to-r from-transparent via-white to-transparent" style={{ top: `${20 + i * 15}%`, width: '60%' }}
@@ -279,7 +267,6 @@ const StatisticsPage: React.FC = () => {
                 Track the impact of BrailleLearn on braille literacy worldwide
               </p>
             </motion.div>
-            {/* Mini stat highlights */}
             <motion.div className="flex gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               {[{ val: '1.2K', label: 'Users' }, { val: '87%', label: 'Accuracy' }, { val: '8.9K', label: 'Lessons' }].map((s, i) => (
                 <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/10 text-center">
@@ -292,7 +279,6 @@ const StatisticsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Time Range Selector */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
         <div className="bg-white rounded-2xl shadow-lg p-2 inline-flex">
           {(['week', 'month', 'year'] as const).map((range) => (
@@ -311,7 +297,6 @@ const StatisticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Stat Cards */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -353,11 +338,9 @@ const StatisticsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Charts Section */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Progress Over Time */}
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100"
               initial={{ opacity: 0, x: -20 }}
@@ -388,7 +371,6 @@ const StatisticsPage: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Lesson Categories */}
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100"
               initial={{ opacity: 0, x: 20 }}
@@ -414,7 +396,6 @@ const StatisticsPage: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Practice Mode Popularity */}
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100"
               initial={{ opacity: 0, x: -20 }}
@@ -446,7 +427,6 @@ const StatisticsPage: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Skill Radar */}
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100"
               initial={{ opacity: 0, x: 20 }}
@@ -477,11 +457,9 @@ const StatisticsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Accessibility & Global Impact */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Accessibility Feature Usage */}
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100"
               initial={{ opacity: 0, y: 20 }}
@@ -516,7 +494,6 @@ const StatisticsPage: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Global Reach */}
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-6 border-2 border-gray-100"
               initial={{ opacity: 0, y: 20 }}
@@ -554,7 +531,6 @@ const StatisticsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Impact Summary */}
       <section className="py-12 bg-gradient-to-br from-primary-600 to-indigo-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">

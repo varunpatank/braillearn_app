@@ -148,7 +148,10 @@ ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE course_stats ENABLE ROW LEVEL SECURITY;
 
--- Profiles: users can read all profiles (for leaderboard), edit their own
+-- profiles
+DROP POLICY IF EXISTS "profiles_read" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert" ON profiles;
+DROP POLICY IF EXISTS "profiles_update" ON profiles;
 CREATE POLICY "profiles_read" ON profiles FOR SELECT USING (true);
 CREATE POLICY "profiles_insert" ON profiles FOR INSERT WITH CHECK (
   id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
@@ -157,7 +160,11 @@ CREATE POLICY "profiles_update" ON profiles FOR UPDATE USING (
   id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
 );
 
--- Courses: anyone can read public courses, creators can edit
+-- courses
+DROP POLICY IF EXISTS "courses_read" ON courses;
+DROP POLICY IF EXISTS "courses_insert" ON courses;
+DROP POLICY IF EXISTS "courses_update" ON courses;
+DROP POLICY IF EXISTS "courses_delete" ON courses;
 CREATE POLICY "courses_read" ON courses FOR SELECT USING (
   is_public = true OR creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
 );
@@ -171,7 +178,11 @@ CREATE POLICY "courses_delete" ON courses FOR DELETE USING (
   creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
 );
 
--- Enrollments: users can see their own, course creators can see all for their course
+-- enrollments
+DROP POLICY IF EXISTS "enrollments_read" ON enrollments;
+DROP POLICY IF EXISTS "enrollments_insert" ON enrollments;
+DROP POLICY IF EXISTS "enrollments_delete" ON enrollments;
+DROP POLICY IF EXISTS "enrollments_update" ON enrollments;
 CREATE POLICY "enrollments_read" ON enrollments FOR SELECT USING (
   user_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
   OR course_id IN (SELECT id FROM courses WHERE creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub')
@@ -183,8 +194,14 @@ CREATE POLICY "enrollments_delete" ON enrollments FOR DELETE USING (
   user_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
   OR course_id IN (SELECT id FROM courses WHERE creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub')
 );
+CREATE POLICY "enrollments_update" ON enrollments FOR UPDATE USING (
+  user_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
+  OR course_id IN (SELECT id FROM courses WHERE creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub')
+);
 
--- Course permissions: only course creators can manage
+-- course permissions
+DROP POLICY IF EXISTS "perms_read" ON course_permissions;
+DROP POLICY IF EXISTS "perms_manage" ON course_permissions;
 CREATE POLICY "perms_read" ON course_permissions FOR SELECT USING (
   user_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
   OR course_id IN (SELECT id FROM courses WHERE creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub')
@@ -193,7 +210,11 @@ CREATE POLICY "perms_manage" ON course_permissions FOR ALL USING (
   course_id IN (SELECT id FROM courses WHERE creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub')
 );
 
--- Progress / completions: users see and edit their own
+-- progress / completions
+DROP POLICY IF EXISTS "lesson_progress_own" ON user_lesson_progress;
+DROP POLICY IF EXISTS "missions_own" ON mission_completions;
+DROP POLICY IF EXISTS "badges_own" ON user_badges;
+DROP POLICY IF EXISTS "achievements_own" ON user_achievements;
 CREATE POLICY "lesson_progress_own" ON user_lesson_progress FOR ALL USING (
   user_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
 );
@@ -207,7 +228,8 @@ CREATE POLICY "achievements_own" ON user_achievements FOR ALL USING (
   user_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
 );
 
--- Course stats: course creators and enrolled users can view
+-- course stats
+DROP POLICY IF EXISTS "stats_read" ON course_stats;
 CREATE POLICY "stats_read" ON course_stats FOR SELECT USING (
   course_id IN (
     SELECT id FROM courses WHERE creator_id = current_setting('request.jwt.claims', true)::jsonb->>'sub'
@@ -225,6 +247,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
+DROP TRIGGER IF EXISTS courses_updated_at ON courses;
+DROP TRIGGER IF EXISTS course_stats_updated_at ON course_stats;
 CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER courses_updated_at BEFORE UPDATE ON courses FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER course_stats_updated_at BEFORE UPDATE ON course_stats FOR EACH ROW EXECUTE FUNCTION update_updated_at();

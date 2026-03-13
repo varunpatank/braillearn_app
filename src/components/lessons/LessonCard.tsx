@@ -13,10 +13,8 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked = fa
   const isCompleted = progress?.completed || false;
   const score = progress?.score || 0;
   
-  // Generate stars based on score (1-5 scale)
-  const stars = Math.round(score / 20); // Convert 0-100 to 0-5
+  const stars = Math.round(score / 20);
   
-  // Format the lesson duration
   const formatDuration = (minutes: number) => {
     if (minutes < 60) {
       return `${minutes} min`;
@@ -26,7 +24,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked = fa
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   };
   
-  // Get category icon and color
   const getCategoryInfo = (category: string) => {
     switch (category) {
       case 'basics':
@@ -56,14 +53,12 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked = fa
         : 'bg-white border-gray-200'
     }`}>
       
-      {/* Locked overlay */}
       {isLocked && (
         <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
           <Lock size={32} className="text-gray-500" />
         </div>
       )}
       
-      {/* Category icon and level */}
       <div className="absolute top-3 left-3 flex items-center space-x-2">
         <div className={`w-8 h-8 ${categoryInfo.bg} rounded-full flex items-center justify-center`}>
           <CategoryIcon size={16} className={categoryInfo.color} />
@@ -73,7 +68,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked = fa
         </div>
       </div>
       
-      {/* Completed badge */}
       {isCompleted && !isLocked && (
         <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
           ✓

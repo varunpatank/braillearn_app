@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '@clerk/clerk-react'
 import { useSupabase } from '@/hooks/useSupabase'
-import { getProfile, getUserMissions, completeMission as dbCompleteMission, updateProfile } from '@/services/dbService'
-import { Button } from '@/components/ui/button'
+import { getProfile, getUserMissions, completeMission as dbCompleteMission, updateProfile, getUserBadges, awardBadge, getUserAchievements, updateAchievementProgress, getLeaderboard } from '@/services/dbService'
+
 import { parseExifGps } from '@/utils/exif'
 import { openRouterService } from '@/services/openRouterService'
 import { geminiService } from '@/services/geminiService'
@@ -80,7 +80,7 @@ export default function BrailleQuestPage() {
     { id: 'm32', level: 6, title: 'Ultimate BrailleQuest', description: 'Complete every mission category and earn the Master Explorer badge.', xpReward: 500, icon: '👑', category: 'public', difficulty: 'legendary' },
   ]), [])
 
-  const leaderboard: LeaderboardEntry[] = [
+  const fallbackLeaderboard: LeaderboardEntry[] = [
     { rank: 1, name: 'BrailleHero', avatar: '🦸', xp: 4850, missionsCompleted: 31, streak: 21 },
     { rank: 2, name: 'AccessChamp', avatar: '🏆', xp: 4180, missionsCompleted: 28, streak: 14 },
     { rank: 3, name: 'TactileExplorer', avatar: '🔍', xp: 3920, missionsCompleted: 25, streak: 18 },
@@ -110,6 +110,10 @@ export default function BrailleQuestPage() {
   const [dailyGoal, setDailyGoal] = useState(100)
   const [showGoalEditor, setShowGoalEditor] = useState(false)
   const [ownedRewards, setOwnedRewards] = useState<string[]>(['r4', 'r6'])
+  const [earnedBadgeIds, setEarnedBadgeIds] = useState<string[]>([])
+  const [dbAchievementData, setDbAchievementData] = useState<{ achievement_id: string; progress: number; max_progress: number; unlocked: boolean }[]>([])
+  const [dbLeaderboard, setDbLeaderboard] = useState<LeaderboardEntry[]>([])
+  const leaderboard = dbLeaderboard.length > 0 ? dbLeaderboard : fallbackLeaderboard
   const [lessonContent, setLessonContent] = useState<{ title: string; facts: string[]; brailleTypes: { name: string; desc: string; dots: number[] }[]; funFact: string; braillePreview: { letter: string; dots: number[] }[]; commonPatterns?: { symbol: string; meaning: string; dots: number[] }[]; explanation?: string; practiceTips?: string[]; realWorldExamples?: string[] } | null>(null)
   const [lessonLoading, setLessonLoading] = useState(false)
   const [activeDotCell, setActiveDotCell] = useState<number | null>(null)
@@ -119,7 +123,6 @@ export default function BrailleQuestPage() {
   const [showFullLesson, setShowFullLesson] = useState(false)
   const [timelineIndex, setTimelineIndex] = useState(0)
 
-  // Path drag-to-pan state (transform-based for smooth interaction)
   const pathRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
@@ -141,7 +144,6 @@ export default function BrailleQuestPage() {
   const navigate = useNavigate()
   const supabase = useSupabase()
 
-  // Level themes with rich gradient backgrounds for immersive feel
   const levels = [
     { level: 1, title: 'Beginner', requiredXP: 0, icon: '🌱',
       bgStyle: { background: 'linear-gradient(180deg, #0c4a6e 0%, #075985 25%, #0284c7 50%, #0ea5e9 75%, #7dd3fc 100%)' } },
@@ -157,20 +159,21 @@ export default function BrailleQuestPage() {
       bgStyle: { background: 'linear-gradient(180deg, #0f0c29 0%, #1a1a2e 20%, #302b63 40%, #44337a 60%, #6d28d9 80%, #f59e0b 100%)' } },
   ]
 
-  const badges = [
-    { icon: '🔍', name: 'First Find', earned: true, desc: 'Complete your first mission' },
-    { icon: '📸', name: 'Shutterbug', earned: true, desc: 'Upload 5 verified photos' },
-    { icon: '🏃', name: '7-Day Streak', earned: false, desc: 'Complete missions 7 days in a row' },
-    { icon: '🌟', name: 'Star Hunter', earned: true, desc: 'Earn 500+ XP total' },
-    { icon: '🗺️', name: 'Explorer', earned: true, desc: 'Complete all Level 1 missions' },
-    { icon: '🏆', name: 'Champion', earned: false, desc: 'Reach Champion rank' },
-    { icon: '💎', name: 'Rare Find', earned: false, desc: 'Complete a legendary mission' },
-    { icon: '👑', name: 'Legend', earned: false, desc: 'Complete all missions' },
-    { icon: '🌍', name: 'World Traveler', earned: false, desc: 'Find braille in 3 cities' },
-    { icon: '🎨', name: 'Category Explorer', earned: false, desc: 'Complete missions in 5 categories' },
-    { icon: '🔥', name: 'On Fire', earned: true, desc: 'Complete 3 missions in one day' },
-    { icon: '📢', name: 'Advocate', earned: false, desc: 'Help a business learn about braille' },
+  const badgeDefinitions = [
+    { id: 'first-find', icon: '🔍', name: 'First Find', desc: 'Complete your first mission' },
+    { id: 'shutterbug', icon: '📸', name: 'Shutterbug', desc: 'Upload 5 verified photos' },
+    { id: '7-day-streak', icon: '🏃', name: '7-Day Streak', desc: 'Complete missions 7 days in a row' },
+    { id: 'star-hunter', icon: '🌟', name: 'Star Hunter', desc: 'Earn 500+ XP total' },
+    { id: 'explorer', icon: '🗺️', name: 'Explorer', desc: 'Complete all Level 1 missions' },
+    { id: 'champion', icon: '🏆', name: 'Champion', desc: 'Reach Champion rank' },
+    { id: 'rare-find', icon: '💎', name: 'Rare Find', desc: 'Complete a legendary mission' },
+    { id: 'legend', icon: '👑', name: 'Legend', desc: 'Complete all missions' },
+    { id: 'world-traveler', icon: '🌍', name: 'World Traveler', desc: 'Find braille in 3 cities' },
+    { id: 'category-explorer', icon: '🎨', name: 'Category Explorer', desc: 'Complete missions in 5 categories' },
+    { id: 'on-fire', icon: '🔥', name: 'On Fire', desc: 'Complete 3 missions in one day' },
+    { id: 'advocate', icon: '📢', name: 'Advocate', desc: 'Help a business learn about braille' },
   ]
+  const badges = badgeDefinitions.map(b => ({ ...b, earned: earnedBadgeIds.includes(b.id) }))
 
   interface AchievementItem {
     id: string; title: string; description: string; icon: React.ElementType;
@@ -187,26 +190,34 @@ export default function BrailleQuestPage() {
     legendary: { bg: 'bg-yellow-100', border: 'border-yellow-500', text: 'text-yellow-700' }
   }
 
-  const achievementsList: AchievementItem[] = [
-    { id: 'first-lesson', title: 'First Steps', description: 'Complete your first braille lesson', icon: BookOpen, category: 'learning', rarity: 'common', xpReward: 50, requirement: 'Complete 1 lesson', progress: 1, maxProgress: 1, unlocked: true, unlockedDate: '2024-01-15' },
-    { id: 'alphabet-master', title: 'Alphabet Master', description: 'Learn all 26 letters of the braille alphabet', icon: Star, category: 'learning', rarity: 'rare', xpReward: 200, requirement: 'Complete all letter lessons', progress: 26, maxProgress: 26, unlocked: true, unlockedDate: '2024-02-01' },
-    { id: 'number-ninja', title: 'Number Ninja', description: 'Master all braille number patterns', icon: Target, category: 'learning', rarity: 'rare', xpReward: 150, requirement: 'Complete all number lessons', progress: 10, maxProgress: 10, unlocked: true, unlockedDate: '2024-02-10' },
-    { id: 'contraction-expert', title: 'Contraction Expert', description: 'Learn 50 braille contractions', icon: Brain, category: 'learning', rarity: 'epic', xpReward: 500, requirement: 'Learn 50 contractions', progress: 32, maxProgress: 50, unlocked: false },
-    { id: 'grade-2-graduate', title: 'Grade 2 Graduate', description: 'Complete all Grade 2 braille lessons', icon: Crown, category: 'learning', rarity: 'legendary', xpReward: 1000, requirement: 'Complete all Grade 2 lessons', progress: 15, maxProgress: 30, unlocked: false },
-    { id: 'practice-beginner', title: 'Practice Makes Perfect', description: 'Complete 10 practice sessions', icon: Zap, category: 'practice', rarity: 'common', xpReward: 75, requirement: 'Complete 10 practice sessions', progress: 10, maxProgress: 10, unlocked: true },
-    { id: 'speed-demon', title: 'Speed Demon', description: 'Achieve 100% accuracy in Speed Challenge', icon: Flame, category: 'practice', rarity: 'epic', xpReward: 300, requirement: 'Perfect score in Speed mode', progress: 1, maxProgress: 1, unlocked: true },
+  const achievementDefaults: AchievementItem[] = [
+    { id: 'first-lesson', title: 'First Steps', description: 'Complete your first braille lesson', icon: BookOpen, category: 'learning', rarity: 'common', xpReward: 50, requirement: 'Complete 1 lesson', progress: 0, maxProgress: 1, unlocked: false },
+    { id: 'alphabet-master', title: 'Alphabet Master', description: 'Learn all 26 letters of the braille alphabet', icon: Star, category: 'learning', rarity: 'rare', xpReward: 200, requirement: 'Complete all letter lessons', progress: 0, maxProgress: 26, unlocked: false },
+    { id: 'number-ninja', title: 'Number Ninja', description: 'Master all braille number patterns', icon: Target, category: 'learning', rarity: 'rare', xpReward: 150, requirement: 'Complete all number lessons', progress: 0, maxProgress: 10, unlocked: false },
+    { id: 'contraction-expert', title: 'Contraction Expert', description: 'Learn 50 braille contractions', icon: Brain, category: 'learning', rarity: 'epic', xpReward: 500, requirement: 'Learn 50 contractions', progress: 0, maxProgress: 50, unlocked: false },
+    { id: 'grade-2-graduate', title: 'Grade 2 Graduate', description: 'Complete all Grade 2 braille lessons', icon: Crown, category: 'learning', rarity: 'legendary', xpReward: 1000, requirement: 'Complete all Grade 2 lessons', progress: 0, maxProgress: 30, unlocked: false },
+    { id: 'practice-beginner', title: 'Practice Makes Perfect', description: 'Complete 10 practice sessions', icon: Zap, category: 'practice', rarity: 'common', xpReward: 75, requirement: 'Complete 10 practice sessions', progress: 0, maxProgress: 10, unlocked: false },
+    { id: 'speed-demon', title: 'Speed Demon', description: 'Achieve 100% accuracy in Speed Challenge', icon: Flame, category: 'practice', rarity: 'epic', xpReward: 300, requirement: 'Perfect score in Speed mode', progress: 0, maxProgress: 1, unlocked: false },
     { id: 'memory-master', title: 'Memory Master', description: 'Complete Memory Champion mode without mistakes', icon: Brain, category: 'practice', rarity: 'epic', xpReward: 350, requirement: 'Perfect Memory game', progress: 0, maxProgress: 1, unlocked: false },
-    { id: 'all-rounder', title: 'All-Rounder', description: 'Complete all 8 practice game modes', icon: Medal, category: 'practice', rarity: 'rare', xpReward: 250, requirement: 'Play all game modes', progress: 6, maxProgress: 8, unlocked: false },
-    { id: 'week-warrior', title: 'Week Warrior', description: 'Maintain a 7-day learning streak', icon: Flame, category: 'streak', rarity: 'rare', xpReward: 200, requirement: '7 consecutive days', progress: 7, maxProgress: 7, unlocked: true },
-    { id: 'month-master', title: 'Month Master', description: 'Maintain a 30-day learning streak', icon: Trophy, category: 'streak', rarity: 'epic', xpReward: 500, requirement: '30 consecutive days', progress: 7, maxProgress: 30, unlocked: false },
-    { id: 'century-champion', title: 'Century Champion', description: 'Maintain a 100-day learning streak', icon: Crown, category: 'streak', rarity: 'legendary', xpReward: 1500, requirement: '100 consecutive days', progress: 7, maxProgress: 100, unlocked: false },
-    { id: 'perfect-score', title: 'Perfectionist', description: 'Score 100% on any lesson', icon: CheckCircle, category: 'mastery', rarity: 'common', xpReward: 100, requirement: 'Get 100% on a lesson', progress: 1, maxProgress: 1, unlocked: true },
-    { id: 'accuracy-ace', title: 'Accuracy Ace', description: 'Maintain 95%+ accuracy across 20 lessons', icon: Target, category: 'mastery', rarity: 'epic', xpReward: 400, requirement: '95%+ accuracy on 20 lessons', progress: 12, maxProgress: 20, unlocked: false },
-    { id: 'braille-sage', title: 'Braille Sage', description: 'Complete all lessons with 90%+ score', icon: Shield, category: 'mastery', rarity: 'legendary', xpReward: 2000, requirement: 'Master all content', progress: 34, maxProgress: 50, unlocked: false },
-    { id: 'hardware-hero', title: 'Hardware Hero', description: 'Connect and use Arduino braille display', icon: Sparkles, category: 'special', rarity: 'rare', xpReward: 300, requirement: 'Use hardware device', progress: 1, maxProgress: 1, unlocked: true },
-    { id: 'speech-star', title: 'Speech Star', description: 'Convert 100 words using speech-to-braille', icon: Star, category: 'special', rarity: 'rare', xpReward: 200, requirement: 'Convert 100 words', progress: 78, maxProgress: 100, unlocked: false },
-    { id: 'early-bird', title: 'Early Adopter', description: 'Join BrailleLearn in its first year', icon: Heart, category: 'special', rarity: 'legendary', xpReward: 500, requirement: 'Early signup', progress: 1, maxProgress: 1, unlocked: true }
+    { id: 'all-rounder', title: 'All-Rounder', description: 'Complete all 8 practice game modes', icon: Medal, category: 'practice', rarity: 'rare', xpReward: 250, requirement: 'Play all game modes', progress: 0, maxProgress: 8, unlocked: false },
+    { id: 'week-warrior', title: 'Week Warrior', description: 'Maintain a 7-day learning streak', icon: Flame, category: 'streak', rarity: 'rare', xpReward: 200, requirement: '7 consecutive days', progress: 0, maxProgress: 7, unlocked: false },
+    { id: 'month-master', title: 'Month Master', description: 'Maintain a 30-day learning streak', icon: Trophy, category: 'streak', rarity: 'epic', xpReward: 500, requirement: '30 consecutive days', progress: 0, maxProgress: 30, unlocked: false },
+    { id: 'century-champion', title: 'Century Champion', description: 'Maintain a 100-day learning streak', icon: Crown, category: 'streak', rarity: 'legendary', xpReward: 1500, requirement: '100 consecutive days', progress: 0, maxProgress: 100, unlocked: false },
+    { id: 'perfect-score', title: 'Perfectionist', description: 'Score 100% on any lesson', icon: CheckCircle, category: 'mastery', rarity: 'common', xpReward: 100, requirement: 'Get 100% on a lesson', progress: 0, maxProgress: 1, unlocked: false },
+    { id: 'accuracy-ace', title: 'Accuracy Ace', description: 'Maintain 95%+ accuracy across 20 lessons', icon: Target, category: 'mastery', rarity: 'epic', xpReward: 400, requirement: '95%+ accuracy on 20 lessons', progress: 0, maxProgress: 20, unlocked: false },
+    { id: 'braille-sage', title: 'Braille Sage', description: 'Complete all lessons with 90%+ score', icon: Shield, category: 'mastery', rarity: 'legendary', xpReward: 2000, requirement: 'Master all content', progress: 0, maxProgress: 50, unlocked: false },
+    { id: 'hardware-hero', title: 'Hardware Hero', description: 'Connect and use Arduino braille display', icon: Sparkles, category: 'special', rarity: 'rare', xpReward: 300, requirement: 'Use hardware device', progress: 0, maxProgress: 1, unlocked: false },
+    { id: 'speech-star', title: 'Speech Star', description: 'Convert 100 words using speech-to-braille', icon: Star, category: 'special', rarity: 'rare', xpReward: 200, requirement: 'Convert 100 words', progress: 0, maxProgress: 100, unlocked: false },
+    { id: 'early-bird', title: 'Early Adopter', description: 'Join BrailleLearn in its first year', icon: Heart, category: 'special', rarity: 'legendary', xpReward: 500, requirement: 'Early signup', progress: 0, maxProgress: 1, unlocked: false }
   ]
+
+  const achievementsList: AchievementItem[] = achievementDefaults.map(def => {
+    const dbRow = dbAchievementData.find(d => d.achievement_id === def.id)
+    if (dbRow) {
+      return { ...def, progress: dbRow.progress, unlocked: dbRow.unlocked, unlockedDate: dbRow.unlocked ? new Date().toISOString().split('T')[0] : undefined }
+    }
+    return def
+  })
 
   const rewardItems = [
     { id: 'r1', name: 'Dark Theme', description: 'Unlock a sleek dark mode for the app', cost: 500, icon: '🌙', category: 'Themes' },
@@ -233,7 +244,6 @@ export default function BrailleQuestPage() {
     : achievementsList
   const unlockedAchievements = achievementsList.filter(a => a.unlocked).length
 
-  // ─── Side Tab Navigation ───
   const sideTabs = [
     { key: 'xp', label: 'XP Progress', icon: <Zap className="w-5 h-5 text-yellow-500" /> },
     { key: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="w-5 h-5 text-yellow-500" /> },
@@ -247,7 +257,6 @@ export default function BrailleQuestPage() {
   function prevSideTab() { setSideTabIndex(i => i > 0 ? i - 1 : sideTabs.length - 1) }
   function nextSideTab() { setSideTabIndex(i => i < sideTabs.length - 1 ? i + 1 : 0) }
 
-  // ─── Braylin voice tab/action events ───
   useEffect(() => {
     const onTab = (e: Event) => {
       const { page, tab } = (e as CustomEvent).detail || {}
@@ -368,7 +377,6 @@ export default function BrailleQuestPage() {
     }
   }, [completedMissions, categoryFilter, showMissionModal, showShareModal, showGoalEditor, file, selectedMission, showFullLesson, timelineIndex, lessonContent, lessonLoading])
 
-  // ─── Narrate mission modal open ───
   useEffect(() => {
     if (showMissionModal && selectedMission) {
       const msg = `Mission opened: ${selectedMission.title}. ${selectedMission.description}. Worth ${selectedMission.xpReward} XP. Say "take photo" to capture an image, "submit" after uploading, or "close" to dismiss.`
@@ -376,7 +384,6 @@ export default function BrailleQuestPage() {
     }
   }, [showMissionModal, selectedMission])
 
-  // ─── Narrate verification status ───
   useEffect(() => {
     if (verifyStatus === 'uploading') {
       window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Uploading your photo...' } }))
@@ -389,7 +396,6 @@ export default function BrailleQuestPage() {
     }
   }, [verifyStatus, verifyReason])
 
-  // ─── Auto-narrate section on lesson timeline change ───
   useEffect(() => {
     if (!showFullLesson || !lessonContent) return
     const sectionNames: string[] = []
@@ -405,7 +411,6 @@ export default function BrailleQuestPage() {
     window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Section ${idx + 1} of ${total}: ${sectionNames[idx]}. Say "read this" to hear it, or "next" to continue.` } }))
   }, [timelineIndex, showFullLesson])
 
-  // ─── Narrate when lesson finishes loading (prompt user to view) ───
   useEffect(() => {
     if (!lessonLoading && lessonContent && verifyStatus === 'success' && !showFullLesson) {
       setTimeout(() => {
@@ -414,29 +419,30 @@ export default function BrailleQuestPage() {
     }
   }, [lessonLoading, lessonContent, verifyStatus])
 
-  // ─── DB Integration ───
   useEffect(() => {
-    // Wait for Clerk to finish loading before acting on auth state
     if (!clerkLoaded) return
 
     const userId = (_user as any)?.id
     if (!userId) {
-      // User is confirmed signed out — reset to empty
       setCompletedMissions([])
       setUserStats({ xp: 1200, streak: 3, missions: 16, rank: 8, totalFinds: 42, citiesMapped: 2 })
+      setEarnedBadgeIds([])
+      setDbAchievementData([])
       try { localStorage.removeItem('bq_completed') } catch {}
       return
     }
-    // Immediately restore from localStorage while DB loads
     try {
       const cached = localStorage.getItem('bq_completed')
       if (cached) setCompletedMissions(JSON.parse(cached))
     } catch {}
     async function loadData() {
       try {
-        const [profile, missionData] = await Promise.all([
+        const [profile, missionData, badgeIds, achievementRows, leaderboardData] = await Promise.all([
           getProfile(supabase, userId),
-          getUserMissions(supabase, userId)
+          getUserMissions(supabase, userId),
+          getUserBadges(supabase, userId),
+          getUserAchievements(supabase, userId),
+          getLeaderboard(supabase, 20)
         ])
         if (profile) {
           setUserStats({
@@ -452,6 +458,28 @@ export default function BrailleQuestPage() {
           const ids = missionData.map(m => m.mission_id)
           setCompletedMissions(ids)
           try { localStorage.setItem('bq_completed', JSON.stringify(ids)) } catch {}
+        }
+        if (badgeIds && badgeIds.length > 0) {
+          setEarnedBadgeIds(badgeIds)
+        }
+        if (achievementRows && achievementRows.length > 0) {
+          setDbAchievementData(achievementRows.map((r: any) => ({
+            achievement_id: r.achievement_id,
+            progress: r.progress ?? 0,
+            max_progress: r.max_progress ?? 0,
+            unlocked: r.unlocked ?? false
+          })))
+        }
+        if (leaderboardData && leaderboardData.length > 0) {
+          const avatars = ['🦸', '🏆', '🔍', '👁️', '🔦', '🧭', '⠿', '⭐', '🌱', '🐣']
+          setDbLeaderboard(leaderboardData.map((p: any, i: number) => ({
+            rank: i + 1,
+            name: p.id === userId ? 'You' : (p.display_name || p.username || `Explorer${i + 1}`),
+            avatar: p.id === userId ? '⭐' : (avatars[i % avatars.length]),
+            xp: p.xp ?? 0,
+            missionsCompleted: p.total_finds ?? 0,
+            streak: p.streak ?? 0,
+          })))
         }
       } catch (e) {
         console.error('Failed to load user data:', e)
@@ -537,9 +565,7 @@ If you can clearly see braille patterns or braille-related accessibility feature
     setVerifyStatus(isSuccess ? 'success' : 'failure')
     if (isSuccess) {
       setImageDescription(imgDesc)
-      // Auto-trigger lesson popup
       fetchBrailleLesson(selectedMission, imgDesc)
-      // Trigger confetti
       setShowConfetti(true)
       setTimeout(() => setShowConfetti(false), 4000)
       const newXP = userStats.xp + (selectedMission.xpReward ?? 50)
@@ -553,14 +579,12 @@ If you can clearly see braille patterns or braille-related accessibility feature
       setCompletedMissions(prev => {
         const next = [...prev, selectedMission.id]
         try { localStorage.setItem('bq_completed', JSON.stringify(next)) } catch {}
-        // Trigger first-mission celebration
         if (prev.length === 0) {
           setTimeout(() => setShowFirstMissionCelebration(true), 1500)
         }
         return next
       })
 
-      // Persist to DB
       const userId = (_user as any)?.id
       if (userId) {
         try {
@@ -572,6 +596,40 @@ If you can clearly see braille patterns or braille-related accessibility feature
               : undefined
           )
           await updateProfile(supabase, userId, { xp: newXP, total_finds: newFinds })
+
+          const allCompleted = [...completedMissions, selectedMission.id]
+          const newBadges: string[] = []
+
+          if (allCompleted.length >= 1) newBadges.push('first-find')
+          if (newFinds >= 5) newBadges.push('shutterbug')
+          if (newXP >= 500) newBadges.push('star-hunter')
+          const level1Ids = missions.filter(m => m.level === 1).map(m => m.id)
+          if (level1Ids.every(id => allCompleted.includes(id))) newBadges.push('explorer')
+          if (newXP >= 600) newBadges.push('champion')
+          if (missions.some(m => m.difficulty === 'legendary' && allCompleted.includes(m.id))) newBadges.push('rare-find')
+          if (missions.every(m => allCompleted.includes(m.id))) newBadges.push('legend')
+          const completedCategories = new Set(missions.filter(m => allCompleted.includes(m.id)).map(m => m.category))
+          if (completedCategories.size >= 5) newBadges.push('category-explorer')
+          if (newFinds >= 3) newBadges.push('on-fire')
+          if (allCompleted.includes('m30')) newBadges.push('advocate')
+          if (userStats.citiesMapped >= 3) newBadges.push('world-traveler')
+
+          for (const badgeId of newBadges) {
+            if (!earnedBadgeIds.includes(badgeId)) {
+              await awardBadge(supabase, userId, badgeId)
+            }
+          }
+          if (newBadges.length > 0) {
+            setEarnedBadgeIds(prev => [...new Set([...prev, ...newBadges])])
+          }
+
+          await updateAchievementProgress(supabase, userId, 'first-lesson', Math.min(allCompleted.length, 1), 1)
+          const streakVal = userStats.streak
+          if (streakVal > 0) {
+            await updateAchievementProgress(supabase, userId, 'week-warrior', Math.min(streakVal, 7), 7)
+            await updateAchievementProgress(supabase, userId, 'month-master', Math.min(streakVal, 30), 30)
+            await updateAchievementProgress(supabase, userId, 'century-champion', Math.min(streakVal, 100), 100)
+          }
         } catch (e) {
           console.error('Failed to persist mission completion:', e)
         }
@@ -605,7 +663,6 @@ If you can clearly see braille patterns or braille-related accessibility feature
     setShowShareModal(false)
   }
 
-  // Braille dot map: letter → which of the 6 dots are raised (1-6)
   const brailleDotMap: Record<string, number[]> = {
     a: [1], b: [1,2], c: [1,4], d: [1,4,5], e: [1,5], f: [1,2,4], g: [1,2,4,5],
     h: [1,2,5], i: [2,4], j: [2,4,5], k: [1,3], l: [1,2,3], m: [1,3,4],
@@ -617,12 +674,12 @@ If you can clearly see braille patterns or braille-related accessibility feature
   function BrailleCell({ dots, size = 40, active = false, onTap }: { dots: number[]; size?: number; active?: boolean; onTap?: () => void }) {
     const dotSize = size * 0.22
     const positions = [
-      { cx: size * 0.33, cy: size * 0.2 },   // 1
-      { cx: size * 0.33, cy: size * 0.5 },   // 2
-      { cx: size * 0.33, cy: size * 0.8 },   // 3
-      { cx: size * 0.67, cy: size * 0.2 },   // 4
-      { cx: size * 0.67, cy: size * 0.5 },   // 5
-      { cx: size * 0.67, cy: size * 0.8 },   // 6
+      { cx: size * 0.33, cy: size * 0.2 },
+      { cx: size * 0.33, cy: size * 0.5 },
+      { cx: size * 0.33, cy: size * 0.8 },
+      { cx: size * 0.67, cy: size * 0.2 },
+      { cx: size * 0.67, cy: size * 0.5 },
+      { cx: size * 0.67, cy: size * 0.8 },
     ]
     return (
       <motion.svg width={size} height={size * 1.2} viewBox={`0 0 ${size} ${size * 1.2}`}
@@ -673,7 +730,6 @@ Return ONLY the JSON object.`,
       const lastBrace = cleaned.lastIndexOf('}')
       if (firstBrace !== -1 && lastBrace !== -1) {
         const parsed = JSON.parse(cleaned.substring(firstBrace, lastBrace + 1))
-        // Ensure braillePreview and brailleTypes have proper structure
         if (!parsed.braillePreview || !Array.isArray(parsed.braillePreview)) {
           parsed.braillePreview = 'braille'.split('').map(ch => ({ letter: ch, dots: brailleDotMap[ch] || [1] }))
         }
@@ -765,7 +821,6 @@ Return ONLY the JSON object.`,
     return true
   })
 
-  // Pan callbacks (must be after filteredMissions)
   const clampPan = useCallback((x: number, y: number) => {
     if (!pathRef.current) return { x, y }
     const container = pathRef.current
@@ -817,7 +872,6 @@ Return ONLY the JSON object.`,
     startMomentum()
   }, [startMomentum])
 
-  // Reset pan when level/category changes
   useEffect(() => { setPanOffset({ x: 0, y: 0 }) }, [selectedLevel, categoryFilter])
 
   const categories: { id: CategoryFilter; label: string; emoji: string }[] = [
@@ -834,7 +888,6 @@ Return ONLY the JSON object.`,
 
   const currentLevelBg = levels.find(l => l.level === selectedLevel) || levels[0]
 
-  // ─── Side Tab Content Renderer ───
   function renderSideTabContent() {
     const tab = sideTabs[sideTabIndex]
     switch (tab.key) {
@@ -1079,15 +1132,11 @@ Return ONLY the JSON object.`,
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ═══ HERO BANNER — BrailleQuest ═══ */}
       <section className="relative bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white overflow-hidden">
-        {/* Diagonal accent stripe */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.04) 42%, transparent 42%)' }} />
-        {/* Hex grid texture */}
         <div className="absolute inset-0 opacity-[0.06]">
           <svg width="100%" height="100%"><defs><pattern id="bqhex" width="48" height="84" patternUnits="userSpaceOnUse"><path d="M24 0L48 14V42L24 56L0 42V14Z" fill="none" stroke="white" strokeWidth="0.5"/><path d="M24 28L48 42V70L24 84L0 70V42Z" fill="none" stroke="white" strokeWidth="0.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#bqhex)"/></svg>
         </div>
-        {/* Floating geometric shapes */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-8 left-[15%] w-20 h-20 border border-white/10 rounded-2xl rotate-12 animate-pulse" />
 
@@ -1104,11 +1153,9 @@ Return ONLY the JSON object.`,
             <circle cx="20" cy="20" r="15" fill="none" stroke="white" strokeWidth="0.8" strokeDasharray="4 3" />
           </svg>
         </div>
-        {/* Blurred orbs */}
         <div className="absolute -top-20 right-16 w-80 h-80 bg-blue-400/15 rounded-full blur-[100px]" />
         <div className="absolute -bottom-16 -left-16 w-72 h-72 bg-indigo-500/20 rounded-full blur-[80px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-300/8 rounded-full blur-[120px]" />
-        {/* Floating compass + braille cells decoration */}
         <div className="absolute top-4 right-8 opacity-[0.08] pointer-events-none hidden lg:block">
           <svg width="80" height="80" viewBox="0 0 80 80">
             <circle cx="40" cy="40" r="35" fill="none" stroke="white" strokeWidth="1.5" />
@@ -1164,14 +1211,12 @@ Return ONLY the JSON object.`,
         </div>
       </section>
 
-      {/* ═══ MAIN CONTENT ═══ */}
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-8">
         <div className="mb-6 bg-blue-50 rounded-2xl px-5 py-3 border border-blue-100 flex items-center gap-3">
           <span className="text-2xl">♿</span>
           <p className="text-sm text-blue-700"><span className="font-bold">Accessible to all</span> — Designed for partially sighted learners. Blind users can navigate and complete missions entirely by voice.</p>
         </div>
 
-        {/* Level Selector */}
         <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           {levels.map((level) => {
             const unlocked = isLevelUnlocked(level.level)
@@ -1202,7 +1247,6 @@ Return ONLY the JSON object.`,
           })}
         </div>
 
-        {/* Category Filters */}
         <div className="flex gap-2.5 mb-8 overflow-x-auto pb-2 scrollbar-hide">
           {categories.filter(c => c.id === 'all' || missions.some(m => m.level === selectedLevel && m.category === c.id)).map(cat => (
             <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
@@ -1214,10 +1258,8 @@ Return ONLY the JSON object.`,
           ))}
         </div>
 
-        {/* ═══ TWO-COLUMN LAYOUT: Path + Side Panel ═══ */}
         <div className="flex gap-8 items-start">
 
-          {/* ═══ LEFT — Mission Path ═══ */}
           <div className="flex-1 min-w-0">
             {filteredMissions.length > 0 ? (
               <div
@@ -1237,9 +1279,7 @@ Return ONLY the JSON object.`,
                   position: 'relative',
                 }}>
 
-
-                {/* Decorative floating elements */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+<div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
                   {[...Array(8)].map((_, i) => (
                     <motion.div
                       key={i}
@@ -1253,7 +1293,6 @@ Return ONLY the JSON object.`,
                   ))}
                 </div>
 
-                {/* Level theme badge */}
                 <div className="absolute top-5 left-5 z-10 flex items-center gap-3 bg-black/30 backdrop-blur-md rounded-xl px-4 py-3 border border-white/20">
                   <svg width="28" height="28" viewBox="0 0 40 40" className="flex-shrink-0">
                     <circle cx="20" cy="10" r="7" fill="white" />
@@ -1275,7 +1314,6 @@ Return ONLY the JSON object.`,
                   </div>
                 </div>
 
-                {/* Path — smooth trail connecting challenges */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}
                   viewBox={`0 0 400 ${filteredMissions.length * 200 + 380}`} preserveAspectRatio="xMidYMid meet">
                   <defs>
@@ -1297,13 +1335,11 @@ Return ONLY the JSON object.`,
                     const ROW = 200
                     const TOP = 180
                     const getNodeX = (i: number) => {
-                      // Alternating S-curve: even nodes left, odd nodes right
                       const side = i % 2 === 0 ? -1 : 1
                       return 200 + side * 80
                     }
                     const p1 = { x: getNodeX(index - 1), y: TOP + (index - 1) * ROW }
                     const p2 = { x: getNodeX(index), y: TOP + index * ROW }
-                    // S-curve control points that cross over smoothly
                     const cp1 = { x: p1.x, y: p1.y + ROW * 0.45 }
                     const cp2 = { x: p2.x, y: p2.y - ROW * 0.45 }
                     const prevDone = completedMissions.includes(filteredMissions[index - 1].id)
@@ -1350,14 +1386,12 @@ Return ONLY the JSON object.`,
                   })}
                 </svg>
 
-                {/* Mission Nodes */}
                 <div className="relative" style={{ minHeight: `${filteredMissions.length * 200 + 380}px`, zIndex: 2 }}>
                   {filteredMissions.map((mission, index) => {
                     const isCompleted = completedMissions.includes(mission.id)
                     const prevCompleted = index === 0 || completedMissions.includes(filteredMissions[index - 1].id)
                     const isAvailable = !isCompleted && prevCompleted
                     const isLocked = !isCompleted && !prevCompleted
-                    // Same alternating S-curve as the SVG path
                     const side = index % 2 === 0 ? -1 : 1
                     const offsetX = side * 80
                     const showMascot = isAvailable
@@ -1427,7 +1461,6 @@ Return ONLY the JSON object.`,
                           >
                             <div className="bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-white/50 px-4 py-3 max-w-[180px]">
                               <div className="flex items-center gap-2 mb-1.5">
-                                {/* Braille Man mascot */}
                                 <svg width="28" height="28" viewBox="0 0 40 40" className="flex-shrink-0">
                                   <circle cx="20" cy="10" r="7" fill="#3b82f6" />
                                   <circle cx="17" cy="9" r="1.2" fill="white" />
@@ -1454,7 +1487,6 @@ Return ONLY the JSON object.`,
                     )
                   })}
 
-                  {/* End trophy */}
                   <div
                     className="absolute flex flex-col items-center"
                     style={{ left: 'calc(50% - 32px)', top: `${100 + filteredMissions.length * 200 + 30}px` }}
@@ -1479,7 +1511,6 @@ Return ONLY the JSON object.`,
               </div>
             )}
 
-            {/* Adventure card */}
             <div className="bg-blue-600 rounded-2xl p-6 mt-8 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -1510,11 +1541,9 @@ Return ONLY the JSON object.`,
             </div>
           </div>
 
-          {/* ═══ RIGHT — Side Panel with Tab Navigation ═══ */}
           <div className="w-[400px] flex-shrink-0 hidden lg:block">
             <div className="sticky top-6 space-y-5">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                {/* Tab header with arrows */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/80">
                   <button
                     onClick={prevSideTab}
@@ -1534,7 +1563,6 @@ Return ONLY the JSON object.`,
                   </button>
                 </div>
 
-                {/* Tab indicators */}
                 <div className="flex justify-center gap-1.5 py-3 border-b border-gray-100">
                   {sideTabs.map((_, i) => (
                     <button key={i} onClick={() => setSideTabIndex(i)}
@@ -1542,7 +1570,6 @@ Return ONLY the JSON object.`,
                   ))}
                 </div>
 
-                {/* Tab content */}
                 <div className="p-5">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -1558,7 +1585,6 @@ Return ONLY the JSON object.`,
                 </div>
               </div>
 
-              {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { icon: <Target className="w-6 h-6 text-blue-500" />, label: 'Missions', value: `${completedMissions.length}/${missions.length}` },
@@ -1576,7 +1602,6 @@ Return ONLY the JSON object.`,
           </div>
         </div>
 
-        {/* ═══ MOBILE: Side Panel below path (visible on < lg) ═══ */}
         <div className="lg:hidden mt-8">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/80">
@@ -1623,7 +1648,6 @@ Return ONLY the JSON object.`,
         </div>
       </div>
 
-      {/* ═══ Mission Modal ═══ */}
       <AnimatePresence>
         {showMissionModal && selectedMission && (
           <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -1632,7 +1656,6 @@ Return ONLY the JSON object.`,
             <motion.div className="bg-white rounded-2xl shadow-2xl max-w-md w-full flex flex-col overflow-hidden" style={{ maxHeight: '75vh' }}
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
               onClick={e => e.stopPropagation()}>
-              {/* Blue banner header — matches LearnPage style */}
               <div className="relative bg-blue-600 px-5 pt-4 pb-4 flex-shrink-0 overflow-hidden">
                 <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
                 <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
@@ -1654,7 +1677,6 @@ Return ONLY the JSON object.`,
                     <X className="w-4 h-4 text-white" />
                   </button>
                 </div>
-                {/* Braylin character pill */}
                 <div className="relative z-10 flex items-center gap-2 mt-3 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 w-fit border border-white/15">
                   <Bot className="w-3.5 h-3.5 text-white" />
                   <span className="text-[10px] font-medium text-blue-100">Braylin will verify your braille photo</span>
@@ -1749,7 +1771,6 @@ Return ONLY the JSON object.`,
 
                 {verifyStatus === 'success' && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                    {/* Confetti */}
                     {showConfetti && (
                       <div className="fixed inset-0 pointer-events-none z-[200] overflow-hidden">
                         {Array.from({ length: 50 }).map((_, i) => {
@@ -1772,7 +1793,6 @@ Return ONLY the JSON object.`,
                       </div>
                     )}
 
-                    {/* Success card — blue themed with Braylin */}
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
                       className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-4 text-center">
@@ -1789,7 +1809,6 @@ Return ONLY the JSON object.`,
                       </div>
                     </motion.div>
 
-                    {/* Action buttons */}
                     <div className="space-y-2">
                       <motion.button
                         onClick={() => {
@@ -1862,7 +1881,6 @@ Return ONLY the JSON object.`,
         )}
       </AnimatePresence>
 
-      {/* ═══ Share Modal ═══ */}
       <AnimatePresence>
         {showShareModal && (
           <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -1888,7 +1906,6 @@ Return ONLY the JSON object.`,
           </motion.div>
         )}
 
-        {/* ═══ FIRST MISSION CELEBRATION ═══ */}
         {showFirstMissionCelebration && (
           <motion.div
             className="fixed inset-0 z-[100] flex items-center justify-center"
@@ -1898,7 +1915,6 @@ Return ONLY the JSON object.`,
           >
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/95 via-blue-900/95 to-purple-900/95 backdrop-blur-md" />
 
-            {/* Floating braille dots background */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               {[...Array(30)].map((_, i) => (
                 <motion.div
@@ -1922,7 +1938,6 @@ Return ONLY the JSON object.`,
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
             >
-              {/* Badge */}
               <motion.div
                 className="w-32 h-32 mx-auto mb-6 relative"
                 initial={{ rotateY: 180, scale: 0 }}
@@ -1947,7 +1962,6 @@ Return ONLY the JSON object.`,
                 />
               </motion.div>
 
-              {/* Braille "FIRST" display */}
               <motion.div
                 className="flex justify-center gap-3 mb-6"
                 initial={{ opacity: 0, y: 20 }}
@@ -2017,7 +2031,6 @@ Return ONLY the JSON object.`,
           </motion.div>
         )}
 
-        {/* ═══ FULLSCREEN LESSON TIMELINE ═══ */}
         {showFullLesson && lessonContent && (
           <motion.div
             className="fixed inset-0 z-[200] flex flex-col bg-white"
@@ -2025,7 +2038,6 @@ Return ONLY the JSON object.`,
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* Blue banner header — matching app theme */}
             <motion.div className="relative z-10 bg-blue-600 px-6 pt-5 pb-4 overflow-hidden"
               initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
               <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
@@ -2063,7 +2075,6 @@ Return ONLY the JSON object.`,
               </div>
             </motion.div>
 
-            {/* Progress bar */}
             <div className="relative z-10 px-6 py-3 bg-blue-50 border-b border-blue-100">
               {(() => {
                 const sections: { id: string; icon: string; label: string }[] = []
@@ -2096,13 +2107,11 @@ Return ONLY the JSON object.`,
               })()}
             </div>
 
-            {/* Main content area */}
             <div className="relative z-10 flex-1 overflow-y-auto bg-slate-50">
               <AnimatePresence mode="wait">
                 {(() => {
                   const sections: React.ReactNode[] = []
 
-                  // Section: Overview
                   if (lessonContent.explanation) sections.push(
                     <motion.div key="overview" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2120,7 +2129,6 @@ Return ONLY the JSON object.`,
                           <p className="text-sm text-gray-700">{imageDescription}</p>
                         </div>
                       )}
-                      {/* Braille type diagrams for overview */}
                       {lessonContent.brailleTypes?.length > 0 && (
                         <div className="mt-6">
                           <h4 className="text-sm font-semibold text-gray-800 mb-3">Braille Types Found</h4>
@@ -2137,7 +2145,6 @@ Return ONLY the JSON object.`,
                           </div>
                         </div>
                       )}
-                      {/* Narrate button */}
                       <button onClick={() => {
                         const narration = `${lessonContent.explanation}${imageDescription ? `. From your photo: ${imageDescription}` : ''}${lessonContent.brailleTypes?.length ? `. Braille types: ${lessonContent.brailleTypes.map(bt => `${bt.name} — ${bt.desc}`).join('. ')}` : ''}`
                         window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: narration } }))
@@ -2147,7 +2154,6 @@ Return ONLY the JSON object.`,
                     </motion.div>
                   )
 
-                  // Section: Braille Preview — Interactive cells with large diagrams
                   if (lessonContent.braillePreview?.length) sections.push(
                     <motion.div key="braille" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2192,7 +2198,6 @@ Return ONLY the JSON object.`,
                               <p className="text-xs text-gray-400 mt-1 font-mono">Dots: {lessonContent.braillePreview[activeDotCell].dots.join(', ')}</p>
                             </div>
                           </div>
-                          {/* 3×2 grid diagram */}
                           <div className="mt-3 grid grid-cols-2 gap-1 w-fit">
                             {[1,4,2,5,3,6].map(dot => (
                               <div key={dot} className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${
@@ -2212,7 +2217,6 @@ Return ONLY the JSON object.`,
                     </motion.div>
                   )
 
-                  // Section: Key Facts
                   if (lessonContent.facts?.length) sections.push(
                     <motion.div key="facts" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2245,7 +2249,6 @@ Return ONLY the JSON object.`,
                     </motion.div>
                   )
 
-                  // Section: Common Patterns — with large braille diagrams
                   if (lessonContent.commonPatterns?.length) sections.push(
                     <motion.div key="patterns" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2288,7 +2291,6 @@ Return ONLY the JSON object.`,
                     </motion.div>
                   )
 
-                  // Section: Real World Examples
                   if (lessonContent.realWorldExamples?.length) sections.push(
                     <motion.div key="world" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2321,7 +2323,6 @@ Return ONLY the JSON object.`,
                     </motion.div>
                   )
 
-                  // Section: Practice Tips
                   if (lessonContent.practiceTips?.length) sections.push(
                     <motion.div key="tips" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2354,7 +2355,6 @@ Return ONLY the JSON object.`,
                     </motion.div>
                   )
 
-                  // Section: Fun Fact (always last)
                   sections.push(
                     <motion.div key="funfact" className="max-w-2xl mx-auto px-6 py-8"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -2379,7 +2379,6 @@ Return ONLY the JSON object.`,
               </AnimatePresence>
             </div>
 
-            {/* Bottom navigation */}
             <motion.div className="relative z-10 px-6 pb-5 pt-3 border-t border-blue-100 bg-white"
               initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
               <div className="max-w-2xl mx-auto flex items-center gap-3">
@@ -2399,7 +2398,7 @@ Return ONLY the JSON object.`,
                       lessonContent.commonPatterns?.length,
                       lessonContent.realWorldExamples?.length,
                       lessonContent.practiceTips?.length,
-                      true // fun fact
+                      true
                     ].filter(Boolean).length
 
                     if (timelineIndex < totalSections - 1) {

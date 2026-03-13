@@ -1,4 +1,3 @@
-// User-related types
 export interface User {
   id: string;
   name: string;
@@ -21,33 +20,30 @@ export interface User {
   };
 }
 
-// Lesson-related types
 export interface Lesson {
   id: string;
   title: string;
   description: string;
   level: number;
   category: 'basics' | 'words' | 'sentences' | 'contractions' | 'advanced';
-  duration: number; // in minutes
+  duration: number;
   exercises: Exercise[];
-  prerequisites: string[]; // IDs of prerequisite lessons
+  prerequisites: string[];
 }
 
-// Scheduled lesson with dates and completion tracking
 export interface ScheduledLesson extends Lesson {
-  scheduledDate: string; // ISO date string
+  scheduledDate: string;
   isCompleted: boolean;
-  completedDate?: string; // ISO date string when completed
-  score?: number; // 0-100
+  completedDate?: string;
+  score?: number;
   attempts?: number;
-  notes?: string; // User or AI generated notes
-  canReschedule: boolean; // Whether AI can move this lesson
+  notes?: string;
+  canReschedule: boolean;
   priority: 'low' | 'medium' | 'high';
-  estimatedCompletionTime?: number; // in minutes
-  adaptiveDifficulty?: 'easy' | 'normal' | 'hard'; // AI-adjusted difficulty
+  estimatedCompletionTime?: number;
+  adaptiveDifficulty?: 'easy' | 'normal' | 'hard';
 }
 
-// Study plan with AI management capabilities
 export interface StudyPlan {
   id: string;
   userId: string;
@@ -58,21 +54,21 @@ export interface StudyPlan {
   startDate: string;
   targetEndDate: string;
   currentStreak: number;
-  weeklyGoal: number; // lessons per week
+  weeklyGoal: number;
   isActive: boolean;
-  aiManaged: boolean; // Whether AI can automatically adjust
-  lastAIOptimization?: string; // Last time AI reorganized the plan
+  aiManaged: boolean;
+  lastAIOptimization?: string;
   preferences: {
-    preferredTimeSlots: string[]; // ['morning', 'afternoon', 'evening']
+    preferredTimeSlots: string[];
     maxLessonsPerDay: number;
     difficultyProgression: 'gradual' | 'moderate' | 'aggressive';
-    focusAreas: string[]; // categories to emphasize
-    availableDays: string[]; // days of week available for lessons
+    focusAreas: string[];
+    availableDays: string[];
   };
   statistics: {
     lessonsCompleted: number;
     averageScore: number;
-    timeSpent: number; // total minutes
+    timeSpent: number;
     currentLevel: number;
     strengthAreas: string[];
     improvementAreas: string[];
@@ -98,7 +94,6 @@ export interface LessonProgress {
   category?: string;
 }
 
-// AI Study Assistant types
 export interface AIRequest {
   type: 'reschedule' | 'difficulty' | 'add_lesson' | 'remove_lesson' | 'optimize_plan' | 'focus_change';
   parameters: Record<string, any>;
@@ -113,20 +108,18 @@ export interface AIResponse {
   suggestions?: string[];
 }
 
-// Journey animation types
 export interface JourneyAnimation {
   isPlaying: boolean;
   currentStep: number;
   totalSteps: number;
   message: string;
-  progress: number; // 0-100
+  progress: number;
 }
 
-// Braille-related types
 export interface BrailleCell {
-  dots: number[]; // Array of dot numbers that are raised (1-6)
-  char?: string; // The character representation if applicable
-  description?: string; // Description or meaning
+  dots: number[];
+  char?: string;
+  description?: string;
 }
 
 export interface BrailleDocument {
@@ -138,7 +131,6 @@ export interface BrailleDocument {
   updatedAt: string;
 }
 
-// BrailleQuest mission types
 export interface Mission {
   id: string;
   title: string;
@@ -162,7 +154,6 @@ export interface MissionSubmission {
   createdAt?: string;
 }
 
-// Arduino hardware interface
 export interface ArduinoConnection {
   isConnected: boolean;
   deviceName?: string;
@@ -170,7 +161,6 @@ export interface ArduinoConnection {
   sendPattern: (pattern: BrailleCell | BrailleCell[]) => Promise<boolean>;
 }
 
-// Speech Recognition
 export interface SpeechRecognitionResult {
   transcript: string;
   isFinal: boolean;

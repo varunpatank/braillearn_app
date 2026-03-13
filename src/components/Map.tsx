@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabase'
 import { encryptWasteData, submitEncryptedWasteData, performDataAnalysis } from '@/utils/litProtocol'
 import { useSessionSigs } from '@/hooks/useSessionSigs' 
 
-// Custom leaf icon
 const leafIcon = new L.Icon({
   iconUrl: '/leaflet/leaf-green.png',
   shadowUrl: '/leaflet/leaf-shadow.png',
@@ -34,7 +33,6 @@ export default function Map() {
 
   useEffect(() => {
     const fetchEncryptedWastePoints = async () => {
-      // Implement fetching logic from your backend or IPFS
     };
 
     fetchEncryptedWastePoints();
@@ -67,7 +65,6 @@ export default function Map() {
     const wasteData = { location, quantity };
     const encryptedData = await encryptWasteData(wasteData);
     await submitEncryptedWasteData(encryptedData);
-    // Refresh the map or add the new point
     await updateInsights();
   };
 

@@ -31,11 +31,9 @@ export const UserProfileDropdown: React.FC = () => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Cancel editing
       setIsEditing(false)
       if (user) setEditUsername(user.username)
     } else {
-      // Start editing
       setIsEditing(true)
     }
   }
@@ -74,7 +72,6 @@ export const UserProfileDropdown: React.FC = () => {
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border-2 border-gray-900 z-50"
           >
-            {/* User Info Header */}
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center border-2 border-gray-900">
@@ -125,7 +122,6 @@ export const UserProfileDropdown: React.FC = () => {
               </div>
             </div>
 
-            {/* User Stats */}
             <div className="p-4 border-b border-gray-200">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center bg-blue-50 rounded-lg p-3 border border-blue-200">
@@ -139,7 +135,6 @@ export const UserProfileDropdown: React.FC = () => {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="p-2">
               <button
                 onClick={handleSignOut}

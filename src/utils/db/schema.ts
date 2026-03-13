@@ -76,7 +76,6 @@ export const Transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Types for TypeScript
 export type User = typeof Users.$inferSelect;
 export type NewUser = typeof Users.$inferInsert;
 
@@ -95,7 +94,6 @@ export type NewWasteLocation = typeof WasteLocations.$inferInsert;
 export type Impact = typeof Impact.$inferSelect;
 export type NewImpact = typeof Impact.$inferInsert;
 
-// In-memory report type
 export type Report = {
   id: number;
   location: string;

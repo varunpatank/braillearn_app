@@ -27,7 +27,6 @@ const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ─── Braylin voice auth commands ───
   useEffect(() => {
     const onAuth = (e: Event) => {
       const action = (e as CustomEvent).detail?.action;
@@ -35,9 +34,7 @@ const Header: React.FC = () => {
         openSignIn();
         setTimeout(() => window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Sign in dialog opened. You can say "continue with Google" to sign in with Google, or fill in your details.' } })), 800);
       } else if (action === 'google') {
-        // Open sign-in modal — Clerk shows Google button automatically
         openSignIn();
-        // Try to auto-click the Google button after modal appears
         setTimeout(() => {
           const googleBtn = document.querySelector('[data-provider="google"]') as HTMLElement
             || document.querySelector('button[aria-label*="Google"]') as HTMLElement
@@ -77,7 +74,6 @@ const Header: React.FC = () => {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-4">
             <Link 
               to="/" 
@@ -99,9 +95,7 @@ const Header: React.FC = () => {
               Missions
             </Link>
 
-
-
-            <Link 
+<Link 
               to="/class-hub" 
               className={`px-3 py-2 rounded-md text-sm font-medium ${isActive('/class-hub')}`}
             >
@@ -191,7 +185,6 @@ const Header: React.FC = () => {
             </div>
           </nav>
 
-          {/* Mobile menu button */}
           <div className="flex items-center md:hidden">
             <button
               onClick={toggleMenu}
@@ -204,7 +197,6 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white shadow-lg rounded-b-lg">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
@@ -240,9 +232,7 @@ const Header: React.FC = () => {
               </div>
             </Link>
 
-
-
-            <Link
+<Link
               to="/class-hub"
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/class-hub')}`}
               onClick={closeMenu}

@@ -1,7 +1,3 @@
-/**
- * User Data Service - persists all user data to localStorage keyed by Clerk user ID.
- * Stores: lessons progress, mission XP, leaderboard position, classes managed/created.
- */
 
 export interface UserData {
   clerkId: string;

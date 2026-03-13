@@ -5,21 +5,21 @@ import { useEffect, useState } from 'react'
 const wasteIcons = [
   {
     src: 'https://img.icons8.com/color/96/000000/recycle-bin.png',
-    color: '#34D399' // Green
+    color: '#34D399'
   },
   
   {
     src: 'https://img.icons8.com/color/96/000000/paper-waste.png',
-    color: '#FBBF24' // Amber
+    color: '#FBBF24'
   },
   
   {
     src: 'https://img.icons8.com/color/96/000000/tin-can.png',
-    color: '#EF4444' // Red
+    color: '#EF4444'
   },
   {
     src: 'https://img.icons8.com/color/96/000000/cardboard-box.png',
-    color: '#F97316' // Orange
+    color: '#F97316'
   }
 ]
 
@@ -42,7 +42,7 @@ export default function FloatingWaste() {
         y: Math.random() * window.innerHeight
       },
       direction: {
-        dx: (Math.random() - 0.5) * 600, // Bigger movement
+        dx: (Math.random() - 0.5) * 600,
         dy: (Math.random() - 0.5) * 400
       },
       delay: Math.random() * 2,

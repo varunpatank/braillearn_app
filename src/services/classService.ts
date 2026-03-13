@@ -9,7 +9,6 @@ export const ClassService = {
     try {
       let image_url = classData.imageUrl || '/braille-pattern.svg';
       
-      // Upload image if provided
       if (imageFile) {
         try {
           const fileExt = imageFile.name.split('.').pop();
@@ -22,7 +21,6 @@ export const ClassService = {
             
           if (uploadError) {
             console.error('Image upload error:', uploadError);
-            // Continue with default image if upload fails
           } else {
             const { data: { publicUrl } } = supabase.storage
               .from('class-images')
@@ -32,13 +30,10 @@ export const ClassService = {
           }
         } catch (uploadError) {
           console.error('Image upload error:', uploadError);
-          // Continue with default image if upload fails
         }
       }
       
-      // Prepare the class data
       const dbClassData = {
-        // Allow null creator_id for anonymous classes
         creator_id: classData.creatorId,
         title: classData.title,
         description: classData.description,
@@ -52,7 +47,7 @@ export const ClassService = {
         level: classData.level || 'beginner',
         category: classData.category || 'General',
         max_students: classData.maxStudents || 10,
-        is_public: true, // Default to public
+        is_public: true,
         chapters: classData.chapters || [],
         tags: classData.tags || [],
         enrolled_students: [],
@@ -62,7 +57,6 @@ export const ClassService = {
 
       console.log('Attempting to insert class data:', dbClassData);
       
-      // Enable RLS bypass for anonymous access
       const { data: insertedData, error } = await supabase
         .from('classes')
         .insert([dbClassData])
@@ -81,7 +75,6 @@ export const ClassService = {
       
       console.log('Successfully inserted class:', insertedData);
       
-      // Convert response data for the application
       const responseData: BrailleClass = {
         id: insertedData.id,
         creatorId: insertedData.creator_id,
@@ -116,7 +109,6 @@ export const ClassService = {
     try {
       let imageUrl = updates.imageUrl;
       
-      // Upload new image if provided
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
@@ -135,7 +127,6 @@ export const ClassService = {
         imageUrl = publicUrl;
       }
       
-      // Update class in database
       const { data, error } = await supabase
         .from('classes')
         .update({
@@ -165,15 +156,13 @@ export const ClassService = {
     try {
       console.log('Fetching classes with filters:', filters);
       
-      // Start with a basic query
       let query = supabase
         .from('classes')
         .select('*')
         .order('created_at', { ascending: false });
       
-      // Apply filters if provided
       if (filters?.creatorId) {
-        query = query.eq('creator_id', filters.creatorId); // Note: using snake_case for DB columns
+        query = query.eq('creator_id', filters.creatorId);
       }
       
       if (filters?.level) {
@@ -185,7 +174,7 @@ export const ClassService = {
       }
       
       if (filters?.isPublic !== undefined) {
-        query = query.eq('is_public', filters.isPublic); // Note: using snake_case for DB columns
+        query = query.eq('is_public', filters.isPublic);
       }
       
       console.log('Executing database query...');
@@ -198,7 +187,6 @@ export const ClassService = {
       
       console.log('Retrieved classes:', queryData?.length || 0);
       
-      // Convert the data from snake_case to camelCase
       const formattedData = (queryData || []).map(item => ({
         id: item.id,
         creatorId: item.creator_id,
@@ -244,17 +232,14 @@ export const ClassService = {
 
   async enrollInClass(classId: string, userId: string): Promise<{ error: any }> {
     try {
-      // Get current class data
       const { data: classData, error: fetchError } = await this.getClassById(classId);
       if (fetchError) throw fetchError;
       if (!classData) throw new Error('Class not found');
       
-      // Check if class is full
       if (classData.enrolledStudents.length >= classData.maxStudents) {
         throw new Error('Class is full');
       }
       
-      // Add user to enrolled students
       const { error } = await supabase
         .from('classes')
         .update({
@@ -274,12 +259,10 @@ export const ClassService = {
 
   async unenrollFromClass(classId: string, userId: string): Promise<{ error: any }> {
     try {
-      // Get current class data
       const { data: classData, error: fetchError } = await this.getClassById(classId);
       if (fetchError) throw fetchError;
       if (!classData) throw new Error('Class not found');
       
-      // Remove user from enrolled students
       const { error } = await supabase
         .from('classes')
         .update({
@@ -299,7 +282,6 @@ export const ClassService = {
 
   async addChapter(classId: string, chapter: Omit<Chapter, 'id'>): Promise<{ data: Chapter | null; error: any }> {
     try {
-      // Get current class data to determine next chapter order
       const { data: classData, error: fetchError } = await this.getClassById(classId);
       if (fetchError) throw fetchError;
       if (!classData) throw new Error('Class not found');
@@ -312,7 +294,6 @@ export const ClassService = {
         order: nextOrder
       };
       
-      // Update class with new chapter
       const { error } = await supabase
         .from('classes')
         .update({
@@ -338,17 +319,14 @@ export const ClassService = {
     updates: Partial<Chapter>
   ): Promise<{ data: Chapter | null; error: any }> {
     try {
-      // Get current class data
       const { data: classData, error: fetchError } = await this.getClassById(classId);
       if (fetchError) throw fetchError;
       if (!classData) throw new Error('Class not found');
       
-      // Update specific chapter
       const updatedChapters = classData.chapters.map(chapter =>
         chapter.id === chapterId ? { ...chapter, ...updates } : chapter
       );
       
-      // Update class with modified chapters
       const { data: updatedClass, error } = await supabase
         .from('classes')
         .update({
@@ -373,12 +351,10 @@ export const ClassService = {
 
   async deleteChapter(classId: string, chapterId: string): Promise<{ error: any }> {
     try {
-      // Get current class data
       const { data: classData, error: fetchError } = await this.getClassById(classId);
       if (fetchError) throw fetchError;
       if (!classData) throw new Error('Class not found');
       
-      // Remove chapter and reorder remaining chapters
       const remainingChapters = classData.chapters
         .filter(chapter => chapter.id !== chapterId)
         .map((chapter, index) => ({
@@ -386,7 +362,6 @@ export const ClassService = {
           order: index + 1
         }));
       
-      // Update class without deleted chapter
       const { error } = await supabase
         .from('classes')
         .update({

@@ -5,7 +5,6 @@ import * as schema from './schema';
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://greenhero_owner:npg_FnySlHt07rEv@ep-shrill-wildflower-a6rxvt60.us-west-2.aws.neon.tech/greenhero?sslmode=require";
 
-// Use non-pooled connection for migrations
 const sql = neon(DATABASE_URL);
 const db = drizzle(sql, { schema });
 

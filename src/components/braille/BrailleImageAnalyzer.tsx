@@ -70,7 +70,6 @@ Keep your tone friendly, encouraging, and educational. If the image is unclear o
         setSelectedImage(base64Image);
         setAnalysisResult(null);
         setError(null);
-        // Auto-analyze immediately after upload
         analyzeImage(base64Image);
       };
       reader.readAsDataURL(file);
@@ -98,7 +97,6 @@ Keep your tone friendly, encouraging, and educational. If the image is unclear o
         </div>
       </div>
 
-      {/* Upload Area */}
       <div className="mb-4">
         <input
           ref={fileInputRef}
@@ -144,7 +142,6 @@ Keep your tone friendly, encouraging, and educational. If the image is unclear o
         )}
       </div>
 
-      {/* Analyzing State */}
       <AnimatePresence>
         {analyzing && (
           <motion.div
@@ -164,7 +161,6 @@ Keep your tone friendly, encouraging, and educational. If the image is unclear o
         )}
       </AnimatePresence>
 
-      {/* Error Message */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -184,7 +180,6 @@ Keep your tone friendly, encouraging, and educational. If the image is unclear o
         )}
       </AnimatePresence>
 
-      {/* AI Educational Analysis Result */}
       <AnimatePresence>
         {analysisResult && (
           <motion.div
@@ -225,7 +220,6 @@ Keep your tone friendly, encouraging, and educational. If the image is unclear o
         )}
       </AnimatePresence>
 
-      {/* Tips - only show when no image selected */}
       {!selectedImage && (
         <div className="mt-4 p-3 bg-blue-50 rounded-xl">
           <p className="text-sm text-blue-700 font-medium">💡 Tips for best results:</p>

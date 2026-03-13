@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Use Gemini API key from environment variables only
 const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 
 class GeminiService {
@@ -63,19 +62,16 @@ class GeminiService {
       const result = await this.model.generateContent('Hello, respond with just "OK" if you can hear me.');
       const response = await result.response;
       const text = response.text();
-      // return true only if model responded with OK (helps detect actual connectivity)
       return !!text && String(text).trim().toUpperCase().startsWith('OK');
     } catch (error) {
       return false;
     }
   }
 
-  // List available models for debugging
   async listAvailableModels() {
     try {
       console.log('🔍 Testing common model names manually...');
       
-      // Try some common model names with different formats (simplified for 2024/2025)
       const commonModels = [
         'gemini-1.5-flash',
         'gemini-1.5-pro',
@@ -93,7 +89,6 @@ class GeminiService {
           if (text && text.length > 0) {
             console.log(`✅ Working model found: ${modelName}`);
             
-            // Update our model to use this working one
             this.model = testModel;
             this.isInitialized = true;
             return [{ name: modelName, working: true }];
@@ -179,42 +174,36 @@ class GeminiService {
       const response = await result.response;
       const text = response.text();
       
-      // Clean the response text and extract JSON
       let cleanText = text.trim();
       
-      // Remove any markdown code blocks and clean up
       cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
       
-      // Remove any text before the first {
       const firstBrace = cleanText.indexOf('{');
       if (firstBrace > 0) {
         cleanText = cleanText.substring(firstBrace);
       }
       
-      // Remove any text after the last }
       const lastBrace = cleanText.lastIndexOf('}');
       if (lastBrace !== -1 && lastBrace < cleanText.length - 1) {
         cleanText = cleanText.substring(0, lastBrace + 1);
       }
       
-      // Clean up common JSON issues more aggressively
       cleanText = cleanText
-        .replace(/\/\/.*$/gm, '') // Remove single-line comments
-        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-        .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
-        .replace(/\n\s*\n/g, '\n') // Remove empty lines
-        .replace(/\.\.\./g, '') // Remove ellipsis
-        .replace(/,\s*,/g, ',') // Remove double commas
-        .replace(/"\s*\.\.\.\s*"/g, '""') // Remove ellipsis in strings
-        .replace(/,\s*}/g, '}') // Remove trailing comma before }
-        .replace(/,\s*]/g, ']'); // Remove trailing comma before ]
+        .replace(/\/\/.*$/gm, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/\n\s*\n/g, '\n')
+        .replace(/\.\.\./g, '')
+        .replace(/,\s*,/g, ',')
+        .replace(/"\s*\.\.\.\s*"/g, '""')
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']');
       
       try {
         return JSON.parse(cleanText);
       } catch (parseError) {
         console.warn('Initial JSON parse failed, trying fallback methods:', parseError);
         
-        // Try to extract just the main structure
         const structureMatch = cleanText.match(/\{[\s\S]*"levels"\s*:\s*\[[\s\S]*\][\s\S]*\}/);
         if (structureMatch) {
           try {
@@ -224,7 +213,6 @@ class GeminiService {
           }
         }
         
-        // If all parsing fails, throw the original error to trigger fallback
         throw parseError;
       }
       
@@ -238,7 +226,6 @@ class GeminiService {
     }
   }
 
-  // Unified chat method — prefers server-side Hack Club proxy, falls back to Google client SDK
   private async callHackClubProxy(payload: Record<string, any>) {
     try {
       const res = await fetch('/api/hackclub', {
@@ -252,7 +239,6 @@ class GeminiService {
         throw new Error(`HackClub proxy error: ${res.status} ${text}`);
       }
 
-      // return response as text — caller decides how to parse
       return await res.text();
     } catch (err) {
       console.warn('HackClub proxy unavailable or failed:', err instanceof Error ? err.message : err);
@@ -261,7 +247,6 @@ class GeminiService {
   }
 
   private async chatWithModel(messages: Array<{ role: string; content: string }>, opts?: { model?: string; temperature?: number }) {
-    // Try server-side Hack Club proxy first (keeps keys secret)
     const payload = {
       model: opts?.model || 'google/gemini-3-flash-preview',
       messages,
@@ -271,22 +256,17 @@ class GeminiService {
     try {
       const hc = await this.callHackClubProxy(payload);
 
-      // Hack Club proxy returns JSON-compatible string from the upstream model
       try {
         const parsed = JSON.parse(hc);
-        // common shape for chat completion responses: choices[0].message.content
         if (parsed?.choices && parsed.choices[0]?.message?.content) {
           return parsed.choices[0].message.content;
         }
 
-        // if response is direct text
         return typeof parsed === 'string' ? parsed : hc;
       } catch (e) {
-        // not JSON — return raw text
         return hc;
       }
     } catch (_) {
-      // Fallback to client-side GoogleGenerativeAI (existing behaviour)
       try {
         const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
         const result = await this.model.generateContent(prompt);
@@ -299,10 +279,6 @@ class GeminiService {
     }
   }
 
-  /**
-   * Create an AI-managed study plan (agentic scheduling + customization).
-   * - returns a StudyPlan-shaped object (will validate/parse JSON from model)
-   */
   async generateAgentStudyPlan(
     userId: string,
     currentLevel: number,
@@ -325,7 +301,6 @@ class GeminiService {
 
     const reply = await this.chatWithModel([systemMsg, userMsg], { model });
 
-    // Attempt to extract/parse JSON the same way generatePersonalizedStudyPlan does
     let cleanText = (reply || '').trim();
     cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     const firstBrace = cleanText.indexOf('{');
@@ -333,7 +308,6 @@ class GeminiService {
     const lastBrace = cleanText.lastIndexOf('}');
     if (lastBrace !== -1 && lastBrace < cleanText.length - 1) cleanText = cleanText.substring(0, lastBrace + 1);
 
-    // sanitize common issues
     cleanText = cleanText
       .replace(/\/\/.*$/gm, '')
       .replace(/,\s*([}\]])/g, '$1')
@@ -350,13 +324,11 @@ class GeminiService {
     }
   }
 
-  /** Optimize / reschedule an existing StudyPlan using the model */
   async optimizeStudyPlan(existingPlan: any, userFeedback: string) {
     const systemMsg = { role: 'system', content: 'You are an AI scheduler for braille learning plans.' };
     const userMsg = { role: 'user', content: `Optimize this study plan based on feedback: ${userFeedback}\n\nPlan:${JSON.stringify(existingPlan)}` };
     const reply = await this.chatWithModel([systemMsg, userMsg]);
 
-    // Model should return a JSON patch or full updated plan — attempt parse
     try {
       const json = JSON.parse(reply);
       return { success: true, updatedPlan: json };
@@ -365,7 +337,6 @@ class GeminiService {
     }
   }
 
-  /** Return feature ideas and implementation suggestions (static + AI enhanced if available) */
   async suggestFeatureIdeas(partner?: string) {
     const ideas = [
       'Adaptive daily micro-lessons that change length based on recent user accuracy',
@@ -376,12 +347,10 @@ class GeminiService {
       'Accessibility-first UIs with partner-branded onboarding and resources'
     ];
 
-    // If partner is provided, add partner-specific ideas
     if (partner?.toLowerCase().includes('washington')) {
       ideas.unshift('Washington State School for the Blind co-branded lesson packs and teacher guides');
     }
 
-    // Try to ask the model for additional ideas (non-blocking)
     try {
       const systemMsg = { role: 'system', content: 'You are a product strategist for accessible education apps.' };
       const userMsg = { role: 'user', content: `Suggest 6 concrete feature ideas we can implement for a braille-learning app${partner ? ` (partner: ${partner})` : ''}. Return a JSON array of {id,title,description,effort}.` };
@@ -393,7 +362,6 @@ class GeminiService {
     }
   }
 
-  /** Small helper to return partner branding metadata (logo path, color) */
   getPartnerBranding(partnerId: string) {
     if (!partnerId) return null;
 
@@ -413,7 +381,6 @@ class GeminiService {
   async askInstructor(question: string, context: string = '') {
     console.log('💬 AI Instructor Request:', { question, context });
 
-    // Prefer server-side proxy -> try model chat; fallback to in-app educational responses
     const systemMsg = { role: 'system', content: 'You are an empathetic braille instructor. Answer concisely.' };
     const userMsg = { role: 'user', content: `${question}\nContext: ${context}` };
     const ai = await this.chatWithModel([systemMsg, userMsg]);
@@ -422,10 +389,9 @@ class GeminiService {
   }
 
   private generateFallbackPlan(currentLevel: number, focusAreas: string[], learningStyle: string, timeAvailable: number) {
-    // Generate a basic fallback plan if AI fails
     const levels = [];
-   const totalLessonsTarget = Math.max(50, Math.min(100, timeAvailable * 2)); // 50-100 lessons based on time
-   const lessonsPerLevel = Math.ceil(totalLessonsTarget / 30); // Distribute across 30 levels
+   const totalLessonsTarget = Math.max(50, Math.min(100, timeAvailable * 2));
+   const lessonsPerLevel = Math.ceil(totalLessonsTarget / 30);
    
     for (let i = 1; i <= 30; i++) {
       const levelInfo = this.getLevelInfo(i);
@@ -552,29 +518,24 @@ class GeminiService {
     const focusArea = focusAreas[0] || 'letters';
     const exerciseTypes = ['multiple-choice', 'braille-to-text', 'text-to-braille', 'match', 'speech-to-braille'] as const;
     
-    // Generate multiple exercises per lesson for better content
     const exercises = [];
-    const exercisesPerLesson = Math.min(2 + Math.floor(level / 5), 5); // 2-5 exercises per lesson
+    const exercisesPerLesson = Math.min(2 + Math.floor(level / 5), 5);
     
     for (let i = 0; i < exercisesPerLesson; i++) {
       const currentExerciseType = exerciseTypes[i % exerciseTypes.length];
       
-      // Generate realistic braille patterns based on level
       const getBrailleForLevel = (level: number, exerciseIndex: number) => {
         if (level <= 5) {
-          // Basic letters
           const basicLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
           const letter = basicLetters[(lessonNumber - 1 + exerciseIndex) % basicLetters.length];
           return [{ dots: this.getDotsForLetter(letter), char: letter }];
         } else if (level <= 10) {
-          // Simple words
           const words = ['CAT', 'DOG', 'SUN', 'HAT', 'BAT', 'RUN'];
           const word = words[(lessonNumber - 1 + exerciseIndex) % words.length];
           return [
             ...word.split('').map(char => ({ dots: this.getDotsForLetter(char), char }))
           ];
         } else if (level <= 15) {
-          // Sentences
           const sentences = ['I AM HAPPY', 'THE CAT RAN', 'WE LIKE BOOKS'];
           const sentence = sentences[(lessonNumber - 1 + exerciseIndex) % sentences.length];
           return sentence.split('').map(char => ({ 
@@ -582,7 +543,6 @@ class GeminiService {
             char 
           }));
         } else {
-          // Advanced patterns
           const patterns = [
             [{ dots: [1, 2, 3], char: 'AND' }],
             [{ dots: [1, 2, 4, 5], char: 'FOR' }],

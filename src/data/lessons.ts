@@ -1,30 +1,24 @@
 import { Lesson, Exercise } from '../types/types';
 
-// Braille patterns matching the Arduino experiment code EXACTLY
 export const braillePatterns: Record<string, number[]> = {
-  // Letters A-Z (EXACTLY from your Arduino experiment)
   'A': [1], 'B': [1, 2], 'C': [1, 4], 'D': [1, 4, 5], 'E': [1, 5],
   'F': [1, 2, 4], 'G': [1, 2, 4, 5], 'H': [1, 2, 5], 'I': [2, 4], 'J': [2, 4, 5],
   'K': [1, 3], 'L': [1, 2, 3], 'M': [1, 3, 4], 'N': [1, 3, 4, 5], 'O': [1, 3, 5],
   'P': [1, 2, 3, 4], 'Q': [1, 2, 3, 4, 5], 'R': [1, 2, 3, 5], 'S': [2, 3, 4], 'T': [2, 3, 4, 5],
   'U': [1, 3, 6], 'V': [1, 2, 3, 6], 'W': [2, 4, 5, 6], 'X': [1, 3, 4, 6], 'Y': [1, 3, 4, 5, 6], 'Z': [1, 3, 5, 6],
 
-  // Numbers (with number prefix)
   '1': [1], '2': [1, 2], '3': [1, 4], '4': [1, 4, 5], '5': [1, 5],
   '6': [1, 2, 4], '7': [1, 2, 4, 5], '8': [1, 2, 5], '9': [2, 4], '0': [2, 4, 5],
 
-  // Punctuation
   '.': [2, 5, 6], ',': [2], '?': [2, 3, 6], '!': [2, 3, 5], "'": [3], '"': [2, 3, 5, 6],
   ':': [2, 5], ';': [2, 3], '-': [3, 6], '(': [2, 3, 6], ')': [3, 5, 6],
 
-  // Common contractions
   'AND': [1, 2, 3, 4, 6], 'FOR': [1, 2, 3, 4, 5, 6], 'OF': [1, 2, 3, 5, 6], 'THE': [2, 3, 4, 6],
   'WITH': [2, 3, 4, 5, 6], 'CH': [1, 6], 'GH': [1, 2, 6], 'SH': [1, 4, 6], 'TH': [1, 4, 5, 6],
   'WH': [1, 5, 6], 'ED': [1, 2, 4, 6], 'ER': [1, 2, 4, 5, 6], 'OU': [1, 2, 5, 6], 'OW': [2, 4, 6],
   'ST': [3, 4], 'AR': [3, 4, 5], 'ING': [3, 4, 6]
 };
 
-// Generate exercises for each lesson
 const generateExercises = (lessonType: string, content: any): Exercise[] => {
   const exercises: Exercise[] = [];
   
@@ -97,9 +91,7 @@ const generateExercises = (lessonType: string, content: any): Exercise[] => {
   return exercises;
 };
 
-// Complete lesson database
 const baseLessons: Lesson[] = [
-  // LEVEL 1: Basic Letters (Lessons 1-10)
   {
     id: 'lesson-1',
     title: 'Letter A',
@@ -240,7 +232,6 @@ const baseLessons: Lesson[] = [
     prerequisites: ['lesson-9']
   },
 
-  // LEVEL 2: Numbers and Punctuation (Lessons 11-20)
   {
     id: 'lesson-11',
     title: 'Number Sign and Digits 1-5',
@@ -442,7 +433,6 @@ const baseLessons: Lesson[] = [
     prerequisites: ['lesson-19']
   },
 
-  // LEVEL 3: Common Words and Phrases (Lessons 21-30)
   {
     id: 'lesson-21',
     title: 'Sight Words: THE, AND, FOR',
@@ -570,7 +560,6 @@ const baseLessons: Lesson[] = [
     prerequisites: ['lesson-29']
   },
 
-  // LEVEL 4: Contractions and Advanced Reading (Lessons 31-40)
   {
     id: 'lesson-31',
     title: 'Basic Contractions: AND, FOR, OF',
@@ -836,7 +825,6 @@ const baseLessons: Lesson[] = [
     prerequisites: ['lesson-39']
   },
 
-  // LEVEL 5: Advanced Skills (Lessons 41-50)
   {
     id: 'lesson-41',
     title: 'Speed Reading Techniques',
@@ -912,13 +900,49 @@ const baseLessons: Lesson[] = [
     duration: 45,
     exercises: [
       {
-        id: 'math-symbols',
+        id: 'math-symbols-add',
         type: 'multiple-choice',
         question: 'What mathematical operation does this represent?',
         options: ['Addition', 'Subtraction', 'Multiplication', 'Division'],
         correctAnswer: 'Addition',
         braillePattern: [{ dots: [2, 3, 5], char: '+' }],
         points: 20
+      },
+      {
+        id: 'math-symbols-sub',
+        type: 'multiple-choice',
+        question: 'What mathematical operation does this braille symbol represent?',
+        options: ['Addition', 'Subtraction', 'Multiplication', 'Division'],
+        correctAnswer: 'Subtraction',
+        braillePattern: [{ dots: [3, 6], char: '-' }],
+        points: 20
+      },
+      {
+        id: 'math-symbols-mul',
+        type: 'multiple-choice',
+        question: 'Identify this mathematical braille symbol:',
+        options: ['Addition', 'Subtraction', 'Multiplication', 'Equals'],
+        correctAnswer: 'Multiplication',
+        braillePattern: [{ dots: [1, 6], char: '×' }],
+        points: 20
+      },
+      {
+        id: 'math-symbols-div',
+        type: 'multiple-choice',
+        question: 'What operation is shown by this braille sign?',
+        options: ['Addition', 'Division', 'Multiplication', 'Equals'],
+        correctAnswer: 'Division',
+        braillePattern: [{ dots: [3, 4], char: '÷' }],
+        points: 20
+      },
+      {
+        id: 'math-number-sign',
+        type: 'multiple-choice',
+        question: 'In braille math, what does the number indicator (dots 3-4-5-6) tell the reader?',
+        options: ['A number follows', 'End of equation', 'A letter follows', 'Punctuation follows'],
+        correctAnswer: 'A number follows',
+        braillePattern: [{ dots: [3, 4, 5, 6], char: '#' }],
+        points: 15
       }
     ],
     prerequisites: ['lesson-41']
@@ -932,7 +956,7 @@ const baseLessons: Lesson[] = [
     duration: 50,
     exercises: [
       {
-        id: 'math-expression',
+        id: 'math-expression-1',
         type: 'braille-to-text',
         question: 'What is this mathematical expression?',
         correctAnswer: '2 + 3 = 5',
@@ -951,6 +975,58 @@ const baseLessons: Lesson[] = [
           { dots: braillePatterns['5'], char: '5' }
         ],
         points: 35
+      },
+      {
+        id: 'math-expression-2',
+        type: 'braille-to-text',
+        question: 'Read this subtraction expression:',
+        correctAnswer: '9 - 4 = 5',
+        braillePattern: [
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['9'], char: '9' },
+          { dots: [], char: ' ' },
+          { dots: [3, 6], char: '-' },
+          { dots: [], char: ' ' },
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['4'], char: '4' },
+          { dots: [], char: ' ' },
+          { dots: [2, 3, 5, 6], char: '=' },
+          { dots: [], char: ' ' },
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['5'], char: '5' }
+        ],
+        points: 35
+      },
+      {
+        id: 'math-expression-3',
+        type: 'braille-to-text',
+        question: 'What multiplication is shown here?',
+        correctAnswer: '3 X 4 = 12',
+        braillePattern: [
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['3'], char: '3' },
+          { dots: [], char: ' ' },
+          { dots: [1, 6], char: 'X' },
+          { dots: [], char: ' ' },
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['4'], char: '4' },
+          { dots: [], char: ' ' },
+          { dots: [2, 3, 5, 6], char: '=' },
+          { dots: [], char: ' ' },
+          { dots: [3, 4, 5, 6], char: '#' },
+          { dots: braillePatterns['1'], char: '1' },
+          { dots: braillePatterns['2'], char: '2' }
+        ],
+        points: 40
+      },
+      {
+        id: 'math-expression-4',
+        type: 'multiple-choice',
+        question: 'What does the equals sign look like in braille?',
+        options: ['Dots 2-3-5-6', 'Dots 1-2-3', 'Dots 4-5-6', 'Dots 1-3-5'],
+        correctAnswer: 'Dots 2-3-5-6',
+        braillePattern: [{ dots: [2, 3, 5, 6], char: '=' }],
+        points: 15
       }
     ],
     prerequisites: ['lesson-42']
@@ -964,13 +1040,54 @@ const baseLessons: Lesson[] = [
     duration: 55,
     exercises: [
       {
-        id: 'music-note',
+        id: 'music-note-c',
         type: 'multiple-choice',
         question: 'What musical note does this represent?',
         options: ['C', 'D', 'E', 'F'],
         correctAnswer: 'C',
         braillePattern: [{ dots: [1, 4, 5], char: 'C♪' }],
         points: 25
+      },
+      {
+        id: 'music-note-d',
+        type: 'multiple-choice',
+        question: 'Identify this braille music note:',
+        options: ['C', 'D', 'E', 'G'],
+        correctAnswer: 'D',
+        braillePattern: [{ dots: [1, 5], char: 'D♪' }],
+        points: 25
+      },
+      {
+        id: 'music-note-e',
+        type: 'multiple-choice',
+        question: 'What note is represented by this braille pattern?',
+        options: ['A', 'B', 'E', 'F'],
+        correctAnswer: 'E',
+        braillePattern: [{ dots: [1, 2, 4], char: 'E♪' }],
+        points: 25
+      },
+      {
+        id: 'music-rest',
+        type: 'multiple-choice',
+        question: 'What does this braille music symbol indicate?',
+        options: ['Whole rest', 'Half note', 'Quarter note', 'Repeat sign'],
+        correctAnswer: 'Whole rest',
+        braillePattern: [{ dots: [1, 3, 4], char: '𝄻' }],
+        points: 20
+      },
+      {
+        id: 'music-scale',
+        type: 'braille-to-text',
+        question: 'Read this three-note scale: C D E',
+        correctAnswer: 'C D E',
+        braillePattern: [
+          { dots: [1, 4, 5], char: 'C' },
+          { dots: [], char: ' ' },
+          { dots: [1, 5], char: 'D' },
+          { dots: [], char: ' ' },
+          { dots: [1, 2, 4], char: 'E' }
+        ],
+        points: 30
       }
     ],
     prerequisites: ['lesson-43']
@@ -984,13 +1101,60 @@ const baseLessons: Lesson[] = [
     duration: 50,
     exercises: [
       {
-        id: 'spanish-accent',
+        id: 'spanish-accent-a',
         type: 'multiple-choice',
         question: 'What Spanish character is this?',
         options: ['á', 'é', 'í', 'ó'],
         correctAnswer: 'á',
         braillePattern: [{ dots: [1, 2, 3, 5, 6], char: 'á' }],
         points: 30
+      },
+      {
+        id: 'spanish-accent-e',
+        type: 'multiple-choice',
+        question: 'Identify this accented Spanish vowel:',
+        options: ['á', 'é', 'ú', 'ñ'],
+        correctAnswer: 'é',
+        braillePattern: [{ dots: [2, 3, 4, 6], char: 'é' }],
+        points: 30
+      },
+      {
+        id: 'spanish-n-tilde',
+        type: 'multiple-choice',
+        question: 'What special Spanish letter is this?',
+        options: ['ñ', 'ü', 'á', 'ó'],
+        correctAnswer: 'ñ',
+        braillePattern: [{ dots: [1, 2, 4, 5, 6], char: 'ñ' }],
+        points: 30
+      },
+      {
+        id: 'spanish-word-hola',
+        type: 'braille-to-text',
+        question: 'Read this common Spanish greeting:',
+        correctAnswer: 'HOLA',
+        braillePattern: [
+          { dots: braillePatterns['H'], char: 'H' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['L'], char: 'L' },
+          { dots: braillePatterns['A'], char: 'A' }
+        ],
+        points: 25
+      },
+      {
+        id: 'spanish-word-gracias',
+        type: 'braille-to-text',
+        question: 'Read this Spanish "thank you":',
+        correctAnswer: 'GRACIAS',
+        braillePattern: [
+          { dots: braillePatterns['G'], char: 'G' },
+          { dots: braillePatterns['R'], char: 'R' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['C'], char: 'C' },
+          { dots: braillePatterns['I'], char: 'I' },
+          { dots: braillePatterns['A'], char: 'A' },
+          { dots: braillePatterns['S'], char: 'S' }
+        ],
+        points: 35
       }
     ],
     prerequisites: ['lesson-44']
@@ -1074,13 +1238,54 @@ const baseLessons: Lesson[] = [
     duration: 40,
     exercises: [
       {
-        id: 'whole-word-contraction',
+        id: 'whole-word-about',
         type: 'multiple-choice',
         question: 'What word does this contraction represent?',
         options: ['ABOUT', 'ABOVE', 'ACROSS', 'AFTER'],
         correctAnswer: 'ABOUT',
         braillePattern: [{ dots: [1, 2], char: 'ABOUT' }],
         points: 25
+      },
+      {
+        id: 'whole-word-above',
+        type: 'multiple-choice',
+        question: 'Identify the word this whole-word contraction stands for:',
+        options: ['ALMOST', 'ABOVE', 'ALSO', 'ALWAYS'],
+        correctAnswer: 'ABOVE',
+        braillePattern: [{ dots: [1], char: 'ABOVE' }],
+        points: 25
+      },
+      {
+        id: 'whole-word-after',
+        type: 'multiple-choice',
+        question: 'What word is represented by this contraction?',
+        options: ['AGAIN', 'AFTER', 'ALSO', 'ALREADY'],
+        correctAnswer: 'AFTER',
+        braillePattern: [{ dots: [1, 2, 4], char: 'AFTER' }],
+        points: 25
+      },
+      {
+        id: 'whole-word-could',
+        type: 'multiple-choice',
+        question: 'This contraction represents which word?',
+        options: ['COULD', 'COME', 'CAN', 'CHILD'],
+        correctAnswer: 'COULD',
+        braillePattern: [{ dots: [1, 4], char: 'COULD' }],
+        points: 25
+      },
+      {
+        id: 'whole-word-sentence',
+        type: 'braille-to-text',
+        question: 'Read this sentence using contractions:',
+        correctAnswer: 'THE AND FOR',
+        braillePattern: [
+          { dots: braillePatterns['THE'], char: 'THE' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['AND'], char: 'AND' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['FOR'], char: 'FOR' }
+        ],
+        points: 35
       }
     ],
     prerequisites: ['lesson-47']
@@ -1094,13 +1299,56 @@ const baseLessons: Lesson[] = [
     duration: 45,
     exercises: [
       {
-        id: 'document-structure',
+        id: 'doc-paragraph',
         type: 'multiple-choice',
         question: 'What does this formatting symbol indicate?',
         options: ['New paragraph', 'Page break', 'Chapter heading', 'Footnote'],
         correctAnswer: 'New paragraph',
         braillePattern: [{ dots: [5], char: '¶' }],
         points: 20
+      },
+      {
+        id: 'doc-heading',
+        type: 'multiple-choice',
+        question: 'In braille documents, how is a centered heading indicated?',
+        options: ['Centered on line with blank lines above and below', 'Bold dots', 'All capitals', 'Underline symbol'],
+        correctAnswer: 'Centered on line with blank lines above and below',
+        braillePattern: [{ dots: [5, 5], char: '§' }],
+        points: 20
+      },
+      {
+        id: 'doc-page-number',
+        type: 'multiple-choice',
+        question: 'Where are page numbers placed in a braille document?',
+        options: ['Top right corner', 'Bottom center', 'Top left corner', 'Bottom right corner'],
+        correctAnswer: 'Top right corner',
+        braillePattern: [{ dots: [3, 4, 5, 6], char: '#' }],
+        points: 20
+      },
+      {
+        id: 'doc-indent',
+        type: 'multiple-choice',
+        question: 'How many cells is a standard paragraph indent in braille?',
+        options: ['2 cells', '4 cells', '1 cell', '5 cells'],
+        correctAnswer: '2 cells',
+        braillePattern: [{ dots: [], char: '  ' }],
+        points: 15
+      },
+      {
+        id: 'doc-title-read',
+        type: 'braille-to-text',
+        question: 'Read this document title:',
+        correctAnswer: 'MY BOOK',
+        braillePattern: [
+          { dots: braillePatterns['M'], char: 'M' },
+          { dots: braillePatterns['Y'], char: 'Y' },
+          { dots: [], char: ' ' },
+          { dots: braillePatterns['B'], char: 'B' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['O'], char: 'O' },
+          { dots: braillePatterns['K'], char: 'K' }
+        ],
+        points: 30
       }
     ],
     prerequisites: ['lesson-48']
@@ -1174,11 +1422,9 @@ const baseLessons: Lesson[] = [
   }
 ];
 
-// Generate extended lessons for levels 6-30
 const generateExtendedLessons = (): Lesson[] => {
   const extendedLessons: Lesson[] = [];
   
-  // Level 6-10: Advanced Basics
   const level6to10Topics = [
     { topic: 'Capitalization', question: 'What does this capitalization symbol indicate?', options: ['Capital letter follows', 'All caps word', 'Proper noun', 'Emphasis'], correct: 'Capital letter follows', pattern: [6] },
     { topic: 'Number Signs', question: 'What follows the number sign?', options: ['Letters', 'Numbers', 'Punctuation', 'Spaces'], correct: 'Numbers', pattern: [3, 4, 5, 6] },
@@ -1187,7 +1433,6 @@ const generateExtendedLessons = (): Lesson[] => {
     { topic: 'Foreign Alphabet', question: 'What indicates foreign alphabet usage?', options: ['Special prefix', 'Different dots', 'Capital marker', 'Number sign'], correct: 'Special prefix', pattern: [4] }
   ];
   
-  // Level 11-15: Advanced Words  
   const level11to15Topics = [
     { topic: 'Compound Words', question: 'How should this compound word be read?', options: ['As one word', 'As two words', 'With hyphen', 'Separately spaced'], correct: 'As one word', pattern: [1, 2, 3] },
     { topic: 'Abbreviations', question: 'What does this abbreviation stand for?', options: ['Doctor', 'Department', 'December', 'Degree'], correct: 'Doctor', pattern: [1, 4] },
@@ -1196,7 +1441,6 @@ const generateExtendedLessons = (): Lesson[] => {
     { topic: 'Academic Vocabulary', question: 'This academic term is used in:', options: ['Mathematics', 'Science', 'Literature', 'History'], correct: 'Mathematics', pattern: [1, 3, 4, 6] }
   ];
   
-  // Level 16-20: Complex Sentences
   const level16to20Topics = [
     { topic: 'Dialogue Format', question: 'How is spoken dialogue indicated?', options: ['Quotation marks', 'Special indent', 'Bold text', 'Italics'], correct: 'Quotation marks', pattern: [2, 3, 6] },
     { topic: 'Poetry Structure', question: 'What indicates a new line in poetry?', options: ['Line break symbol', 'Special spacing', 'Indent marker', 'Stanza break'], correct: 'Line break symbol', pattern: [5] },
@@ -1205,7 +1449,6 @@ const generateExtendedLessons = (): Lesson[] => {
     { topic: 'Mathematical Expressions', question: 'How are mathematical equations formatted?', options: ['Special math mode', 'Standard text', 'Number format', 'Symbol replacement'], correct: 'Special math mode', pattern: [4, 5] }
   ];
   
-  // Level 21-25: Advanced Contractions
   const level21to25Topics = [
     { topic: 'Grade 2 Contractions', question: 'What word does this grade 2 contraction represent?', options: ['KNOWLEDGE', 'THROUGH', 'ENOUGH', 'OUGHT'], correct: 'KNOWLEDGE', pattern: [1, 3] },
     { topic: 'Part-word Contractions', question: 'This contraction represents which word part?', options: ['-ING', '-TION', '-NESS', '-MENT'], correct: '-ING', pattern: [3, 4, 6] },
@@ -1214,7 +1457,6 @@ const generateExtendedLessons = (): Lesson[] => {
     { topic: 'Short-form Words', question: 'What complete word does this represent?', options: ['CHILDREN', 'CHARACTER', 'KNOWLEDGE', 'THROUGH'], correct: 'CHILDREN', pattern: [1, 6] }
   ];
   
-  // Level 26-30: Professional/Academic
   const level26to30Topics = [
     { topic: 'Scientific Notation', question: 'How is scientific notation expressed?', options: ['Superscript format', 'Special symbols', 'Standard notation', 'Abbreviated form'], correct: 'Special symbols', pattern: [4, 5, 6] },
     { topic: 'Legal Documents', question: 'What indicates legal formatting?', options: ['Special indentation', 'Bold headers', 'Number systems', 'Citation format'], correct: 'Citation format', pattern: [2, 4, 6] },
@@ -1232,7 +1474,7 @@ const generateExtendedLessons = (): Lesson[] => {
     const lessonsPerLevel = Math.min(3 + Math.floor(level / 10), 5);
     
     for (let i = 0; i < lessonsPerLevel; i++) {
-      const lessonNumber = (level - 6) * 5 + i + 51; // Start from lesson 51
+      const lessonNumber = (level - 6) * 5 + i + 51;
       const topicIndex = ((level - 6) * 5 + i) % allTopics.length;
       const topic = allTopics[topicIndex];
       
@@ -1278,11 +1520,9 @@ const generateExtendedLessons = (): Lesson[] => {
   return extendedLessons;
 };
 
-// Generate themed adventure lessons for more engaging learning
 const generateThemedAdventureLessons = (): Lesson[] => {
   const adventureLessons: Lesson[] = [];
   
-  // Space Explorer Theme (Levels 1-5)
   const spaceTheme = [
     {
       title: '🚀 Space Launch: Letter Training',
@@ -1321,7 +1561,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
     }
   ];
 
-  // Ocean Adventure Theme (Levels 1-5)
   const oceanTheme = [
     {
       title: '🐠 Coral Reef Explorer',
@@ -1360,7 +1599,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
     }
   ];
 
-  // Safari Adventure Theme (Levels 1-5)
   const safariTheme = [
     {
       title: '🦁 Safari Starter',
@@ -1399,7 +1637,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
     }
   ];
 
-  // Superhero Academy Theme (Levels 3-7)
   const superheroTheme = [
     {
       title: '⚡ Hero Academy Orientation',
@@ -1438,7 +1675,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
     }
   ];
 
-  // Wizard School Theme (Levels 5-10)
   const wizardTheme = [
     {
       title: '🧙 Wizard School Welcome',
@@ -1484,7 +1720,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
     }
   ];
 
-  // Detective Agency Theme (Levels 8-15)
   const detectiveTheme = [
     {
       title: '🔍 Detective Training',
@@ -1530,7 +1765,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
     }
   ];
 
-  // Combine all themed lessons
   const allThemes = [...spaceTheme, ...oceanTheme, ...safariTheme, ...superheroTheme, ...wizardTheme, ...detectiveTheme];
   
   allThemes.forEach((theme, index) => {
@@ -1547,7 +1781,6 @@ const generateThemedAdventureLessons = (): Lesson[] => {
       points: 15 + (theme.level * 2)
     }));
 
-    // Add story context exercise
     exercises.push({
       id: `${lessonId}-story`,
       type: 'multiple-choice' as const,
@@ -1573,20 +1806,16 @@ const generateThemedAdventureLessons = (): Lesson[] => {
   return adventureLessons;
 };
 
-// Export all lessons combined
 export const lessons: Lesson[] = [...baseLessons, ...generateExtendedLessons(), ...generateThemedAdventureLessons()];
 
-// Helper function to get lesson by ID
 export const getLessonById = (id: string): Lesson | undefined => {
   return lessons.find(lesson => lesson.id === id);
 };
 
-// Helper function to get lessons by category
 export const getLessonsByCategory = (category: string): Lesson[] => {
   return lessons.filter(lesson => lesson.category === category);
 };
 
-// Helper function to get lessons by level
 export const getLessonsByLevel = (level: number): Lesson[] => {
   return lessons.filter(lesson => lesson.level === level);
 };

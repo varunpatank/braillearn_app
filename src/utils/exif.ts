@@ -1,5 +1,3 @@
-// Minimal EXIF GPS extractor (JPEG-only, best-effort)
-// Returns { latitude, longitude } or null when not present.
 export async function parseExifGps(file: File): Promise<{ latitude: number; longitude: number } | null> {
   if (!file || !(file.type?.includes('jpeg') || file.type?.includes('jpg'))) return null;
   const buffer = await file.arrayBuffer();
@@ -8,7 +6,6 @@ export async function parseExifGps(file: File): Promise<{ latitude: number; long
   const readUint16 = (off: number, little = false) => view.getUint16(off, little);
   const readUint32 = (off: number, little = false) => view.getUint32(off, little);
 
-  // check JPEG SOI
   if (readUint16(0) !== 0xffd8) return null;
 
   let offset = 2;
@@ -17,7 +14,6 @@ export async function parseExifGps(file: File): Promise<{ latitude: number; long
     const marker = view.getUint8(offset + 1);
     const len = readUint16(offset + 2, false);
 
-    // APP1 / EXIF
     if (marker === 0xe1) {
       const exifHeader = String.fromCharCode(
         view.getUint8(offset + 4),
@@ -40,7 +36,7 @@ export async function parseExifGps(file: File): Promise<{ latitude: number; long
           const entry = ifd0 + 2 + i * 12;
           const tag = readUint16(entry, little);
           const value = readUint32(entry + 8, little);
-          if (tag === 0x8825) { // GPSInfo IFD pointer
+          if (tag === 0x8825) {
             gpsPointer = tiffStart + value;
             break;
           }
@@ -57,25 +53,22 @@ export async function parseExifGps(file: File): Promise<{ latitude: number; long
         for (let i = 0; i < gpsEntries; i++) {
           const entry = gpsPointer + 2 + i * 12;
           const tag = readUint16(entry, little);
-          /* type and count not required for GPS extraction */
           const valOffset = readUint32(entry + 8, little);
 
-          if (tag === 0x0001) { // GPSLatitudeRef
-            // short ASCII (N/S)
+          if (tag === 0x0001) {
             const charCode = view.getUint8(entry + 8);
             latRef = String.fromCharCode(charCode);
-          } else if (tag === 0x0003) { // GPSLongitudeRef
+          } else if (tag === 0x0003) {
             const charCode = view.getUint8(entry + 8);
             lonRef = String.fromCharCode(charCode);
-          } else if (tag === 0x0002) { // GPSLatitude (3 rationals)
+          } else if (tag === 0x0002) {
             latOffset = tiffStart + valOffset;
-          } else if (tag === 0x0004) { // GPSLongitude (3 rationals)
+          } else if (tag === 0x0004) {
             lonOffset = tiffStart + valOffset;
           }
         }
 
         const readRational = (off: number) => {
-          // rational = uint32 / uint32
           const num = readUint32(off, little);
           const den = readUint32(off + 4, little);
           return den === 0 ? 0 : num / den;

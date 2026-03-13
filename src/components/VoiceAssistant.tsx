@@ -4,13 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, X, Volume2, VolumeX, Bot } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 
-// ═══════════════════════════════════════════════════════
-//  BRAYLIN — Always-listening BrailleLearn voice robot
-//  No wake word needed — Braylin hears every command.
-//  Compact, sleek UI. Commands for every feature.
-// ═══════════════════════════════════════════════════════
-
-// ─── Page routes ───
 const ROUTE_MAP: { keywords: string[]; path: string; label: string; desc: string }[] = [
   { keywords: ['home', 'main', 'start', 'beginning', 'welcome', 'front page', 'homepage', 'landing'], path: '/', label: 'Home', desc: 'the home page' },
   { keywords: ['learn', 'lesson', 'study', 'course', 'dashboard', 'learning', 'curriculum', 'schedule'], path: '/learn', label: 'Learn', desc: 'the learning dashboard' },
@@ -24,7 +17,6 @@ const ROUTE_MAP: { keywords: string[]; path: string; label: string; desc: string
   { keywords: ['access', 'accessibility', 'preferences', 'customize', 'settings', 'accessible'], path: '/accessibility', label: 'Accessibility', desc: 'accessibility settings' },
 ];
 
-// ─── Schedule / AI agent keywords ───
 const AI_AGENT_KEYWORDS = [
   'add', 'remove', 'change', 'edit', 'modify', 'update',
   'more time', 'less time', 'extend', 'shorten',
@@ -37,7 +29,6 @@ const AI_AGENT_KEYWORDS = [
   'focus on', 'skip', 'prioritize', 'reorder', 'rearrange',
 ];
 
-// ─── Wizard keywords ───
 const WIZARD_KEYWORDS = [
   'create a plan', 'make a plan', 'make me a plan', 'study plan',
   'make a study plan', 'create study plan', 'new plan', 'build a plan',
@@ -48,14 +39,13 @@ const WIZARD_KEYWORDS = [
   'set up my schedule', 'create a schedule', 'make me a schedule',
 ];
 
-// ─── Page narrations ───
 const PAGE_NARRATIONS: Record<string, string> = {
   '/': 'Home page. Say "start learning", "connect hardware", "go to missions", or "help" for all commands.',
   '/learn': 'Learning Dashboard. Say "view lessons" to hear your lessons for today. "Overview", "lessons", or "practice" tab. "Start lesson" to begin. "Edit schedule" to change your plan. Say a day name like "Monday" to switch days.',
   '/practice': 'Practice page. Say a mode name: Lightning Reader, Precision Master, Pattern Detective, Braille Architect, Marathon Master, Memory Champion, Speed Demon, or Pattern Ninja.',
   '/speech-to-braille': 'Speech to Braille converter. Just speak text to convert it.',
   '/hardware-setup': 'Hardware Setup. Say "setup tab", "test tab", or "troubleshoot tab".',
-  '/class-hub': 'Class Hub. Say "tutors", "classes", "dashboard", "resources". "Create class", "join class", "open meeting", or "view stats".',
+  '/class-hub': 'Class Hub. Say "my classes", "browse classes", or "tutors" to switch tabs. "Create class", "create lesson", "create diagram", "become tutor", "join class", "start meeting", "analytics", "students", "overview", "back to hub", or "help" for all commands.',
   '/braillequest': 'BrailleQuest missions! Say "next mission", "leaderboard", "rewards", "badges", "achievements". Say "level 1" through "level 6" to filter. "Submit", "take photo", "view lesson", "next section", "previous section", "read this", or "close".',
   '/about': 'About page. Say "mission", "hardware", "design", "features", or "tech".',
   '/statistics': 'Statistics dashboard.',
@@ -91,10 +81,8 @@ const VoiceAssistant: React.FC = () => {
   const livePreviewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mutedRef = useRef(false);
 
-  // ─── Speak (Braylin's voice) ───
   const speak = useCallback((text: string): Promise<void> => {
     return new Promise((resolve) => {
-      // If muted, skip speech entirely
       if (mutedRef.current) { resolve(); return; }
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -109,7 +97,6 @@ const VoiceAssistant: React.FC = () => {
       utterance.onstart = () => { hasUserGestureRef.current = true; setIsSpeaking(true); isSpeakingRef.current = true; };
       utterance.onend = () => {
         setIsSpeaking(false); isSpeakingRef.current = false;
-        // Auto-restart listening after speaking finishes
         if (alwaysListenRef.current) {
           setTimeout(() => {
             if (alwaysListenRef.current && !isSpeakingRef.current && !isListeningRef.current) {
@@ -121,7 +108,6 @@ const VoiceAssistant: React.FC = () => {
       };
       utterance.onerror = (e) => {
         setIsSpeaking(false); isSpeakingRef.current = false;
-        // If speech was blocked (no user gesture yet), queue it for later
         if (!hasUserGestureRef.current && (e as any).error === 'not-allowed') {
           pendingGreetRef.current = text;
         }
@@ -131,7 +117,6 @@ const VoiceAssistant: React.FC = () => {
     });
   }, []);
 
-  // ─── Recognition (always-on, continuous) ───
   const setListening = useCallback((val: boolean) => {
     isListeningRef.current = val;
     setIsListening(val);
@@ -139,7 +124,7 @@ const VoiceAssistant: React.FC = () => {
 
   const startListeningInternal = useCallback(() => {
     if (isSpeakingRef.current) return;
-    if (isListeningRef.current) return; // already listening, skip
+    if (isListeningRef.current) return;
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
 
@@ -154,7 +139,6 @@ const VoiceAssistant: React.FC = () => {
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: any) => {
-      // If we're getting results, mic access is confirmed
       hasUserGestureRef.current = true;
       let finalText = '';
       let interimText = '';
@@ -165,7 +149,6 @@ const VoiceAssistant: React.FC = () => {
           interimText += event.results[i][0].transcript;
         }
       }
-      // Show live preview of what user is saying
       const previewText = finalText || interimText;
       setTranscript(previewText);
       setInterimTranscript(interimText);
@@ -175,7 +158,6 @@ const VoiceAssistant: React.FC = () => {
         livePreviewTimeoutRef.current = setTimeout(() => setShowLivePreview(false), 3000);
       }
       if (finalText) {
-        // Flash the final text briefly, then fade
         if (livePreviewTimeoutRef.current) clearTimeout(livePreviewTimeoutRef.current);
         livePreviewTimeoutRef.current = setTimeout(() => { setShowLivePreview(false); setInterimTranscript(''); }, 2000);
         handleCommandRef.current(finalText.trim());
@@ -184,21 +166,19 @@ const VoiceAssistant: React.FC = () => {
 
     recognition.onerror = (event: any) => {
       if (event.error === 'no-speech' || event.error === 'aborted') return;
-      // Permission denied or other error — mark not listening
       recognitionRef.current = null;
       setListening(false);
     };
 
     recognition.onend = () => {
       recognitionRef.current = null;
-      isListeningRef.current = false; // allow restart
+      isListeningRef.current = false;
       if (alwaysListenRef.current && !isSpeakingRef.current) {
-        // DON'T call setIsListening(false) — avoids the visual flicker
         restartTimeoutRef.current = setTimeout(() => {
           if (alwaysListenRef.current && !isSpeakingRef.current) startListeningInternal();
         }, 300);
       } else {
-        setIsListening(false); // only update UI when actually stopping
+        setIsListening(false);
       }
     };
 
@@ -210,10 +190,8 @@ const VoiceAssistant: React.FC = () => {
     }
   }, [setListening]);
 
-  // ─── Handle any voice command (no wake word needed) ───
   const handleCommand = useCallback(async (text: string) => {
     const lower = text.toLowerCase().trim();
-    // Strip conversational prefixes so "can I edit my plan" → "edit my plan"
     const stripped = lower
       .replace(/^(hey\s+)?braylin[,]?\s*/i, '')
       .replace(/^(can (you|i|we)|could (you|i|we)|would (you|i)|will (you|i)|i('d| would) like (to|you to)?|i want (to|you to)?|i need (to|you to)?|i('d| would) love to|let me|let's|help me|please|show me|take me (to)?|bring me (to)?|navigate\s*(me\s*)?(to)?|go\s*(to)?|(switch|change)\s*(to|over to)?|open\s*(up)?|give me|tell me (about)?|how (do|can) (i|you)|where (is|are|can i find)|what (is|are|about))\s*/i, '')
@@ -223,12 +201,10 @@ const VoiceAssistant: React.FC = () => {
     setLastCommand(text);
     setStatus(`"${text}"`);
 
-    // ─── Mute / unmute Braylin ───
     if (/\b(mute|shut up|quiet|stop talking|silence|be quiet|hush)\b/.test(lower)) {
       window.speechSynthesis.cancel();
       mutedRef.current = true;
       setIsMuted(true);
-      // Stop mic too
       alwaysListenRef.current = false;
       if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { /* */ }
@@ -246,7 +222,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Help ───
     if (/\b(what can you do|help|commands|list commands|what do you do|how does this work|what are my options|what should i say)\b/.test(lower)) {
       await speak(
         'I\'m Braylin, your hands-free guide. Everything works by voice! ' +
@@ -254,7 +229,7 @@ const VoiceAssistant: React.FC = () => {
         'Learn tabs: "overview", "lessons", "practice". "Edit schedule", "reset plan", "make me a study plan". ' +
         '"Select Monday" through "Sunday" to pick a day. ' +
         'Missions: "next mission", "leaderboard", "rewards", "badges", "level 1" to "level 6", "submit", "close". ' +
-        'Class Hub: "tutors", "classes", "dashboard", "resources", "create class", "view stats", "open meeting". ' +
+        'Class Hub: "my classes", "browse classes", "tutors" for hub tabs. "Dashboard" to view first class. Dashboard tabs: "overview", "lessons", "diagrams", "students", "meetings", "analytics". Actions: "create class", "create lesson", "create diagram", "become tutor", "start meeting", "join class", "view stats", "back to hub". ' +
         'Practice: say any game name like "Lightning Reader" or "Speed Demon", then "start game". ' +
         'Auth: "sign in", "continue with google", "sign out". ' +
         'For popups, say "OK", "yes", or "confirm" to continue, or "no", "close", "dismiss" to cancel. ' +
@@ -264,7 +239,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Where am I ───
     if (/\b(where am i|where are we|what page|current page|which page|what screen|what's this page)\b/.test(lower)) {
       if (/^\/learn\/.+/.test(location.pathname)) {
         await speak('You\'re in a lesson. Say "repeat pattern" for the braille dots, "read question" for the question, or "exit" to go back.');
@@ -275,7 +249,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Sign in / Sign out / Continue with Google ───
     if (/\b(sign in|log in|login|sign me in|i want to log in|get me signed in|authenticate)\b/.test(lower)) {
       setStatus('Opening sign in...');
       await speak('Opening the sign in dialog. Say "continue with Google" to sign in with Google.');
@@ -305,14 +278,12 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Read schedule ───
     if (/\b(what('s| is) on (my |the )?schedule|today('s| s) (lesson|schedule)|my schedule|read (my )?schedule|what('s| do i) (have )?today|what should i (study|learn|do)|show (my )?schedule|what lessons do i have|what am i studying|my lessons for today)\b/.test(lower)) {
       window.dispatchEvent(new CustomEvent('braylin-read-schedule'));
       setTranscript('');
       return;
     }
 
-    // ─── Edit schedule (go to lessons tab, ask what to change) ───
     if (/\b(edit|change|modify|update|adjust|fix|rearrange|tweak|customize|manage)\s*(my\s*)?(schedule|plan|lessons?|week|study|curriculum)?\b/.test(lower) && /\b(edit|change|modify|update|adjust|fix|rearrange|tweak|customize|manage)\b/.test(lower) && !/\b(next|go|navigate)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
@@ -321,7 +292,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Reset plan ───
     if (/\b(reset\s*(my\s*)?(plan|schedule)|clear\s*(my\s*)?(plan|schedule)|start\s*over|new\s*plan)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-learn-action', { detail: { action: 'reset-plan' } }));
@@ -330,7 +300,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Select day in schedule (Mon-Sun) ───
     if (/\b(select|pick|choose|show)\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(lower)) {
       const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
       if (dayMatch) {
@@ -342,7 +311,6 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ─── Study plan wizard ───
     if (WIZARD_KEYWORDS.some(kw => lower.includes(kw))) {
       if (location.pathname !== '/learn') {
         await speak('Going to Learn to create your plan.');
@@ -359,7 +327,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Wizard answers (level) ───
     if (/\b(brand new|some basics)\b/.test(lower) || /^(beginner|intermediate|advanced|expert)$/i.test(stripped)) {
       const levelMap: Record<string, { val: number; label: string }> = {
         'brand new': { val: 1, label: 'Brand New' },
@@ -379,7 +346,6 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ─── Wizard answers (style) ───
     const styleMatch = stripped.match(/^(visual|tactile|auditory|kinesthetic|mixed)$/);
     if (styleMatch) {
       window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-style', value: styleMatch[1] } }));
@@ -388,7 +354,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Wizard answers (focus) ───
     if (/^(fundamentals|words|vocabulary|sentences|contractions|writing|everything)$/i.test(stripped)) {
       const focusMap: Record<string, string> = { 'fundamentals': 'basics', 'words': 'words', 'vocabulary': 'words', 'sentences': 'sentences', 'contractions': 'contractions', 'writing': 'writing', 'everything': 'all' };
       const key = Object.keys(focusMap).find(k => stripped.includes(k));
@@ -400,7 +365,6 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ─── Wizard answers (time) ───
     if (/\b(15 min|30 min|1 hour|one hour|60 min|half hour)\b/.test(lower)) {
       let m = '30';
       if (/15/.test(lower)) m = '15';
@@ -411,7 +375,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Wizard answers (difficulty) ───
     if (/^(easy|medium|hard)$/i.test(stripped)) {
       const map: Record<string, string> = { 'easy': 'beginner', 'medium': 'intermediate', 'hard': 'advanced' };
       window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'set-difficulty', value: map[stripped] || 'intermediate' } }));
@@ -420,7 +383,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Wizard answers (days) ───
     if (/\b(every day|weekday|weekend)\b/.test(lower) || /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(lower)) {
       let days: string[] = [];
       if (/every\s*day/.test(lower)) days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -436,7 +398,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Wizard confirm ───
     if (/\b(confirm|generate|create it|build it|go ahead|do it|generate my plan)\b/.test(lower)) {
       window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'generate' } }));
       await speak('Generating your study plan now.');
@@ -444,9 +405,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ═══════════════════════════════════════
-    //  SUB-TAB COMMANDS — Learn page
-    // ═══════════════════════════════════════
     if (/\b(overview\s*tab|overview\s*in\s*learn|show\s*overview)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'overview' } }));
@@ -468,7 +426,6 @@ const VoiceAssistant: React.FC = () => {
       setTranscript('');
       return;
     }
-    // Learn lessons sub-tabs
     if (/\b(browse\s*tab|browse\s*all|all\s*lessons?)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'browse' } }));
@@ -484,7 +441,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── View lessons (read them out) ───
     if (/\b(view\s*(my\s*)?lessons?|read\s*(my\s*)?lessons?|what\s*(are\s*)?(my\s*)?lessons?|list\s*(my\s*)?lessons?|show\s*(my\s*)?lessons?|what('s| is)\s*(on|for)\s*(my\s*)?(today|this week)|tell me (about )?my lessons?)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
@@ -496,7 +452,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Start lesson (for a specific day or today) ───
     if (/\b(start\s*(a\s*)?lesson|begin\s*(a\s*)?lesson|launch\s*lesson)\b/.test(lower)) {
       await ensurePage('/learn', 'Learn');
       const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|today)\b/);
@@ -506,21 +461,18 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Repeat braille pattern (while in a lesson) ───
     if (/\b(repeat\s*(the\s*)?(pattern|dots|braille)|what\s*(are\s*)?(the\s*)?(dots|pattern))\b/.test(lower) && /^\/learn\/.+/.test(location.pathname)) {
       window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'repeat-pattern' } }));
       setTranscript('');
       return;
     }
 
-    // ─── Read question (while in a lesson) ───
     if (/\b(read\s*(the\s*)?question|what('s| is)\s*(the\s*)?question|repeat\s*question)\b/.test(lower) && /^\/learn\/.+/.test(location.pathname)) {
       window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'read-question' } }));
       setTranscript('');
       return;
     }
 
-    // ─── Answer by voice in a lesson ───
     if (/\b(answer|my answer is|i think it's|it's|the answer is)\s+(.+)/i.test(lower) && /^\/learn\/.+/.test(location.pathname)) {
       const answerMatch = lower.match(/\b(?:answer|my answer is|i think it's|it's|the answer is)\s+(.+)/i);
       if (answerMatch) {
@@ -530,7 +482,6 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ─── Select day by just saying the day name (for lesson view) ───
     if (/^(today|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i.test(stripped)) {
       if (location.pathname === '/learn') {
         const day = stripped === 'today' ? undefined : stripped;
@@ -546,9 +497,6 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ═══════════════════════════════════════
-    //  SUB-TAB COMMANDS — BrailleQuest / Missions
-    // ═══════════════════════════════════════
     if (/\b(xp|experience|xp\s*progress)\b/.test(lower) && !(/\b(navigate|go)\b/.test(lower))) {
       await ensurePage('/braillequest', 'BrailleQuest');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'braillequest', tab: 'xp' } }));
@@ -605,7 +553,6 @@ const VoiceAssistant: React.FC = () => {
       setTranscript('');
       return;
     }
-    // Mission category filters
     if (/\b(signage|transport|food|education|public|medical|recreation|government)\s*(missions?|category|filter)?\b/.test(lower)) {
       const catMatch = lower.match(/\b(signage|transport|food|education|public|medical|recreation|government)\b/);
       if (catMatch) {
@@ -624,9 +571,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ═══════════════════════════════════════
-    //  SUB-TAB COMMANDS — Class Hub
-    // ═══════════════════════════════════════
     if (/\b(tutors?\s*tab|show\s*tutors?|browse\s*tutors?|find\s*tutor)\b/.test(lower)) {
       await ensurePage('/class-hub', 'Class Hub');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'tutors' } }));
@@ -641,12 +585,89 @@ const VoiceAssistant: React.FC = () => {
       setTranscript('');
       return;
     }
+    if (/\b(browse\s*(all\s*)?(classes|courses)|public\s*classes|available\s*classes)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'browse' } }));
+      await speak('Browsing public classes.');
+      setTranscript('');
+      return;
+    }
     if (/\b(class\s*)?dashboard\s*tab\b/.test(lower) && (location.pathname === '/class-hub' || /class/i.test(lower))) {
       await ensurePage('/class-hub', 'Class Hub');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'dashboard' } }));
-      await speak('Showing class dashboard.');
+      await speak('Opening class dashboard.');
       setTranscript('');
       return;
+    }
+    if (/\b(overview\s*(tab)?)\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'overview' } }));
+      await speak('Switched to overview.');
+      setTranscript(''); return;
+    }
+    if (/\b(lessons?\s*(tab)?)\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'lessons' } }));
+      await speak('Switched to lessons.');
+      setTranscript(''); return;
+    }
+    if (/\b(diagrams?\s*(tab)?)\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'diagrams' } }));
+      await speak('Switched to diagrams.');
+      setTranscript(''); return;
+    }
+    if (/\b(students?\s*(tab)?)\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'students' } }));
+      await speak('Switched to students.');
+      setTranscript(''); return;
+    }
+    if (/\b(meetings?\s*(tab)?)\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'meetings' } }));
+      await speak('Switched to meetings.');
+      setTranscript(''); return;
+    }
+    if (/\b(analytics\s*(tab)?|stats\s*(tab)?|statistics)\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'analytics' } }));
+      await speak('Switched to analytics.');
+      setTranscript(''); return;
+    }
+    if (/\b(create\s*(a\s*)?class|new\s*class|start\s*(a\s*)?class|add\s*(a\s*)?class)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'create-class' } }));
+      await speak('Opening create class dialog. Fill in the title, description, and level.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(create\s*(a\s*)?(lesson|exercise)|new\s*lesson|add\s*lesson|make\s*(a\s*)?lesson)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'create-lesson' } }));
+      await speak('Opening lesson creator. You can use AI to generate exercises.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(create\s*(a\s*)?diagram|new\s*diagram|add\s*diagram|make\s*(a\s*)?diagram)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'create-diagram' } }));
+      await speak('Opening diagram editor. Tap dots to create braille patterns.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(become\s*(a\s*)?tutor|sign\s*up\s*as\s*tutor|tutor\s*sign\s*up|register\s*as\s*tutor)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'become-tutor' } }));
+      await speak('Opening tutor registration.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(join\s*(a\s*)?(class|course)|enroll)\b/.test(lower)) {
+      await ensurePage('/class-hub', 'Class Hub');
+      window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'class-hub', tab: 'browse' } }));
+      await speak('Showing available classes to join. Say the class name to enroll.');
+      setTranscript('');
+      return;
+    }
+    if (/\b(go\s*back|back\s*to\s*(hub|classes))\b/.test(lower) && location.pathname === '/class-hub') {
+      window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'back' } }));
+      await speak('Going back to class hub.');
+      setTranscript(''); return;
     }
     if (/\b(resources?\s*tab|show\s*resources?|materials?)\b/.test(lower)) {
       await ensurePage('/class-hub', 'Class Hub');
@@ -670,9 +691,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ═══════════════════════════════════════
-    //  SUB-TAB COMMANDS — About page
-    // ═══════════════════════════════════════
     if (/\b(mission\s*tab|about\s*mission|our\s*mission)\b/.test(lower)) {
       await ensurePage('/about', 'About');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'about', tab: 'mission' } }));
@@ -709,9 +727,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ═══════════════════════════════════════
-    //  SUB-TAB COMMANDS — Hardware Setup
-    // ═══════════════════════════════════════
     if (/\b(setup\s*tab|connection\s*tab|bluetooth\s*tab)\b/.test(lower)) {
       await ensurePage('/hardware-setup', 'Hardware Setup');
       window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'hardware-setup', tab: 'setup' } }));
@@ -734,9 +749,6 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ═══════════════════════════════════════
-    //  PRACTICE PAGE — game modes
-    // ═══════════════════════════════════════
     if (/\b(lightning\s*reader)\b/.test(lower)) {
       await ensurePage('/practice', 'Practice');
       window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'select-mode', mode: 'lightning-reader' } }));
@@ -785,7 +797,6 @@ const VoiceAssistant: React.FC = () => {
       await speak('Pattern Ninja selected.');
       setTranscript(''); return;
     }
-    // Practice customization
     if (/\b(start\s*(the\s*)?(game|practice|session|playing))\b/.test(lower)) {
       window.dispatchEvent(new CustomEvent('braylin-practice-action', { detail: { action: 'start-game' } }));
       await speak('Starting the game!');
@@ -819,9 +830,6 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
-    // ═══════════════════════════════════════
-    //  MISSION — level select, submit, close
-    // ═══════════════════════════════════════
     if (/\b(level\s*([1-6]))\b/.test(lower) && (location.pathname === '/braillequest' || /mission|quest/i.test(lower))) {
       const lvl = lower.match(/level\s*([1-6])/);
       if (lvl) {
@@ -847,7 +855,6 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
-    // ─── Mission lesson navigation (after verification) ───
     if (/\b(view\s*(the\s*)?lesson|open\s*(the\s*)?lesson|show\s*(the\s*)?lesson|start\s*(the\s*)?lesson|learn\s*more|see\s*(the\s*)?lesson|read\s*(the\s*)?lesson)\b/.test(lower) && location.pathname === '/braillequest') {
       window.dispatchEvent(new CustomEvent('braylin-quest-action', { detail: { action: 'view-lesson' } }));
       setTranscript(''); return;
@@ -869,16 +876,13 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
-    // ═══════════════════════════════════════
-    //  CLASS HUB — extra actions
-    // ═══════════════════════════════════════
-    if (/\b(view\s*stats|class\s*stats|statistics)\b/.test(lower) && (location.pathname === '/class-hub' || /class/i.test(lower))) {
+    if (/\b(view\s*stats|class\s*stats|class\s*analytics|view\s*analytics)\b/.test(lower) && (location.pathname === '/class-hub' || /class/i.test(lower))) {
       await ensurePage('/class-hub', 'Class Hub');
       window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'view-stats' } }));
-      await speak('Opening class statistics.');
+      await speak('Opening class analytics with all charts and statistics.');
       setTranscript(''); return;
     }
-    if (/\b(open\s*meeting|join\s*meeting|meeting\s*room|start\s*meeting)\b/.test(lower)) {
+    if (/\b(open\s*meeting|join\s*meeting|meeting\s*room|start\s*meeting|video\s*call|live\s*session)\b/.test(lower)) {
       await ensurePage('/class-hub', 'Class Hub');
       window.dispatchEvent(new CustomEvent('braylin-class-action', { detail: { action: 'open-meeting' } }));
       await speak('Opening meeting room.');
@@ -891,29 +895,19 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
-    // ═══════════════════════════════════════
-    //  OK / Yes / Confirm / Continue — for popups
-    // ═══════════════════════════════════════
     if (/^(ok(ay)?|yes|yep|yeah|confirm|continue|proceed|accept|agree|next|sure|alright|sounds good|do it|go ahead|let's go|that's fine|absolutely|definitely|of course|right|correct|affirmative|perfect|great|awesome|bet|for sure|you got it|yup)$/i.test(lower)
       || (/\b(ok(ay)?|yes|confirm|continue|proceed|sure|go ahead|do it)\b/.test(lower) && lower.length < 30)) {
       window.dispatchEvent(new CustomEvent('braylin-confirm'));
       setTranscript(''); return;
     }
 
-    // ═══════════════════════════════════════
-    //  No / Decline — for popups
-    // ═══════════════════════════════════════
     if (/^(no|nope|nah|deny|decline|reject|skip|not now|no thanks|never mind|forget it|i don't want to|cancel that|stop)$/i.test(lower)) {
       window.dispatchEvent(new CustomEvent('braylin-dismiss'));
       await speak('Dismissed.');
       setTranscript(''); return;
     }
 
-    // ═══════════════════════════════════════
-    //  UNIVERSAL — Close / Dismiss / Go Back
-    // ═══════════════════════════════════════
     if (/\b(close|dismiss|cancel|go back|never\s*mind|exit|leave|get out|back out|return)\b/.test(lower)) {
-      // If on a lesson page, "exit" navigates back to learn
       if (/^\/learn\/.+/.test(location.pathname) && /\b(exit|go back)\b/.test(lower)) {
         window.dispatchEvent(new CustomEvent('braylin-lesson-action', { detail: { action: 'exit-lesson' } }));
         setTranscript(''); return;
@@ -923,9 +917,6 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
-    // ═══════════════════════════════════════
-    //  HOME PAGE — CTAs
-    // ═══════════════════════════════════════
     if (/\b(start\s*learning|begin\s*learning|get\s*started)\b/.test(lower)) {
       await speak('Starting your learning journey!');
       navigate('/learn');
@@ -939,7 +930,6 @@ const VoiceAssistant: React.FC = () => {
       setTranscript(''); return;
     }
 
-    // ─── Navigation (page-level) — check after sub-tabs ───
     for (const route of ROUTE_MAP) {
       if (route.keywords.some(kw => stripped.includes(kw) || lower.includes(kw))) {
         if (location.pathname === route.path) {
@@ -954,10 +944,8 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ─── Schedule AI agent commands ───
     const isAgentCmd = AI_AGENT_KEYWORDS.some(kw => lower.includes(kw));
     if (isAgentCmd) {
-      // Translate spoken text into clearer keywords for the AI
       let cleaned = text;
       cleaned = cleaned.replace(/\b(um|uh|like|you know|basically|I want to|can you|please|could you)\b/gi, '').trim();
       cleaned = cleaned.replace(/\bput\s+more\b/gi, 'add more');
@@ -973,7 +961,6 @@ const VoiceAssistant: React.FC = () => {
         navigate('/learn');
         window.scrollTo(0, 0);
         await new Promise(r => setTimeout(r, 1500));
-        // Switch to weekly schedule tab
         window.dispatchEvent(new CustomEvent('braylin-tab', { detail: { page: 'learn', tab: 'lessons', subTab: 'week' } }));
         await new Promise(r => setTimeout(r, 500));
       }
@@ -983,9 +970,7 @@ const VoiceAssistant: React.FC = () => {
       return;
     }
 
-    // ─── Smart fallback: fuzzy route match → Gemini NLU → page tips ───
     const words = lower.split(/\s+/).filter(w => w.length > 2);
-    // Try partial route matching first (instant)
     for (const route of ROUTE_MAP) {
       if (route.keywords.some(kw => words.some(w => kw.includes(w) || w.includes(kw)))) {
         await speak(`Going to ${route.label}.`);
@@ -996,7 +981,6 @@ const VoiceAssistant: React.FC = () => {
       }
     }
 
-    // ─── Gemini NLU fallback — parse ANY natural language into an action ───
     try {
       setStatus('🤔 Thinking...');
       const nluPrompt = `You are Braylin, a voice assistant for the BrailleLearn app. The user said: "${text}"
@@ -1021,7 +1005,8 @@ Available actions (respond with EXACTLY one JSON object):
 - {"action":"mute"} or {"action":"unmute"}
 - {"action":"help"}
 - {"action":"confirm"} or {"action":"dismiss"}
-- {"action":"class","ctrl":"create-class"|"open-meeting"|"add-resource"}
+- {"action":"class","ctrl":"create-class"|"create-lesson"|"create-diagram"|"open-meeting"|"become-tutor"|"view-stats"|"view-analytics"|"back"|"go-back"}
+- {"action":"tab","page":"class-hub","tab":"classes"|"browse"|"tutors"|"dashboard"|"overview"|"lessons"|"diagrams"|"students"|"meetings"|"analytics"|"stats"}
 - {"action":"speak","text":"<response to user>"} — for questions, chitchat, or when no app action fits
 
 Respond ONLY with a single JSON object, no markdown, no explanation.`;
@@ -1030,7 +1015,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
       const cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
       const result = JSON.parse(cleaned);
 
-      // Dispatch the parsed action
       switch (result.action) {
         case 'navigate':
           await speak(`Going to ${ROUTE_MAP.find(r => r.path === result.path)?.label || result.path}.`);
@@ -1131,7 +1115,7 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
 
         case 'help':
           await handleCommand('help');
-          return; // already handled transcript clear
+          return;
 
         case 'confirm':
           window.dispatchEvent(new CustomEvent('braylin-confirm'));
@@ -1158,11 +1142,9 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
       setTranscript('');
       return;
     } catch (nluError) {
-      // Gemini NLU failed — fall back to page tips
       console.warn('Gemini NLU fallback failed:', nluError);
     }
 
-    // Last-resort: context-aware suggestion
     const pageTips: Record<string, string> = {
       '/': 'Try "start learning", "go to missions", or "help".',
       '/learn': 'Try "view lessons", "edit schedule", "start lesson", or a day name like "Monday".',
@@ -1176,12 +1158,10 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
     setTranscript('');
   }, [location.pathname, navigate, speak]);
 
-  // Keep handleCommandRef up to date so recognition always uses latest
   useEffect(() => { handleCommandRef.current = handleCommand; }, [handleCommand]);
   useEffect(() => { startListeningRef.current = startListeningInternal; }, [startListeningInternal]);
 
-  // ─── Helper: ensure we're on the right page before sending tab event ───
-  const ensurePage = useCallback(async (path: string, label: string) => {
+  const ensurePage = useCallback(async (path: string, _label: string) => {
     if (location.pathname !== path) {
       navigate(path);
       window.scrollTo(0, 0);
@@ -1189,17 +1169,12 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
     }
   }, [location.pathname, navigate]);
 
-  // ─── Auto-start always-on listening ───
-  // Triple strategy: immediate start, gesture fallback, watchdog.
-  // Also restart on tab focus / visibility change so refresh works.
   useEffect(() => {
-    // Attempt start immediately (0ms) and again shortly after (600ms)
     startListeningInternal();
     const timer = setTimeout(() => {
       if (!isListeningRef.current) startListeningInternal();
     }, 600);
 
-    // Gesture fallback: if browser blocks auto-start, start on first interaction
     const onGesture = () => {
       if (!hasUserGestureRef.current) {
         hasUserGestureRef.current = true;
@@ -1217,7 +1192,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
     document.addEventListener('touchstart', onGesture, true);
     document.addEventListener('keydown', onGesture, true);
 
-    // Restart on tab focus / visibility change (handles refresh & tab-switch)
     const onVisibility = () => {
       if (document.visibilityState === 'visible' && alwaysListenRef.current && !isSpeakingRef.current) {
         setTimeout(() => {
@@ -1233,7 +1207,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onFocus);
 
-    // Watchdog: ensure we're always listening (catches silent mic drops)
     const watchdog = setInterval(() => {
       if (alwaysListenRef.current && !isSpeakingRef.current) {
         if (!isListeningRef.current || !recognitionRef.current) {
@@ -1256,7 +1229,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
     };
   }, [startListeningInternal]);
 
-  // ─── Auto-greet + page narration ───
   useEffect(() => {
     const path = location.pathname;
     if (greetedPagesRef.current.has(path)) return;
@@ -1268,17 +1240,15 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
         ? 'Hello! I\'m Braylin, your BrailleLearn voice assistant. I\'m always listening — just speak any command. Say "help" to hear everything I can do, or "go to learn" to start lessons.'
         : PAGE_NARRATIONS[path]?.split('.')[0] || `You're on ${path}`;
       if (isFirstVisit) setHasGreeted(true);
-      // Save greeting as pending so it plays on first user gesture if speech is blocked
       if (!hasUserGestureRef.current) pendingGreetRef.current = greetText;
       await speak(greetText);
     }, isFirstVisit ? 1500 : 500);
     return () => { if (autoGreetTimeoutRef.current) clearTimeout(autoGreetTimeoutRef.current); };
   }, [location.pathname, hasGreeted, speak]);
 
-  // ─── Listen for narration events ───
   useEffect(() => {
     const onNarrate = (e: Event) => {
-      if (mutedRef.current) return; // respect mute
+      if (mutedRef.current) return;
       const text = (e as CustomEvent).detail?.text;
       if (text) speak(text);
     };
@@ -1286,7 +1256,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
     return () => window.removeEventListener('braylin-narrate', onNarrate);
   }, [speak]);
 
-  // ─── Cleanup ───
   useEffect(() => {
     return () => {
       alwaysListenRef.current = false;
@@ -1298,7 +1267,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
 
   return (
     <>
-      {/* ─── Floating live speech preview ─── */}
       <AnimatePresence>
         {showLivePreview && (transcript || interimTranscript) && (
           <motion.div
@@ -1325,9 +1293,7 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
         )}
       </AnimatePresence>
 
-      {/* ─── Compact Braylin pill ─── */}
       <div className="fixed bottom-4 right-4 z-[9999] flex items-center gap-1.5">
-        {/* Mute toggle button */}
         <motion.button
           onClick={() => {
             const newMuted = !mutedRef.current;
@@ -1357,7 +1323,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
           {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
         </motion.button>
 
-        {/* Main pill */}
         <motion.button
           onClick={() => setIsOpen(o => !o)}
         className={`h-10 px-3 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-bold transition-colors ${
@@ -1397,7 +1362,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
       </motion.button>
       </div>
 
-      {/* ─── Compact panel ─── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -1407,7 +1371,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: 'spring', damping: 30 }}
           >
-            {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 text-white flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Bot className="w-3.5 h-3.5" />
@@ -1419,14 +1382,11 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-2.5 space-y-2 max-h-[40vh] overflow-y-auto">
-              {/* Status */}
               <div className={`text-[11px] font-medium truncate ${isListening ? 'text-red-600' : isSpeaking ? 'text-yellow-600' : 'text-gray-500'}`}>
                 {status || (isListening ? '🎤 Listening...' : isSpeaking ? '🔊 Speaking...' : '🤖 Ready')}
               </div>
 
-              {/* Transcript */}
               {transcript && (
                 <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 italic border border-gray-100 truncate">
                   "{transcript}"
@@ -1439,7 +1399,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
                 </div>
               )}
 
-              {/* Quick commands */}
               <div className="flex flex-wrap gap-1">
                 {['Help', 'Go to learn', 'Lessons tab', 'Missions', 'Leaderboard', 'Sign in'].map(cmd => (
                   <button key={cmd} onClick={() => handleCommand(cmd)}
@@ -1449,7 +1408,6 @@ Respond ONLY with a single JSON object, no markdown, no explanation.`;
                 ))}
               </div>
 
-              {/* Mic toggle */}
               <button
                 onClick={() => {
                   if (isListening) {

@@ -1,30 +1,24 @@
 import { Lesson, Exercise } from '../types/types';
 
-// Comprehensive Braille patterns matching the Arduino experiment code EXACTLY
 export const braillePatterns: Record<string, number[]> = {
-  // Letters A-Z (EXACTLY from your Arduino experiment)
   'A': [1], 'B': [1, 2], 'C': [1, 4], 'D': [1, 4, 5], 'E': [1, 5],
   'F': [1, 2, 4], 'G': [1, 2, 4, 5], 'H': [1, 2, 5], 'I': [2, 4], 'J': [2, 4, 5],
   'K': [1, 3], 'L': [1, 2, 3], 'M': [1, 3, 4], 'N': [1, 3, 4, 5], 'O': [1, 3, 5],
   'P': [1, 2, 3, 4], 'Q': [1, 2, 3, 4, 5], 'R': [1, 2, 3, 5], 'S': [2, 3, 4], 'T': [2, 3, 4, 5],
   'U': [1, 3, 6], 'V': [1, 2, 3, 6], 'W': [2, 4, 5, 6], 'X': [1, 3, 4, 6], 'Y': [1, 3, 4, 5, 6], 'Z': [1, 3, 5, 6],
 
-  // Numbers (with number prefix)
   '1': [1], '2': [1, 2], '3': [1, 4], '4': [1, 4, 5], '5': [1, 5],
   '6': [1, 2, 4], '7': [1, 2, 4, 5], '8': [1, 2, 5], '9': [2, 4], '0': [2, 4, 5],
 
-  // Punctuation
   '.': [2, 5, 6], ',': [2], '?': [2, 3, 6], '!': [2, 3, 5], "'": [3], '"': [2, 3, 5, 6],
   ':': [2, 5], ';': [2, 3], '-': [3, 6], '(': [2, 3, 6], ')': [3, 5, 6],
 
-  // Common contractions
   'AND': [1, 2, 3, 4, 6], 'FOR': [1, 2, 3, 4, 5, 6], 'OF': [1, 2, 3, 5, 6], 'THE': [2, 3, 4, 6],
   'WITH': [2, 3, 4, 5, 6], 'CH': [1, 6], 'GH': [1, 2, 6], 'SH': [1, 4, 6], 'TH': [1, 4, 5, 6],
   'WH': [1, 5, 6], 'ED': [1, 2, 4, 6], 'ER': [1, 2, 4, 5, 6], 'OU': [1, 2, 5, 6], 'OW': [2, 4, 6],
   'ST': [3, 4], 'AR': [3, 4, 5], 'ING': [3, 4, 6]
 };
 
-// Enhanced vocabulary banks for comprehensive lessons
 const vocabularyBanks = {
   basicLetters: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
   numbers: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
@@ -45,7 +39,6 @@ const vocabularyBanks = {
   timeWords: ['DAY', 'NIGHT', 'MORNING', 'AFTERNOON', 'EVENING', 'HOUR', 'MINUTE', 'SECOND', 'WEEK', 'MONTH', 'YEAR', 'TODAY', 'TOMORROW', 'YESTERDAY']
 };
 
-// Generate exercises for each lesson type
 const generateExercises = (lessonType: string, content: any): Exercise[] => {
   const exercises: Exercise[] = [];
   
@@ -115,7 +108,6 @@ const generateExercises = (lessonType: string, content: any): Exercise[] => {
       break;
 
     case 'mixed-practice':
-      // Generate a mix of different exercise types
       const randomWords = content.words.slice(0, 3);
       randomWords.forEach((word: string, index: number) => {
         exercises.push({
@@ -151,12 +143,10 @@ const generateExercises = (lessonType: string, content: any): Exercise[] => {
   return exercises;
 };
 
-// Generate comprehensive lesson database with ~300 lessons across 30 levels
 export const generateFullCurriculum = (): Lesson[] => {
   const lessons: Lesson[] = [];
   let lessonCounter = 1;
 
-  // LEVEL 1: Basic Letters (Lessons 1-15)
   const basicLetterGroups = [
     { letters: ['A'], title: 'Letter A', description: 'Learn the braille pattern for the letter A - the foundation of braille reading' },
     { letters: ['B'], title: 'Letter B', description: 'Master the letter B and distinguish it from A' },
@@ -195,7 +185,6 @@ export const generateFullCurriculum = (): Lesson[] => {
     lessonCounter++;
   });
 
-  // LEVEL 2: Numbers and Basic Punctuation (Lessons 16-25)
   const numberLessons = [
     { content: ['1', '2', '3'], title: 'Numbers 1-3', description: 'Learn your first braille numbers' },
     { content: ['4', '5', '6'], title: 'Numbers 4-6', description: 'Continue with numbers 4, 5, and 6' },
@@ -235,7 +224,6 @@ export const generateFullCurriculum = (): Lesson[] => {
     lessonCounter++;
   });
 
-  // LEVEL 3: Simple Words (Lessons 26-40)
   const wordCategories = [
     { words: vocabularyBanks.basicWords.slice(0, 5), title: '3-Letter Words Part 1', description: 'Start reading complete words' },
     { words: vocabularyBanks.basicWords.slice(5, 10), title: '3-Letter Words Part 2', description: 'More simple three-letter words' },
@@ -268,8 +256,6 @@ export const generateFullCurriculum = (): Lesson[] => {
     lessonCounter++;
   });
 
-  // Continue with more levels...
-  // LEVEL 4: Simple Sentences (Lessons 41-55)
   const simpleSentences = [
     'I am happy.',
     'You are nice.',
@@ -302,7 +288,6 @@ export const generateFullCurriculum = (): Lesson[] => {
     lessonCounter++;
   });
 
-  // LEVEL 5: Contractions (Lessons 56-70)
   const contractionLessons = [
     { contractions: ['AND'], title: 'Contraction: AND', description: 'Learn the AND contraction' },
     { contractions: ['FOR'], title: 'Contraction: FOR', description: 'Master the FOR contraction' },
@@ -341,7 +326,6 @@ export const generateFullCurriculum = (): Lesson[] => {
     lessonCounter++;
   });
 
-  // Generate extended lessons for levels 6-30 (Lessons 71-300)
   for (let level = 6; level <= 30; level++) {
     const lessonsPerLevel = Math.min(8 + Math.floor(level / 5), 12);
     
@@ -413,7 +397,6 @@ export const generateFullCurriculum = (): Lesson[] => {
   return lessons;
 };
 
-// Helper functions for lesson management
 export const getLessonById = (id: string, lessons: Lesson[]): Lesson | undefined => {
   return lessons.find(lesson => lesson.id === id);
 };
@@ -453,7 +436,6 @@ export const getProgressStats = (lessons: Lesson[], completedLessons: string[]) 
   };
 };
 
-// Customize lesson order based on user preferences
 export const customizeLessonOrder = (
   lessons: Lesson[], 
   focusAreas: string, 
@@ -462,7 +444,6 @@ export const customizeLessonOrder = (
 ): Lesson[] => {
   let customizedLessons = [...lessons];
   
-  // Sort by focus areas
   const focusWeight = (lesson: Lesson) => {
     if (focusAreas.includes(lesson.category)) return 3;
     if (focusAreas.includes('letters') && lesson.category === 'basics') return 2;
@@ -470,7 +451,6 @@ export const customizeLessonOrder = (
     return 1;
   };
   
-  // Sort by learning style preferences
   const styleWeight = (lesson: Lesson) => {
     if (learningStyle === 'visual' && lesson.exercises.some(e => e.type === 'braille-to-text')) return 2;
     if (learningStyle === 'auditory' && lesson.exercises.some(e => e.type === 'speech-to-braille')) return 2;
@@ -478,7 +458,6 @@ export const customizeLessonOrder = (
     return 1;
   };
   
-  // Sort by difficulty preference
   const difficultyWeight = (lesson: Lesson) => {
     if (difficulty === 'beginner' && lesson.level <= 10) return 2;
     if (difficulty === 'intermediate' && lesson.level > 5 && lesson.level <= 20) return 2;
@@ -491,13 +470,12 @@ export const customizeLessonOrder = (
     const bScore = focusWeight(b) + styleWeight(b) + difficultyWeight(b);
     
     if (aScore !== bScore) return bScore - aScore;
-    return a.level - b.level; // Fallback to level order
+    return a.level - b.level;
   });
   
   return customizedLessons;
 };
 
-// Generate custom study schedule
 export const generateCustomSchedule = (
   lessons: Lesson[],
   dailyTimeAvailable: number,
@@ -505,7 +483,7 @@ export const generateCustomSchedule = (
   studyGoals: string
 ): Array<{week: number, lessons: Lesson[], totalTime: number}> => {
   const schedule = [];
-  const lessonsPerWeek = Math.ceil(availableDays.length * (dailyTimeAvailable / 20)); // Assuming 20 min per lesson
+  const lessonsPerWeek = Math.ceil(availableDays.length * (dailyTimeAvailable / 20));
   
   let currentWeek = 1;
   let currentLessons: Lesson[] = [];
@@ -529,7 +507,6 @@ export const generateCustomSchedule = (
     currentTime += lesson.duration;
   }
   
-  // Add remaining lessons
   if (currentLessons.length > 0) {
     schedule.push({
       week: currentWeek,

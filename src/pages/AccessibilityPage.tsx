@@ -30,14 +30,12 @@ const AccessibilityPage: React.FC = () => {
     document.title = 'Accessibility - BrailleLearn';
     window.scrollTo(0, 0);
     
-    // Check system preferences
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setReducedMotion(true);
     }
   }, []);
 
   const accessibilityFeatures: AccessibilityFeature[] = [
-    // Vision
     {
       id: 'screen-reader',
       title: 'Screen Reader Support',
@@ -84,7 +82,6 @@ const AccessibilityPage: React.FC = () => {
       howToUse: 'Braille cells are displayed at multiple sizes across the app. In practice mode, cells can be enlarged for better visibility.'
     },
     
-    // Hearing
     {
       id: 'visual-feedback',
       title: 'Visual Feedback',
@@ -104,7 +101,6 @@ const AccessibilityPage: React.FC = () => {
       howToUse: 'All instructions, feedback, and content are displayed visually alongside any audio.'
     },
     
-    // Motor
     {
       id: 'keyboard-nav',
       title: 'Full Keyboard Navigation',
@@ -142,7 +138,6 @@ const AccessibilityPage: React.FC = () => {
       howToUse: 'Enable "Reduce Motion" in your operating system settings, or toggle in app settings.'
     },
     
-    // Cognitive
     {
       id: 'simple-language',
       title: 'Clear, Simple Language',
@@ -190,14 +185,11 @@ const AccessibilityPage: React.FC = () => {
     ? accessibilityFeatures.filter(f => f.category === activeCategory)
     : accessibilityFeatures;
 
-  // Quick settings demo
   const fontSizes = { small: '14px', medium: '16px', large: '20px' };
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ fontSize: fontSizes[fontSize] }}>
-      {/* Hero Section — Inclusive Design Theme */}
       <section className="relative bg-gradient-to-br from-blue-700 via-indigo-700 to-indigo-900 text-white py-16 overflow-hidden">
-        {/* Overlapping circles pattern representing inclusion */}
         <div className="absolute inset-0 opacity-[0.06] pointer-events-none">
           {[
             { x: '15%', y: '20%', s: 200 }, { x: '70%', y: '30%', s: 260 }, { x: '40%', y: '60%', s: 180 },
@@ -210,7 +202,6 @@ const AccessibilityPage: React.FC = () => {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            {/* Left: Large icon */}
             <motion.div 
               className="flex-shrink-0"
               initial={{ opacity: 0, scale: 0 }}
@@ -221,7 +212,6 @@ const AccessibilityPage: React.FC = () => {
                 <Accessibility className="w-12 h-12" />
               </div>
             </motion.div>
-            {/* Right: Text */}
             <motion.div 
               className="text-center md:text-left flex-1"
               initial={{ opacity: 0, y: 20 }}
@@ -240,12 +230,10 @@ const AccessibilityPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Quick Settings Panel */}
       <section className="py-8 bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Settings</h2>
           <div className="flex flex-wrap gap-4 items-center">
-            {/* Audio Toggle */}
             <button
               onClick={() => {
                 toggleAudio();
@@ -265,7 +253,6 @@ const AccessibilityPage: React.FC = () => {
               {isAudioEnabled && <Check className="w-4 h-4" />}
             </button>
 
-            {/* Font Size */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Text Size:</span>
               {(['small', 'medium', 'large'] as const).map((size) => (
@@ -284,7 +271,6 @@ const AccessibilityPage: React.FC = () => {
               ))}
             </div>
 
-            {/* High Contrast */}
             <button
               onClick={() => setHighContrast(!highContrast)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
@@ -298,7 +284,6 @@ const AccessibilityPage: React.FC = () => {
               High Contrast
             </button>
 
-            {/* Reduced Motion */}
             <button
               onClick={() => setReducedMotion(!reducedMotion)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
@@ -316,7 +301,6 @@ const AccessibilityPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Category Filter */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap gap-4 justify-center mb-8">
@@ -348,7 +332,6 @@ const AccessibilityPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Features Grid */}
       <section className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -396,7 +379,6 @@ const AccessibilityPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Keyboard Shortcuts */}
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
@@ -433,7 +415,6 @@ const AccessibilityPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Commitment Statement */}
       <section className="py-12 bg-gradient-to-br from-primary-600 to-indigo-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Accessibility className="w-16 h-16 mx-auto mb-6 opacity-80" />

@@ -16,10 +16,10 @@ export default function LessonCustomizer({ onCustomLessonsGenerated }: LessonCus
     setIsGenerating(true);
     try {
       const customPlan = await geminiService.generatePersonalizedStudyPlan(
-        1, // default level
-        ['custom'], // custom focus area
-        'custom', // custom learning style
-        30, // default time
+        1,
+        ['custom'],
+        'custom',
+        30,
         prompt // user's custom prompt
       );
       

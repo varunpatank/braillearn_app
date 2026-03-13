@@ -1,17 +1,6 @@
-/**
- * Gemini AI Service for BrailleLearn
- * Uses Google Gemini API directly for ALL AI-powered features:
- * - Practice mode assistance
- * - Lesson customization (fully AI-driven, not hardcoded)
- * - Image analysis for braille recognition (Gemini Vision)
- * - Adaptive learning recommendations
- * - Study plan generation
- * - AI instructor chat
- */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Use Gemini API key from environment variables only
 const GEMINI_API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -56,12 +45,8 @@ class OpenRouterService {
   private isInitialized: boolean = false;
 
   constructor() {
-    // Gemini models are initialized per-call to allow custom configs
   }
 
-  /**
-   * Test connection to Gemini API
-   */
   async testConnection(): Promise<boolean> {
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -76,9 +61,6 @@ class OpenRouterService {
     }
   }
 
-  /**
-   * Core chat method using Gemini SDK
-   */
   async chat(
     systemPrompt: string,
     userPrompt: string,
@@ -103,9 +85,6 @@ class OpenRouterService {
     }
   }
 
-  /**
-   * Analyze an image containing braille patterns using Gemini Vision
-   */
   async analyzeImage(imageUrl: string, prompt?: string): Promise<string> {
     const systemPrompt = `You are an expert braille reader and teacher. Analyze the provided image for braille patterns and provide detailed information about what you see. If the image contains braille, identify each character and explain the dot patterns used.`;
     const userPrompt = prompt || 'Please analyze this image and identify any braille patterns you can see. Explain what each character represents.';
@@ -154,9 +133,6 @@ class OpenRouterService {
     }
   }
 
-  /**
-   * Generate AI-powered practice hints and feedback
-   */
   async getPracticeHint(
     mode: string,
     currentQuestion: any,
@@ -186,9 +162,6 @@ class OpenRouterService {
     }
   }
 
-  /**
-   * Generate personalized study plan using AI
-   */
   async generateStudyPlan(
     currentLevel: number,
     focusAreas: string[],
@@ -241,9 +214,6 @@ Return ONLY valid JSON, no markdown. Keep levels to 5 max with 2-4 lessons each.
     }
   }
 
-  /**
-   * AI-powered lesson customization — fully dynamic, NOT hardcoded
-   */
   async customizeLesson(
     lessonId: string,
     userPreferences: {
@@ -298,9 +268,6 @@ Return ONLY a valid JSON array of exercises.`;
     }
   }
 
-  /**
-   * AI instructor for answering questions
-   */
   async askInstructor(question: string, context?: string): Promise<string> {
     const systemPrompt = `You are a patient, knowledgeable, and encouraging braille instructor. Help students understand braille patterns, techniques, and concepts. Keep answers concise but thorough. Use emojis occasionally for warmth.`;
 
@@ -311,9 +278,6 @@ Return ONLY a valid JSON array of exercises.`;
     return await this.chat(systemPrompt, userPrompt, { maxTokens: 500, temperature: 0.8 });
   }
 
-  /**
-   * Generate adaptive practice content based on performance
-   */
   async generateAdaptivePractice(
     modeId: string,
     userPerformance: {
@@ -366,9 +330,6 @@ Return ONLY a valid JSON array.`;
     }
   }
 
-  /**
-   * Generate creative lesson content
-   */
   async generateCreativeLessonContent(
     category: string,
     level: number,
@@ -427,9 +388,6 @@ Make it educational but fun! Return ONLY valid JSON.`;
     }
   }
 
-  /**
-   * AI-powered daily schedule generator
-   */
   async generateDailySchedule(
     availableHours: number,
     currentLevel: number,
@@ -475,9 +433,6 @@ Return a JSON object:
     }
   }
 
-  /**
-   * Generate AI lesson content from scratch
-   */
   async generateLesson(
     topic: string,
     level: number,
@@ -536,9 +491,7 @@ Return a JSON object:
     }
   }
 
-  // === Helper Methods ===
-
-  private cleanJsonResponse(response: string): string {
+private cleanJsonResponse(response: string): string {
     let cleaned = response.trim();
     cleaned = cleaned.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
 
@@ -748,6 +701,5 @@ Return a JSON object:
   }
 }
 
-// Export singleton instance
 export const openRouterService = new OpenRouterService();
 export default openRouterService;

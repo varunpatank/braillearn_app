@@ -35,7 +35,6 @@ export const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  // Load user from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('mockUser')
     if (savedUser) {
@@ -53,16 +52,13 @@ export const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }
   const signIn = async (username: string, password: string) => {
     setLoading(true)
     
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500))
     
-    // Simple validation - in a real app, this would be server-side
     if (!username || !password) {
       setLoading(false)
       return { error: { message: 'Username and password are required' } }
     }
 
-    // Create mock user (in real app, this would come from server)
     const mockUser: MockUser = {
       id: crypto.randomUUID(),
       username: username,
@@ -74,7 +70,6 @@ export const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     setUser(mockUser)
     setSession({ user: mockUser })
     
-    // Save to localStorage
     localStorage.setItem('mockUser', JSON.stringify(mockUser))
     
     setLoading(false)
@@ -84,16 +79,13 @@ export const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }
   const signUp = async (username: string, password: string, email: string) => {
     setLoading(true)
     
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500))
     
-    // Simple validation
     if (!username || !password || !email) {
       setLoading(false)
       return { error: { message: 'All fields are required' } }
     }
 
-    // Create mock user
     const mockUser: MockUser = {
       id: crypto.randomUUID(),
       username: username,
@@ -105,7 +97,6 @@ export const MockAuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     setUser(mockUser)
     setSession({ user: mockUser })
     
-    // Save to localStorage
     localStorage.setItem('mockUser', JSON.stringify(mockUser))
     
     setLoading(false)

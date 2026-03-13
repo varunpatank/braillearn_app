@@ -19,7 +19,6 @@ const AboutPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ─── Braylin voice tab events ───
   useEffect(() => {
     const onTab = (e: Event) => {
       const { page, tab } = (e as CustomEvent).detail || {};
@@ -32,7 +31,6 @@ const AboutPage: React.FC = () => {
     return () => window.removeEventListener('braylin-tab', onTab);
   }, []);
 
-  // ─── Narrate tab switches ───
   useEffect(() => {
     const labels: Record<string, string> = { mission: 'Our Mission', hardware: 'Hardware', design: 'Design Process', features: 'Features', tech: 'Tech Stack' };
     window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `About page: ${labels[activeTab] || activeTab}. Say a section name to switch.` } }));
@@ -114,7 +112,6 @@ const AboutPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
-      {/* Hero */}
       <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-16 overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
@@ -154,7 +151,6 @@ const AboutPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Impact Stats */}
       <section className="py-10 -mt-8 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -172,7 +168,6 @@ const AboutPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Tab Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <motion.div className="bg-white rounded-2xl shadow-xl p-2 border-2 border-blue-100 inline-flex flex-wrap gap-2"
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -193,7 +188,6 @@ const AboutPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <AnimatePresence mode="wait">
-          {/* MISSION TAB */}
           {activeTab === 'mission' && (
             <motion.div key="mission" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <div className="grid lg:grid-cols-2 gap-8 mb-12">
@@ -255,7 +249,6 @@ const AboutPage: React.FC = () => {
                 </motion.div>
               </div>
 
-              {/* Partners */}
               <motion.div className="bg-white rounded-3xl shadow-xl p-8 border-2 border-blue-100" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><Globe className="w-6 h-6 text-blue-600" /> Partners & Collaborators</h3>
                 <div className="grid md:grid-cols-2 gap-6">
@@ -278,10 +271,8 @@ const AboutPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* HARDWARE TAB */}
           {activeTab === 'hardware' && (
             <motion.div key="hardware" id="hardware" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              {/* Hardware Hero Card */}
               <motion.div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl shadow-xl p-8 text-white mb-8 relative overflow-hidden"
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="absolute inset-0 opacity-10">
@@ -305,7 +296,6 @@ const AboutPage: React.FC = () => {
                   </div>
                   <div className="flex justify-center">
                     <motion.div className="relative" animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }}>
-                      {/* Braille cell visualization */}
                       <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-2xl">
                         <div className="text-center mb-4 text-sm font-bold text-blue-200">Braille Cell Layout</div>
                         <div className="grid grid-cols-2 gap-4 w-32 mx-auto">
@@ -323,7 +313,6 @@ const AboutPage: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* How It Works */}
               <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <motion.div className="bg-white rounded-3xl shadow-xl p-8 border-2 border-blue-100" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                   <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><Settings className="w-6 h-6 text-blue-600" /> How It Works</h3>
@@ -364,7 +353,6 @@ const AboutPage: React.FC = () => {
                 </motion.div>
               </div>
 
-              {/* Future Plans */}
               <motion.div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-3xl border-2 border-green-200 p-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                 <h3 className="text-xl font-bold text-green-800 mb-4 flex items-center gap-2"><Rocket className="w-6 h-6" /> Future Hardware Plans</h3>
                 <div className="grid md:grid-cols-3 gap-4">
@@ -388,7 +376,6 @@ const AboutPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* DESIGN PROCESS TAB */}
           {activeTab === 'design' && (
             <motion.div key="design" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <div className="text-center mb-10">
@@ -432,7 +419,6 @@ const AboutPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* FEATURES TAB */}
           {activeTab === 'features' && (
             <motion.div key="features" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <div className="text-center mb-10">
@@ -458,10 +444,8 @@ const AboutPage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* TECH & TEAM TAB */}
           {activeTab === 'tech' && (
             <motion.div key="tech" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              {/* Tech Stack */}
               <div className="mb-12">
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-6 flex items-center gap-2"><Code className="w-6 h-6 text-blue-600" /> Technology Stack</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -476,7 +460,6 @@ const AboutPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Team */}
               <div className="mb-12">
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-6 flex items-center gap-2"><Users className="w-6 h-6 text-blue-600" /> Team Roles</h2>
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -492,7 +475,6 @@ const AboutPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Mission CTA */}
               <motion.div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl shadow-xl p-8 text-white text-center relative overflow-hidden"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="absolute inset-0 opacity-10">

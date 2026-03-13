@@ -23,7 +23,6 @@ const HomePage: React.FC = () => {
     document.title = 'BrailleLearn - Interactive Braille Learning';
     window.scrollTo(0, 0);
     
-    // Show features immediately
     setShowFeatures(true);
   }, []);
 
@@ -63,9 +62,7 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 braille-bg">
-      {/* Blue Hero Banner — Diagonal Split */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-white py-12 overflow-hidden">
-        {/* Hexagonal pattern */}
         <div className="absolute inset-0 opacity-[0.07]">
           <svg width="100%" height="100%"><defs><pattern id="hex" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(1)"><path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100" fill="none" stroke="white" strokeWidth="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#hex)"/></svg>
         </div>
@@ -79,7 +76,6 @@ const HomePage: React.FC = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="flex flex-col lg:flex-row items-center gap-8">
-            {/* Left: Text Content */}
             <div className="flex-1 text-center lg:text-left relative z-10">
               <motion.span 
                 initial={{ scale: 0 }}
@@ -133,7 +129,6 @@ const HomePage: React.FC = () => {
                 </Link>
               </motion.div>
 
-              {/* Stats badges below buttons */}
               <motion.div className="hidden lg:flex mt-6 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
                 {[
@@ -157,7 +152,6 @@ const HomePage: React.FC = () => {
                 ))}
               </motion.div>
             </div>
-            {/* Right: Organic Braille Art */}
             <motion.div 
               className="flex-shrink-0 hidden lg:block relative"
               style={{ width: 460, height: 400 }}
@@ -165,9 +159,7 @@ const HomePage: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.8, type: 'spring' }}
             >
-              {/* Large background braille dots pattern */}
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 460 400">
-                {/* Scattered background dots */}
                 {[
                   { cx: 30, cy: 40, r: 4, o: 0.08 }, { cx: 90, cy: 20, r: 3, o: 0.06 },
                   { cx: 380, cy: 60, r: 5, o: 0.07 }, { cx: 350, cy: 310, r: 4, o: 0.06 },
@@ -179,7 +171,6 @@ const HomePage: React.FC = () => {
                 ))}
               </svg>
 
-              {/* Floating braille word: "LEARN" spelled out as dot cells */}
               {[
                 { letter: 'L', dots: [1,2,3], x: 20, y: 30, delay: 0.4 },
                 { letter: 'E', dots: [1,5], x: 100, y: 10, delay: 0.5 },
@@ -217,7 +208,6 @@ const HomePage: React.FC = () => {
                 </motion.div>
               ))}
 
-              {/* Center: Large animated braille cell with glow */}
               <motion.div
                 className="absolute"
                 style={{ left: 130, top: 110 }}
@@ -228,7 +218,6 @@ const HomePage: React.FC = () => {
                   <div className="absolute inset-0 bg-white/20 rounded-3xl blur-xl scale-110" />
                   <svg width="160" height="190" viewBox="0 0 160 190" className="relative">
                     <rect x="4" y="4" width="152" height="182" rx="28" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" strokeWidth="2" />
-                    {/* Full braille cell (all 6 dots) */}
                     {[
                       { cx: 55, cy: 45 }, { cx: 55, cy: 95 }, { cx: 55, cy: 145 },
                       { cx: 105, cy: 45 }, { cx: 105, cy: 95 }, { cx: 105, cy: 145 },
@@ -245,7 +234,6 @@ const HomePage: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* Braille Man mascot */}
               <motion.div
                 className="absolute"
                 style={{ right: 20, bottom: 10 }}
@@ -271,7 +259,6 @@ const HomePage: React.FC = () => {
                 </motion.div>
               </motion.div>
 
-              {/* Floating label badges */}
               {[
                 { text: '6-dot cell', x: 280, y: 150, delay: 1.2 },
                 { text: 'Grade 1', x: 10, y: 250, delay: 1.4 },
@@ -293,7 +280,6 @@ const HomePage: React.FC = () => {
         </motion.div>
       </section>
 
-      {/* Features Section */}
       <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatePresence>
@@ -362,7 +348,6 @@ const HomePage: React.FC = () => {
 
       </section>
 
-      {/* Hardware Connection Section */}
       <section className="py-16 bg-gradient-to-br from-gray-50 to-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -451,7 +436,6 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-      {/* Call to Action */}
       <section className="py-16 bg-gradient-to-b from-primary-700 to-primary-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">
@@ -478,7 +462,6 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Social Impact Section */}
       <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">

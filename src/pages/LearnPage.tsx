@@ -25,7 +25,6 @@ import type { ScheduledLesson, StudyPlan, Lesson, LessonProgress } from '../type
 import { lazy, Suspense } from 'react';
 const PracticePage = lazy(() => import('./PracticePage'));
 
-// ─── Toast Notification Types ───
 interface Toast {
   id: string;
   type: 'success' | 'info' | 'warning';
@@ -102,14 +101,12 @@ const LearnPage: React.FC = () => {
   const userId = clerkUser?.id ?? null;
   const user = useMemo(() => (userId ? { id: userId } : null), [userId]);
 
-  // Core state
   const [loading, setLoading] = useState(true);
   const [expandedLevel, setExpandedLevel] = useState<number | null>(null);
   const [lessonProgress, setLessonProgress] = useState<LessonProgress[]>([]);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
-  // AI Study Plan
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [, setScheduleConfirmed] = useState(false);
   const [useCustomPlan, setUseCustomPlan] = useState(false);
@@ -119,33 +116,25 @@ const LearnPage: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationMessage, setGenerationMessage] = useState('');
 
+const [viewMode] = useState<ViewMode>('grid');
 
-
-  // View
-  const [viewMode] = useState<ViewMode>('grid');
-
-  // Schedule
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule | null>(null);
   const [selectedScheduleDay, setSelectedScheduleDay] = useState<string>(() => {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     return days[new Date().getDay()];
   });
 
-  // AI Agent state
   const [scheduleChatInput, setScheduleChatInput] = useState('');
   const [scheduleChatLoading, setScheduleChatLoading] = useState(false);
 
-  // AI Visual Agent Cursor state
   const [aiCursorActive, setAiCursorActive] = useState(false);
   const [aiCursorPos, setAiCursorPos] = useState({ x: 0, y: 0 });
   const [aiCursorLabel, setAiCursorLabel] = useState('');
   const [aiEditingBlocks, setAiEditingBlocks] = useState<string[]>([]);
   const [aiChangePopup, setAiChangePopup] = useState<{ show: boolean; title: string; changes: string[]; type: string } | null>(null);
 
-  // Lessons sub-tab: 'browse' shows all/filtered lessons, 'week' shows weekly schedule
   const [lessonsSubTab, setLessonsSubTab] = useState<'browse' | 'week'>('week');
 
-  // Toast Notifications & Confirmations
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((type: Toast['type'], title: string, message: string) => {
@@ -157,7 +146,6 @@ const LearnPage: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // Customization form
   const [customForm, setCustomForm] = useState({
     currentLevel: 1,
     learningStyle: 'visual' as string,
@@ -176,7 +164,6 @@ const LearnPage: React.FC = () => {
       document.title = 'Learn Braille - BrailleLearn';
       window.scrollTo(0, 0);
 
-      // If user just returned from a lesson, prompt them to edit
       const returnedFromLesson = sessionStorage.getItem('braillearn-returned-from-lesson');
       if (returnedFromLesson) {
         sessionStorage.removeItem('braillearn-returned-from-lesson');
@@ -190,7 +177,6 @@ const LearnPage: React.FC = () => {
       try {
         setAllLessons(lessons);
 
-        // Signed-in users: load from Supabase first, then cache to localStorage
         let loadedFromDb = false;
         if (user && supabaseRef.current) {
           try {
@@ -223,7 +209,6 @@ const LearnPage: React.FC = () => {
           }
         }
 
-        // Fallback to localStorage (for guests or if DB had nothing)
         if (!loadedFromDb) {
           const savedPlan = localStorage.getItem('braillearn-study-plan');
           const savedConfirmation = localStorage.getItem('braillearn-schedule-confirmed');
@@ -244,7 +229,6 @@ const LearnPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Reset state on sign-out
   useEffect(() => {
     if (!clerkUser) {
       setStudyPlan(null);
@@ -258,7 +242,6 @@ const LearnPage: React.FC = () => {
     }
   }, [clerkUser]);
 
-  // ─── Voice Assistant integration — listen for voice-agent-command events ───
   useEffect(() => {
     const onVoiceCmd = (e: Event) => {
       const msg = (e as CustomEvent).detail?.message;
@@ -270,9 +253,7 @@ const LearnPage: React.FC = () => {
     return () => window.removeEventListener('voice-agent-command', onVoiceCmd);
   }, []);
 
-  // ─── Braylin (voice robot) — wizard & schedule control events ───
   useEffect(() => {
-    // Open the study-plan wizard
     const onOpenWizard = () => {
       if (!user) {
         window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'You need to sign in first to create a study plan. Say "go to sign in".' } }));
@@ -282,7 +263,6 @@ const LearnPage: React.FC = () => {
       setWizardStep('level');
     };
 
-    // Control wizard steps via voice
     const onWizardAction = (e: Event) => {
       const { action, value } = (e as CustomEvent).detail || {};
       switch (action) {
@@ -309,13 +289,11 @@ const LearnPage: React.FC = () => {
           setWizardStep('review');
           break;
         case 'generate':
-          // Close wizard visually and trigger generation
           handleGeneratePlan();
           break;
       }
     };
 
-    // Narrate today's schedule for blind users
     const onReadSchedule = () => {
       const today = getTodayName();
       const daySchedule = weeklySchedule?.[today];
@@ -335,7 +313,6 @@ const LearnPage: React.FC = () => {
     window.addEventListener('braylin-wizard-action', onWizardAction);
     window.addEventListener('braylin-read-schedule', onReadSchedule);
 
-    // ─── View lessons for a day (reads names + asks to start) ───
     const onViewLessons = (e: Event) => {
       const { day } = (e as CustomEvent).detail || {};
       const targetDay = day || getTodayName();
@@ -355,7 +332,6 @@ const LearnPage: React.FC = () => {
       }
     };
 
-    // ─── Start lesson for a day ───
     const onStartLesson = (e: Event) => {
       const { day } = (e as CustomEvent).detail || {};
       const targetDay = day || getTodayName();
@@ -364,7 +340,6 @@ const LearnPage: React.FC = () => {
         const firstLesson = daySchedule.blocks.find(b => b.type === 'lesson' && b.lessonId);
         if (firstLesson?.lessonId) {
           window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Starting ${firstLesson.activity}.` } }));
-          // Navigate after short delay so narration fires
           setTimeout(() => {
             window.location.href = `/learn/${firstLesson.lessonId}`;
           }, 800);
@@ -385,7 +360,6 @@ const LearnPage: React.FC = () => {
     };
   }, [weeklySchedule]);
 
-  // ─── Braylin tab switching ───
   useEffect(() => {
     const onTab = (e: Event) => {
       const { page, tab, subTab } = (e as CustomEvent).detail || {};
@@ -402,7 +376,6 @@ const LearnPage: React.FC = () => {
     return () => window.removeEventListener('braylin-tab', onTab);
   }, []);
 
-  // ─── Braylin learn actions (reset plan, select day, dismiss) ───
   useEffect(() => {
     const onAction = (e: Event) => {
       const { action, day } = (e as CustomEvent).detail || {};
@@ -415,7 +388,6 @@ const LearnPage: React.FC = () => {
     };
     const onConfirm = () => {
       if (showWizard) {
-        // Trigger wizard generate / next step
         window.dispatchEvent(new CustomEvent('braylin-wizard-action', { detail: { action: 'generate' } }));
       } else if (aiChangePopup?.show) {
         setAiChangePopup(null); setAiCursorActive(false); setAiCursorLabel('');
@@ -428,10 +400,8 @@ const LearnPage: React.FC = () => {
     return () => { window.removeEventListener('braylin-learn-action', onAction); window.removeEventListener('braylin-dismiss', onDismiss); window.removeEventListener('braylin-confirm', onConfirm); };
   }, [showWizard, aiChangePopup]);
 
-  // ─── Narrate tab switches on Learn page ───
   useEffect(() => {
     if (activeTab === 'lessons') {
-      // Build a summary of available lessons
       if (lessonsSubTab === 'week' && weeklySchedule) {
         const today = getTodayName();
         const daySchedule = weeklySchedule[today];
@@ -468,14 +438,12 @@ const LearnPage: React.FC = () => {
     }
   }, [activeTab, lessonsSubTab, weeklySchedule, allLessons]);
 
-  // ─── Narrate day selection ───
   useEffect(() => {
     if (activeTab === 'lessons' && lessonsSubTab === 'week' && selectedScheduleDay) {
       window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `${selectedScheduleDay} selected. Say "read schedule" to hear today's lessons, or "edit schedule" to change it.` } }));
     }
   }, [selectedScheduleDay, activeTab, lessonsSubTab]);
 
-  // ─── Braylin auto-narrate AI change popup ───
   useEffect(() => {
     if (aiChangePopup?.show && aiChangePopup.changes.length > 0) {
       const narration = `${aiChangePopup.title}. ` +
@@ -485,10 +453,8 @@ const LearnPage: React.FC = () => {
     }
   }, [aiChangePopup]);
 
-  // ─── Braylin auto-narrate plan generation completion ───
   useEffect(() => {
     if (studyPlan && !showWizard && !generatingPlan) {
-      // Narrate after plan generation finishes (slight delay to not overlap)
       const timer = setTimeout(() => {
         const dayCount = weeklySchedule ? Object.keys(weeklySchedule).length : 0;
         const totalLessons = studyPlan.totalLessons || 0;
@@ -500,7 +466,6 @@ const LearnPage: React.FC = () => {
     }
   }, [studyPlan, showWizard, generatingPlan]);
 
-  // ─── Schedule Generation Helpers ───
   const formatScheduleTime = (minutes: number): string => {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -520,18 +485,16 @@ const LearnPage: React.FC = () => {
     const unfinished = (plan.scheduledLessons || []).filter(l => !l.isCompleted);
     const weekly: WeeklySchedule = {};
     let idx = 0;
-    const startHour = 9; // 9 AM default
+    const startHour = 9;
 
     availDays.forEach(day => {
       const blocks: ScheduleBlock[] = [];
       let t = startHour * 60;
       const dayLessonCount = Math.min(maxPerDay, Math.max(1, Math.ceil(unfinished.length / availDays.length)));
 
-      // Review block
       blocks.push({ id: `${day}-review`, time: formatScheduleTime(t), duration: 15, activity: '📖 Review', type: 'review', description: 'Warm up with previous material' });
       t += 15;
 
-      // Lesson blocks
       for (let i = 0; i < dayLessonCount && idx < unfinished.length; i++) {
         const les = unfinished[idx];
         const dur = Math.min(les.duration || 20, Math.max(15, Math.floor(dailyMinutes / (dayLessonCount + 2))));
@@ -553,7 +516,6 @@ const LearnPage: React.FC = () => {
         }
       }
 
-      // Practice block
       blocks.push({ id: `${day}-practice`, time: formatScheduleTime(t), duration: 15, activity: '⚡ Practice', type: 'practice', description: 'Build speed and accuracy' });
 
       const totalUsed = blocks.reduce((s, b) => s + b.duration, 0);
@@ -569,7 +531,6 @@ const LearnPage: React.FC = () => {
     return weekly;
   };
 
-  // Generate study plan
   const generateStudyPlan = (form: typeof customForm): StudyPlan => {
     const startDate = new Date();
     const targetEndDate = new Date();
@@ -634,7 +595,6 @@ const LearnPage: React.FC = () => {
   };
 
   const handleGeneratePlan = async () => {
-    // Require sign-in to create a plan
     if (!user) {
       addToast('warning', '🔒 Sign In Required', 'Please sign in to create and save a study plan. Your plan will be saved to your account.');
       window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'You need to sign in first to create a study plan. Say "go to sign in" or click Sign In above.' } }));
@@ -667,12 +627,10 @@ const LearnPage: React.FC = () => {
         customForm.customPrompt
       ) as any;
 
-      // Normalize AI response → proper StudyPlan with scheduledLessons
       const startDate = new Date();
       const targetEndDate = new Date();
       targetEndDate.setDate(startDate.getDate() + 84);
 
-      // Extract lessons from levels array if present (AI format)
       let aiLessonsList: any[] = [];
       if (aiRaw.levels && Array.isArray(aiRaw.levels)) {
         aiRaw.levels.forEach((lvl: any) => {
@@ -684,13 +642,11 @@ const LearnPage: React.FC = () => {
         });
       }
 
-      // Always use real lessons from the lesson bank so IDs match for schedule filtering
       const realLessonsPool = lessons.filter(l => {
         if (customForm.focusAreas === 'all') return true;
         return l.category === customForm.focusAreas || l.category === 'basics';
       });
 
-      // If AI suggested lessons, try to match them to real ones by title
       let orderedLessons = realLessonsPool;
       if (aiLessonsList.length > 0) {
         const matched: typeof lessons = [];
@@ -709,7 +665,6 @@ const LearnPage: React.FC = () => {
             usedIds.add(match.id);
           }
         }
-        // Fill remaining slots with unmatched real lessons
         const remaining = realLessonsPool.filter(l => !usedIds.has(l.id));
         orderedLessons = [...matched, ...remaining];
       }
@@ -768,12 +723,10 @@ const LearnPage: React.FC = () => {
     localStorage.setItem('braillearn-study-plan', JSON.stringify(plan));
     localStorage.setItem('braillearn-schedule-confirmed', 'true');
 
-    // Auto-generate weekly schedule from plan
     const weekly = buildWeeklySchedule(plan, parseInt(customForm.dailyTime) || 30);
     setWeeklySchedule(weekly);
     localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(weekly));
 
-    // Persist to Supabase for signed-in users
     if (user && supabaseRef.current) {
       saveStudyPlan(supabaseRef.current, user.id, plan, weekly).catch(e => console.warn('Failed to save plan to DB:', e));
     }
@@ -798,14 +751,11 @@ const LearnPage: React.FC = () => {
     setScheduleConfirmed(false);
     setUseCustomPlan(false);
     addToast('info', 'Plan Reset', 'Your study plan and schedule have been cleared. Create a new one anytime from the Overview tab.');
-    // Also delete from Supabase
     if (user && supabaseRef.current) {
       deleteStudyPlan(supabaseRef.current, user.id).catch(e => console.warn('Failed to delete plan from DB:', e));
     }
   };
 
-  // AI Agent — translates natural language to schedule commands, feeds ALL lessons + current schedule to Gemini
-  // Cursor moves in slow motion with scroll-follow so user can watch hands-free
   const handleScheduleChat = async (message: string) => {
     if (!message.trim()) return;
     setScheduleChatLoading(true);
@@ -823,7 +773,6 @@ const LearnPage: React.FC = () => {
         ? `STUDY PLAN: "${studyPlan.title}" — ${studyPlan.totalLessons} lessons, ${studyPlan.statistics?.lessonsCompleted || 0} completed. Weekly goal: ${studyPlan.weeklyGoal}. Focus: ${studyPlan.preferences?.focusAreas?.join(', ') || 'all'}. Difficulty: ${studyPlan.preferences?.difficultyProgression || 'gradual'}. Days: ${studyPlan.preferences?.availableDays?.join(', ') || 'weekdays'}.`
         : 'No study plan yet.';
 
-      // Build FULL lesson catalog for Gemini
       const lessonCatalog = allLessons.map(l => `${l.id}: "${l.title}" (cat:${l.category}, lvl:${l.level}, ${l.duration}min)`).join('\n');
 
       const systemPrompt = `You are BrailleLearn Agent — a COMMAND EXECUTOR that DIRECTLY EDITS the user's weekly braille learning schedule. You receive natural language and output ONLY a valid JSON command. NEVER output text — ONLY JSON.
@@ -917,7 +866,6 @@ CRITICAL RULES:
 
       const response = await openRouterService.chat(systemPrompt, message, { maxTokens: 4000, temperature: 0.3 });
 
-      // Bulletproof JSON extraction — try every possible format
       let jsonStr = response.trim();
       const jsonMatch = jsonStr.match(/```json\s*([\s\S]*?)\s*```/) || jsonStr.match(/```\s*([\s\S]*?)\s*```/);
       if (jsonMatch) jsonStr = jsonMatch[1].trim();
@@ -928,7 +876,6 @@ CRITICAL RULES:
       try {
         cmd = JSON.parse(jsonStr);
       } catch {
-        // Last resort: try to fix common JSON issues
         const fixedJson = jsonStr
           .replace(/,\s*}/g, '}')
           .replace(/,\s*]/g, ']')
@@ -936,7 +883,6 @@ CRITICAL RULES:
         try {
           cmd = JSON.parse(fixedJson);
         } catch {
-          // NEVER show an error — build a smart fallback schedule from the user's message
           const msgLower = message.toLowerCase();
           const fallbackLessons: any[] = [];
           const addLesson = (id: string) => {
@@ -946,136 +892,102 @@ CRITICAL RULES:
           };
           const addLessons = (ids: string[]) => ids.forEach(addLesson);
 
-          // ─── 30+ keyword-to-lesson mappings (checked in priority order) ───
-          // Letters / alphabet / characters (MUST be checked BEFORE "advanced"/"more")
           if (/\b(letter|alphabet|character|abc|a-z)\b/.test(msgLower)) {
             addLessons(['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-5', 'lesson-6', 'lesson-7', 'lesson-8', 'lesson-9', 'lesson-10']);
           }
-          // Numbers / digits / math
           else if (/\b(math|number|digit|calculation|arithmetic)\b/.test(msgLower)) {
             addLessons(['lesson-11', 'lesson-12', 'lesson-42', 'lesson-43']);
           }
-          // Punctuation
           else if (/\b(punctuation|period|comma|question mark|exclamation)\b/.test(msgLower)) {
             addLessons(['lesson-13', 'lesson-14', 'lesson-15', 'lesson-16']);
           }
-          // Symbols / special characters
           else if (/\b(symbol|special char|sign)\b/.test(msgLower)) {
             addLessons(['lesson-13', 'lesson-14', 'lesson-15', 'lesson-16', 'lesson-17']);
           }
-          // Capitalization
           else if (/\b(capital|uppercase|capitalization)\b/.test(msgLower)) {
             addLessons(['lesson-17']);
           }
-          // Words
           else if (/\b(word|words|sight word|vocabulary)\b/.test(msgLower)) {
             addLessons(['lesson-18', 'lesson-19', 'lesson-21', 'lesson-22', 'lesson-23', 'lesson-24', 'lesson-25', 'lesson-26', 'lesson-27']);
           }
-          // Sentences / reading
           else if (/\b(sentence|reading|paragraph|read)\b/.test(msgLower)) {
             addLessons(['lesson-28', 'lesson-29', 'lesson-30', 'lesson-38', 'lesson-40']);
           }
-          // Contractions
           else if (/\b(contraction|short form|abbreviat)\b/.test(msgLower)) {
             addLessons(['lesson-31', 'lesson-32', 'lesson-33', 'lesson-34', 'lesson-35', 'lesson-36', 'lesson-37', 'lesson-48']);
           }
-          // Easy / beginner / basics
           else if (/\b(easy|easier|beginner|basic|simple|start)\b/.test(msgLower)) {
             addLessons(['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-5']);
           }
-          // Hard / advanced / challenge
           else if (/\b(hard|harder|difficult|advanced|challeng)\b/.test(msgLower)) {
             addLessons(['lesson-41', 'lesson-44', 'lesson-46', 'lesson-48', 'lesson-50']);
           }
-          // Music
           else if (/\b(music|notation|musical)\b/.test(msgLower)) {
             addLessons(['lesson-44']);
           }
-          // Spanish / foreign language
           else if (/\b(spanish|foreign|language|french|german)\b/.test(msgLower)) {
             addLessons(['lesson-45']);
           }
-          // Computer / tech / coding
           else if (/\b(computer|tech|code|coding|programming|software)\b/.test(msgLower)) {
             addLessons(['lesson-46']);
           }
-          // Poetry / poems
           else if (/\b(poetry|poem|literary)\b/.test(msgLower)) {
             addLessons(['lesson-47']);
           }
-          // Speed reading
           else if (/\b(speed|speed read|fast read)\b/.test(msgLower)) {
             addLessons(['lesson-41']);
           }
-          // Compound words
           else if (/\b(compound)\b/.test(msgLower)) {
             addLessons(['lesson-39']);
           }
-          // Document formatting
           else if (/\b(document|format|formatting)\b/.test(msgLower)) {
             addLessons(['lesson-49']);
           }
-          // Assessment / test
           else if (/\b(assess|test|exam|quiz)\b/.test(msgLower)) {
             addLessons(['lesson-50']);
           }
-          // Adventure / fun
           else if (/\b(fun|adventure|game|play)\b/.test(msgLower)) {
             const advLessons = allLessons.filter(l => l.id.startsWith('adventure-')).slice(0, 5);
             advLessons.forEach(l => addLesson(l.id));
           }
-          // Randomize / shuffle / surprise
           else if (/\b(random|shuffle|surprise|mix up)\b/.test(msgLower)) {
             const shuffled = [...allLessons].sort(() => Math.random() - 0.5).slice(0, 10);
             shuffled.forEach(l => addLesson(l.id));
           }
-          // Rush / accelerate / cover more
           else if (/\b(rush|accelerat|cover more|speed up|faster|more lessons)\b/.test(msgLower)) {
             addLessons(['lesson-1', 'lesson-5', 'lesson-10', 'lesson-15', 'lesson-20', 'lesson-25', 'lesson-30', 'lesson-35', 'lesson-40', 'lesson-45', 'lesson-50']);
           }
-          // Slow down / relaxed / take it easy
           else if (/\b(slow|relax|take it easy|chill|calm)\b/.test(msgLower)) {
             addLessons(['lesson-1', 'lesson-2', 'lesson-3']);
           }
-          // More time / longer / extend
           else if (/\b(more time|longer|extend|extra time)\b/.test(msgLower)) {
-            // Keep current lessons but with longer durations — handled via special flag
             addLessons(['lesson-1', 'lesson-2', 'lesson-3']);
             fallbackLessons.forEach(l => l.duration = 45);
           }
-          // Shorten / less time / quick
           else if (/\b(short|less time|quick|brief|15 min)\b/.test(msgLower)) {
             addLessons(['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-5']);
             fallbackLessons.forEach(l => l.duration = 15);
           }
-          // Practice / review
           else if (/\b(practice|review|revision|recap|drill)\b/.test(msgLower)) {
             addLessons(['lesson-1', 'lesson-11', 'lesson-21']);
             fallbackLessons.forEach(l => l.type = 'review');
           }
-          // Colors
           else if (/\b(color|colour)\b/.test(msgLower)) {
             addLessons(['lesson-24']);
           }
-          // Animals
           else if (/\b(animal|animals|pet)\b/.test(msgLower)) {
             addLessons(['lesson-25']);
           }
-          // Family
           else if (/\b(family|mom|dad|parent|brother|sister)\b/.test(msgLower)) {
             addLessons(['lesson-26']);
           }
-          // Food
           else if (/\b(food|eat|meal|cook)\b/.test(msgLower)) {
             addLessons(['lesson-27']);
           }
-          // Clear / reset / fresh
           else if (/\b(clear|reset|start over|fresh|empty|wipe)\b/.test(msgLower)) {
-            // Return empty schedule
             cmd = { command: 'edit_schedule', changeSummary: ['Cleared entire schedule'], weeklySchedule: { monday: { date: 'monday', totalMinutes: 0, blocks: [], tips: ['Schedule cleared!'], motivationalMessage: 'Ready for a fresh start! 🌟' } } };
           }
 
-          // If we matched lessons, build the schedule
           if (fallbackLessons.length > 0 && !(cmd && cmd.weeklySchedule)) {
             const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
             const fbSchedule: any = {};
@@ -1088,7 +1000,6 @@ CRITICAL RULES:
             });
             cmd = { command: 'edit_schedule', changeSummary: [`Applied: "${message}"`], weeklySchedule: fbSchedule };
           } else if (!cmd || !cmd.weeklySchedule) {
-            // Absolute last resort — balanced mix
             addLessons(['lesson-1', 'lesson-11', 'lesson-21', 'lesson-31', 'lesson-41']);
             const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
             const fbSchedule: any = {};
@@ -1106,13 +1017,9 @@ CRITICAL RULES:
 
       const changeSummary: string[] = cmd.changeSummary || ['Schedule updated'];
 
-      // ─── ULTRA-SLOW CURSOR WITH REAL-TIME POSITIONING ───
-      // Positions are looked up IN REAL TIME at each step (not pre-computed).
-      // The element is scrolled into view FIRST, then the cursor moves to it.
-      // This guarantees the cursor is always on top of what's being edited.
       type CursorStep = {
-        selector?: string; // CSS selector to find element — position computed at runtime
-        fallbackPos?: { x: number; y: number }; // only if selector not found
+        selector?: string;
+        fallbackPos?: { x: number; y: number };
         label: string;
         blocks?: string[];
         action?: () => void;
@@ -1123,19 +1030,17 @@ CRITICAL RULES:
         popupTitle: string,
         popupType: string
       ) => {
-        // Spawn cursor at center of screen immediately
         setAiCursorPos({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
         setAiCursorLabel('🤖 Starting...');
         setAiCursorActive(true);
         window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'Making changes now.' } }));
-        const PAUSE_BETWEEN_STEPS = 4500; // 4.5s per step — ultra slow
-        const SCROLL_SETTLE = 800; // wait for scroll animation to finish
+        const PAUSE_BETWEEN_STEPS = 4500;
+        const SCROLL_SETTLE = 800;
 
         let stepIndex = 0;
 
         const executeStep = () => {
           if (stepIndex >= steps.length) {
-            // All steps done — show final label, then popup
             setAiCursorLabel('✨ All changes applied!');
             setAiEditingBlocks([]);
             window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: 'All changes applied. Plan ready.' } }));
@@ -1148,28 +1053,22 @@ CRITICAL RULES:
           const step = steps[stepIndex];
           stepIndex++;
 
-          // Run the action (schedule edit) FIRST so elements exist in DOM
           if (step.action) step.action();
 
-          // Find the target element in real time
           const el = step.selector ? document.querySelector(step.selector) as HTMLElement : null;
 
           if (el) {
-            // Scroll element into the center of the viewport
             el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 
-            // Wait for scroll to settle, THEN read position and move cursor
             setTimeout(() => {
               const rect = el.getBoundingClientRect();
               const cursorX = rect.left + rect.width / 2;
               const cursorY = rect.top + rect.height / 2;
               setAiCursorPos({ x: cursorX, y: cursorY });
               setAiCursorLabel(step.label);
-              // Narrate the replacement step
               window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: step.label.replace(/[^\w\s.,!]/g, '') } }));
               if (step.blocks) setAiEditingBlocks(step.blocks);
 
-              // Purple highlight glow on the element
               el.style.transition = 'box-shadow 0.4s, outline 0.4s';
               el.style.boxShadow = '0 0 24px 8px rgba(147,51,234,0.45)';
               el.style.outline = '3px solid rgba(147,51,234,0.8)';
@@ -1180,11 +1079,9 @@ CRITICAL RULES:
                 el.style.outlineOffset = '';
               }, 3500);
 
-              // Wait, then go to next step
               setTimeout(executeStep, PAUSE_BETWEEN_STEPS);
             }, SCROLL_SETTLE);
           } else {
-            // No element found — use fallback position
             const pos = step.fallbackPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
             setAiCursorPos({ x: pos.x, y: pos.y });
             setAiCursorLabel(step.label);
@@ -1195,15 +1092,12 @@ CRITICAL RULES:
           }
         };
 
-        // Start the chain
         executeStep();
       };
 
-      // ─── EXECUTE: Switch to week view, then animate cursor across schedule ───
       setActiveTab('lessons');
       setLessonsSubTab('week');
 
-      // Wait for DOM to render, then build cursor steps and execute
       setTimeout(() => {
         const ws = cmd.weeklySchedule;
         if (!ws) {
@@ -1215,7 +1109,6 @@ CRITICAL RULES:
         const changedDays = Object.keys(ws);
         const steps: CursorStep[] = [];
 
-        // Step 0: INTRO — cursor spawns at center, pauses, describes plan
         const introPlan = changeSummary[0] || `Working on: "${message}"`;
         steps.push({
           fallbackPos: { x: window.innerWidth / 2, y: window.innerHeight / 3 },
@@ -1223,27 +1116,23 @@ CRITICAL RULES:
           blocks: []
         });
 
-        // Step 1: Cursor goes to the "Week" tab
         steps.push({
           selector: '[data-subtab="week"]',
           label: '🔍 Opening weekly schedule...',
           blocks: []
         });
 
-        // Step 2: Scan existing schedule header
         steps.push({
           selector: '[data-ai-day]',
           label: '📋 Reading current schedule...',
           blocks: []
         });
 
-        // Step 3+: For each day — apply changes, then visit each block
         changedDays.forEach(day => {
           const dayTitle = day.charAt(0).toUpperCase() + day.slice(1);
           const dayBlocks = ws[day]?.blocks || [];
           const dayMins = ws[day]?.totalMinutes || dayBlocks.reduce((s: number, b: any) => s + (b.duration || 0), 0);
 
-          // Move to day header + apply this day's schedule
           steps.push({
             selector: `[data-ai-day="${day}"]`,
             fallbackPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
@@ -1260,7 +1149,6 @@ CRITICAL RULES:
                   motivationalMessage: ws[day]?.motivationalMessage || 'Great progress! 🌟'
                 };
                 localStorage.setItem('braillearn-weekly-schedule', JSON.stringify(updated));
-                // Sync updated schedule to Supabase
                 if (user && supabaseRef.current) {
                   const currentPlan = studyPlan;
                   saveStudyPlan(supabaseRef.current, user.id, currentPlan, updated).catch(e => console.warn('Failed to sync schedule to DB:', e));
@@ -1270,7 +1158,6 @@ CRITICAL RULES:
             }
           });
 
-          // Visit each block within this day
           dayBlocks.forEach((block: any, bIdx: number) => {
             const actionVerb = block.type === 'break' ? '☕ Break' :
               block.type === 'review' ? '🔄 Review' :
@@ -1286,7 +1173,6 @@ CRITICAL RULES:
           });
         });
 
-        // Final confirming step
         steps.push({
           selector: '[data-subtab="week"]',
           label: '✅ All days updated!',
@@ -1307,7 +1193,6 @@ CRITICAL RULES:
     setScheduleChatLoading(false);
   };
 
-  // Level info
   const generateLevelInfo = (level: number) => {
     const emojis = ['🌱', '🌿', '🌺', '🌳', '⭐', '🎯', '🚀', '💎', '🏆', '👑'];
     const titles = [
@@ -1324,13 +1209,8 @@ CRITICAL RULES:
     };
   };
 
-  // Helpers
-  const isLessonLocked = (lesson: Lesson): boolean => {
-    if (!lesson.prerequisites || lesson.prerequisites.length === 0) return false;
-    return !lesson.prerequisites.every((prereqId: string) => {
-      const p = lessonProgress.find(lp => lp.lessonId === prereqId);
-      return p && p.completed;
-    });
+  const isLessonLocked = (_lesson: Lesson): boolean => {
+    return false;
   };
 
   const getLessonProg = (lessonId: string) => lessonProgress.find(p => p.lessonId === lessonId);
@@ -1341,7 +1221,6 @@ CRITICAL RULES:
     ? Math.round(lessonProgress.reduce((acc, curr) => acc + curr.score, 0) / lessonProgress.length)
     : 0;
 
-  // Filtered and grouped lessons
   const filteredLessons = useMemo(() => {
     return allLessons;
   }, [allLessons]);
@@ -1380,7 +1259,6 @@ CRITICAL RULES:
     ];
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-blue-50/30 flex items-start justify-center pt-[15vh] p-6">
-        {/* Ambient floating dots */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           {Array.from({ length: 12 }).map((_, i) => (
             <motion.div key={i}
@@ -1398,10 +1276,8 @@ CRITICAL RULES:
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Subtle glow ring */}
           <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-br from-blue-200/30 via-indigo-200/20 to-purple-200/30 -z-10 blur-sm" />
 
-          {/* Braille cells — large */}
           <div className="flex items-center justify-center gap-4 mb-8">
             {brailleCells.map((cell, cellIdx) => (
               <motion.div
@@ -1446,14 +1322,12 @@ CRITICAL RULES:
             Preparing your personalized experience...
           </motion.p>
 
-          {/* Progress bar */}
           <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden mb-5">
             <motion.div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full"
               initial={{ width: '0%' }} animate={{ width: '90%' }}
               transition={{ duration: 3, ease: 'easeInOut' }} />
           </div>
 
-          {/* Animated dots */}
           <div className="flex justify-center gap-2">
             {[0, 1, 2].map(i => (
               <motion.div key={i} className="w-2 h-2 rounded-full bg-indigo-400/70"
@@ -1468,7 +1342,6 @@ CRITICAL RULES:
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
-      {/* ─── Hero ─── */}
       <section className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white py-10 overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 0)', backgroundSize: '32px 32px' }} />
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
@@ -1491,7 +1364,6 @@ CRITICAL RULES:
               </p>
             </motion.div>
 
-            {/* Stats */}
             <motion.div className="flex gap-3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
               {[
                 { value: `${overallProgress}%`, label: 'Complete', icon: TrendingUp },
@@ -1529,13 +1401,10 @@ CRITICAL RULES:
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6">
-          {/* ─── Main Content ─── */}
           <div className="flex-1 min-w-0">
             <AnimatePresence mode="wait">
-              {/* ═══ OVERVIEW TAB ═══ */}
               {activeTab === 'overview' && (
                 <motion.div key="overview" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                  {/* Getting Started - shown when no plan exists */}
                   {!useCustomPlan && !studyPlan && (
                     <motion.div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-3xl shadow-xl p-8 border-2 border-blue-200 mb-6 relative overflow-hidden"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -1577,7 +1446,6 @@ CRITICAL RULES:
                     </motion.div>
                   )}
 
-                  {/* Quick Actions */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     {[
                       { label: useCustomPlan ? 'Edit Plan' : 'Create Plan', icon: Brain, color: 'from-blue-500 to-blue-600', action: () => setShowWizard(true) },
@@ -1597,7 +1465,6 @@ CRITICAL RULES:
                     ))}
                   </div>
 
-                  {/* Active Plan Banner */}
                   {useCustomPlan && studyPlan && (
                     <motion.div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-5 text-white mb-6 shadow-xl relative overflow-hidden"
                       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -1632,7 +1499,6 @@ CRITICAL RULES:
                     </motion.div>
                   )}
 
-                  {/* ─── Weekly Schedule ─── */}
                   <motion.div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 mb-6 overflow-hidden"
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="p-6">
@@ -1661,7 +1527,6 @@ CRITICAL RULES:
                         </div>
                       ) : (
                         <div>
-                          {/* Day Tabs */}
                           <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 scrollbar-thin">
                             {Object.keys(weeklySchedule).map(day => {
                               const isToday = day === getTodayName();
@@ -1685,7 +1550,6 @@ CRITICAL RULES:
                             })}
                           </div>
 
-                          {/* Selected Day Schedule */}
                           {weeklySchedule[selectedScheduleDay] ? (
                             <div>
                               <div className="flex items-center justify-between mb-3">
@@ -1749,7 +1613,6 @@ CRITICAL RULES:
                     </div>
                   </motion.div>
 
-                  {/* Level Progress Map */}
                   <motion.div className="bg-white rounded-3xl shadow-xl p-6 border-2 border-blue-100 mb-6"
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -1784,10 +1647,8 @@ CRITICAL RULES:
                 </motion.div>
               )}
 
-              {/* ═══ LESSONS TAB ═══ */}
               {activeTab === 'lessons' && (
                 <motion.div key="lessons" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                  {/* Lessons Sub-Tab Bar */}
                   <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 p-1.5 flex gap-1 mb-6">
                     <button data-subtab="browse" onClick={() => setLessonsSubTab('browse')}
                       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
@@ -1805,13 +1666,10 @@ CRITICAL RULES:
                   </div>
 
                   <div className="flex gap-5">
-                    {/* ─── Main Lessons Area ─── */}
                     <div className="flex-1 min-w-0">
 
-                      {/* ─── BROWSE SUB-TAB ─── */}
                       {lessonsSubTab === 'browse' && (
                         <>
-                      {/* All Lessons by Level */}
                       <div className="space-y-4">
                         {sortedLevels.map((level, idx) => {
                           const info = generateLevelInfo(level);
@@ -1884,7 +1742,6 @@ CRITICAL RULES:
                         </>
                       )}
 
-                      {/* ─── YOUR WEEK SUB-TAB ─── */}
                       {lessonsSubTab === 'week' && (
                         <div className="space-y-4">
                           {!weeklySchedule ? (
@@ -1901,7 +1758,6 @@ CRITICAL RULES:
                             </motion.div>
                           ) : (
                             <>
-                              {/* Week overview header */}
                               <motion.div className="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden"
                                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
@@ -1926,7 +1782,6 @@ CRITICAL RULES:
                                 </div>
                               </motion.div>
 
-                              {/* Each day card */}
                               {Object.entries(weeklySchedule).map(([day, daySchedule], dayIdx) => {
                                 const isToday = day === getTodayName();
                                 const lessonBlocks = daySchedule.blocks.filter(b => b.type === 'lesson');
@@ -1939,7 +1794,6 @@ CRITICAL RULES:
                                     }`}
                                     initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: dayIdx * 0.05 }}
                                     layout>
-                                    {/* Day header */}
                                     <div className={`px-5 py-3 flex items-center justify-between ${isToday ? 'bg-green-50' : 'bg-gray-50'}`}>
                                       <div className="flex items-center gap-3">
                                         <span className="text-lg font-extrabold text-gray-900 capitalize">{day}</span>
@@ -1966,7 +1820,6 @@ CRITICAL RULES:
                                       </div>
                                     </div>
 
-                                    {/* Blocks timeline */}
                                     <div className="p-4 space-y-2">
                                       {daySchedule.blocks.map((block, i) => {
                                         const matchedLesson = block.lessonId ? allLessons.find(l => l.id === block.lessonId) : null;
@@ -1986,19 +1839,15 @@ CRITICAL RULES:
                                             className={`flex items-center gap-3 p-3 rounded-xl border-l-4 ${style.border} ${style.bg} ${blockIsEditing ? 'ring-2 ring-purple-400 ring-offset-1' : ''} ${block.type === 'lesson' && block.lessonId ? 'hover:shadow-md transition-shadow' : ''}`}
                                             initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: dayIdx * 0.05 + i * 0.02 }}
                                             layout>
-                                            {/* Time column */}
                                             <div className="w-16 flex-shrink-0 text-center">
                                               <div className="text-xs font-bold text-gray-700">{block.time}</div>
                                               <div className="text-[10px] text-gray-400">{block.duration}m</div>
                                             </div>
-                                            {/* Dot */}
                                             <div className={`w-2.5 h-2.5 rounded-full ${style.dot} flex-shrink-0`} />
-                                            {/* Content */}
                                             <div className="flex-1 min-w-0">
                                               <div className="font-bold text-sm text-gray-900 truncate">{matchedLesson?.title || block.activity}</div>
                                               <div className="text-xs text-gray-500 truncate">{block.description}</div>
                                             </div>
-                                            {/* Action */}
                                             {block.type === 'lesson' && block.lessonId && (
                                               <Link to={`/learn/${block.lessonId}`}
                                                 onClick={() => window.scrollTo(0, 0)}
@@ -2015,7 +1864,6 @@ CRITICAL RULES:
                                       })}
                                     </div>
 
-                                    {/* Day tips */}
                                     {daySchedule.motivationalMessage && (
                                       <div className="px-5 pb-3">
                                         <p className="text-xs text-gray-500 italic">💬 {daySchedule.motivationalMessage}</p>
@@ -2031,7 +1879,6 @@ CRITICAL RULES:
 
                     </div>
 
-                    {/* ─── AI Agent Sidebar ─── */}
                     <div className="hidden lg:block w-80 flex-shrink-0">
                       <div className="sticky top-6">
                         <motion.div className="bg-white rounded-3xl shadow-xl border-2 border-blue-100 overflow-hidden"
@@ -2046,7 +1893,6 @@ CRITICAL RULES:
                             </div>
                           </div>
 
-                          {/* Status Area */}
                           <div className="p-4 bg-gradient-to-b from-blue-50/30 to-white min-h-[80px] flex items-center justify-center">
                             {scheduleChatLoading ? (
                               <div className="flex flex-col items-center gap-2">
@@ -2066,7 +1912,6 @@ CRITICAL RULES:
                             )}
                           </div>
 
-                          {/* Command Input */}
                           <div className="px-3 py-2.5 border-t border-blue-100 bg-white flex items-center gap-1.5">
                             <input
                               type="text"
@@ -2091,7 +1936,6 @@ CRITICAL RULES:
                 </motion.div>
               )}
 
-              {/* ═══ PRACTICE TAB ═══ */}
               {activeTab === 'practice' && (
                 <motion.div key="practice" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                   <Suspense fallback={
@@ -2111,7 +1955,6 @@ CRITICAL RULES:
         </div>
       </div>
 
-      {/* ─── AI Plan Wizard Modal ─── */}
       <AnimatePresence>
         {showWizard && (
           <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -2357,29 +2200,23 @@ CRITICAL RULES:
         )}
       </AnimatePresence>
 
-      {/* ─── AI Cursor Overlay ─── */}
       <AnimatePresence>
         {aiCursorActive && (
           <motion.div className="fixed inset-0 z-[100] pointer-events-none"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Cursor */}
             <motion.div
               className="absolute flex items-start gap-2"
               animate={{ left: aiCursorPos.x, top: aiCursorPos.y }}
               transition={{ type: 'tween', duration: 2.2, ease: 'easeInOut' }}>
-              {/* Cursor icon — larger */}
               <div className="relative">
                 <MousePointer2 className="w-9 h-9 text-purple-600 drop-shadow-[0_2px_12px_rgba(147,51,234,0.7)]" fill="rgba(147,51,234,0.25)" />
-                {/* Pulse ring */}
                 <motion.div className="absolute -inset-5 rounded-full border-[3px] border-purple-400/60"
                   animate={{ scale: [0.5, 2], opacity: [0.9, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }} />
-                {/* Inner glow */}
                 <motion.div className="absolute -inset-2 rounded-full bg-purple-400/20"
                   animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0.2, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity }} />
               </div>
-              {/* Label — bigger, more prominent, shows what's being edited */}
               {aiCursorLabel && (
                 <motion.div className="mt-8 -ml-3 bg-gray-900/95 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-2xl max-w-xs border border-purple-500/30"
                   initial={{ opacity: 0, y: -8, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} key={aiCursorLabel}
@@ -2394,7 +2231,6 @@ CRITICAL RULES:
         )}
       </AnimatePresence>
 
-      {/* ─── AI Change Popup ─── */}
       <AnimatePresence>
         {aiChangePopup?.show && (
           <motion.div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 backdrop-blur-sm"
@@ -2407,7 +2243,6 @@ CRITICAL RULES:
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               onClick={e => e.stopPropagation()}>
-              {/* Header */}
               <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
@@ -2419,7 +2254,6 @@ CRITICAL RULES:
                   </div>
                 </div>
               </div>
-              {/* Changes list */}
               <div className="px-6 py-5 space-y-2.5">
                 {aiChangePopup.changes.map((change, i) => (
                   <motion.div key={i}
@@ -2440,7 +2274,6 @@ CRITICAL RULES:
                   </div>
                 )}
               </div>
-              {/* Footer */}
               <div className="px-6 pb-5">
                 <button
                   onClick={() => { setAiChangePopup(null); setAiCursorActive(false); setAiCursorLabel(''); }}
@@ -2453,7 +2286,6 @@ CRITICAL RULES:
         )}
       </AnimatePresence>
 
-      {/* ─── Toast Notifications ─── */}
       <div className="fixed top-6 right-6 z-[60] flex flex-col gap-3">
         <AnimatePresence>
           {toasts.map(toast => (

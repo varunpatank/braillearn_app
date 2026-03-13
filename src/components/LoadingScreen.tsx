@@ -28,9 +28,7 @@ export default function LoadingScreen() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-800 to-blue-800 overflow-hidden">
-      {/* Wrapper moved higher */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[65%] w-full max-w-[40rem]">
-        {/* Animation container */}
         <div className="relative w-[40rem] h-[40rem] mx-auto">
           {wasteIcons.map(({ Icon, color, label }, index) => (
             <motion.div
@@ -74,7 +72,6 @@ export default function LoadingScreen() {
             </motion.div>
           ))}
 
-          {/* Garbage bin with animated lid */}
           <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2">
             <motion.div
               className="absolute bottom-0 left-1/2 -translate-x-1/2"
@@ -91,7 +88,6 @@ export default function LoadingScreen() {
                 ease: 'easeInOut',
               }}
             >
-              {/* Lid */}
               <motion.div
                 className="absolute -top-3 left-1/2 -translate-x-1/2 origin-left"
                 animate={{
@@ -107,7 +103,6 @@ export default function LoadingScreen() {
                 <div className="h-3 w-36 bg-gray-200 rounded-t-lg backdrop-blur-sm" />
               </motion.div>
 
-              {/* Bin */}
               <Trash2
                 size={144}
                 className="text-gray-200"
@@ -118,7 +113,6 @@ export default function LoadingScreen() {
           </div>
         </div>
 
-        {/* Title and description below the bin */}
         <motion.div
           className="text-center mt-12"
           initial={{ opacity: 0, y: 20 }}
@@ -145,7 +139,6 @@ export default function LoadingScreen() {
         </motion.div>
       </div>
 
-      {/* Floating particles */}
       {particlePositions.map((pos, i) => (
         <motion.div
           key={i}

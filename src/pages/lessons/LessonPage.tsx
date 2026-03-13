@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight, CheckCircle, Volume2, RotateCcw, Award, Brai
 import { getLessonById, braillePatterns } from '../../data/lessons';
 import { Exercise } from '../../types/types';
 
-// Build a reverse map: dot pattern → character name (for narration)
 const dotPatternToLabel = (dots: number[], char?: string): string => {
   const dotStr = dots.length === 1 ? `dot ${dots[0]}` : `dots ${dots.join(' and ')}`;
   return char ? `${char}, ${dotStr}` : dotStr;
@@ -46,12 +45,10 @@ const LessonPage: React.FC = () => {
     }
   }, [lesson]);
 
-  // ─── Narrate dot patterns for each exercise ───
   useEffect(() => {
     if (!lesson) return;
     const ex = lesson.exercises[currentExerciseIndex];
     if (!ex) return;
-    // Wait a moment so the lesson-start narration finishes first
     const timer = setTimeout(() => {
       let patternNarration = '';
       if (ex.braillePattern && ex.braillePattern.length > 0) {
@@ -99,12 +96,11 @@ const LessonPage: React.FC = () => {
     if (correct) {
       setScore(score + currentExercise.points);
       narrate('Correct! Well done.');
-      setWrongAnswerCount(0); // Reset wrong answer count on correct answer
+      setWrongAnswerCount(0);
     } else {
       narrate(`Incorrect. The correct answer is ${currentExercise.correctAnswer}`);
       setWrongAnswerCount(prev => prev + 1);
       
-      // Show AI instructor after 2 wrong answers
       if (wrongAnswerCount >= 1) {
         showAIHelp();
       }
@@ -118,7 +114,6 @@ const LessonPage: React.FC = () => {
       if (currentExerciseIndex < totalExercises - 1) {
         setCurrentExerciseIndex(currentExerciseIndex + 1);
       } else {
-        // Lesson completed
         const finalScore = Math.round((score / lesson.exercises.reduce((sum, ex) => sum + ex.points, 0)) * 100);
         setLessonCompleted(true);
         updateLessonProgress(lessonId || '', true, finalScore);
@@ -208,7 +203,6 @@ const LessonPage: React.FC = () => {
     narrate(text);
   };
 
-  // ─── Braylin voice control for lesson ───
   useEffect(() => {
     const onAction = (e: Event) => {
       const { action, value } = (e as CustomEvent).detail || {};
@@ -237,7 +231,6 @@ const LessonPage: React.FC = () => {
     return () => window.removeEventListener('braylin-lesson-action', onAction);
   }, [currentExerciseIndex, lesson, navigate]);
 
-  // ─── Narrate lesson completion with return prompt ───
   useEffect(() => {
     if (lessonCompleted) {
       const timer = setTimeout(() => {
@@ -305,7 +298,6 @@ const LessonPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 braille-bg">
-      {/* Progress Bar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between mb-2">
@@ -338,10 +330,8 @@ const LessonPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex gap-8">
-          {/* Main Lesson Content */}
           <div className="flex-1">
         <div className="bg-white rounded-xl shadow-sm p-8">
-          {/* Lesson Header */}
           <div className="mb-8">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -369,13 +359,11 @@ const LessonPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Exercise Content */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {currentExercise.question}
             </h2>
 
-            {/* Braille Pattern Display */}
             {currentExercise.braillePattern && (
               <div className="flex justify-center mb-8">
                 <div className="flex flex-wrap gap-4 justify-center">
@@ -393,7 +381,6 @@ const LessonPage: React.FC = () => {
               </div>
             )}
 
-            {/* Exercise Input */}
             {currentExercise.type === 'multiple-choice' && currentExercise.options && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentExercise.options.map((option, index) => (
@@ -442,7 +429,6 @@ const LessonPage: React.FC = () => {
               </div>
             )}
 
-            {/* Feedback */}
             {showFeedback && (
               <div className={`mt-6 p-4 rounded-lg ${
                 isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
@@ -462,7 +448,6 @@ const LessonPage: React.FC = () => {
             )}
           </div>
 
-          {/* AI Instructor Popup */}
           {showAIInstructor && (
             <div className="mt-6 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg p-4 border border-primary-200">
               <div className="flex items-start space-x-3">
@@ -493,14 +478,12 @@ const LessonPage: React.FC = () => {
             </div>
           )}
 
-          {/* Score Display */}
           <div className="text-center text-sm text-gray-500">
             Current Score: {score} points
           </div>
         </div>
           </div>
 
-          {/* AI Instructor Chatbox */}
           {showChatbox && (
             <div className="w-80 bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col h-[600px]">
               <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-t-xl">

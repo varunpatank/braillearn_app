@@ -1,7 +1,6 @@
 import { Category, Exercise, Lesson } from '../types/types';
 
 export const standardLessons: Lesson[] = [
-  // Level 1: Alphabet Basics
   {
     id: 'l1-alphabet',
     title: 'Introduction to Braille Alphabet',
@@ -42,14 +41,12 @@ export const standardLessons: Lesson[] = [
     ],
     prerequisites: []
   },
-  // Add more standard lessons here...
 ];
 
 export const generateLessonsForLevel = (level: number): Lesson[] => {
   const levelInfo = getLevelInfo(level);
   const lessons: Lesson[] = [];
   
-  // Generate 5-10 lessons per level
   const lessonCount = Math.min(5 + Math.floor(level / 3), 10);
   
   for (let i = 0; i < lessonCount; i++) {
@@ -116,7 +113,6 @@ const generateExercises = (level: number, lesson: number): Exercise[] => {
   const types = ['multiple-choice', 'braille-to-text', 'text-to-braille', 'match', 'speech-to-braille'] as const;
   const exercises: Exercise[] = [];
   
-  // Generate 2-5 exercises per lesson
   const exerciseCount = Math.min(2 + Math.floor(level / 5), 5);
   
   for (let i = 0; i < exerciseCount; i++) {
@@ -125,7 +121,7 @@ const generateExercises = (level: number, lesson: number): Exercise[] => {
       type: types[i % types.length],
       question: generateQuestion(level, lesson, i),
       options: generateOptions(level, lesson, i),
-      correctAnswer: 'A', // This would be set appropriately in a real implementation
+      correctAnswer: 'A',
       braillePattern: [{ dots: [1, 2], char: 'Sample' }],
       points: 10 + (level * 2)
     });

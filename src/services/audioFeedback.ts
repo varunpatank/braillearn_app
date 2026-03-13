@@ -7,8 +7,6 @@ class AudioFeedback {
   private currentVoice: SpeechSynthesisVoice | null = null;
 
   private constructor() {
-    // Avoid loading remote audio assets during local dev to prevent 403 console errors.
-    // Use no-op stubs unless VITE_ENABLE_REMOTE_SOUNDS=true is set in the environment.
     const enableRemoteSounds = import.meta.env.VITE_ENABLE_REMOTE_SOUNDS === 'true'
 
     const makeNoOp = () => ({ play: () => {}, stop: () => {} })
@@ -22,14 +20,12 @@ class AudioFeedback {
       achievement: enableRemoteSounds ? new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2575/2575-preview.mp3'], volume: 0.6 }) : makeNoOp()
     };
 
-    // Initialize speech synthesis voice (safe guard)
     try {
       speechSynthesis.onvoiceschanged = () => {
         const voices = speechSynthesis.getVoices();
         this.currentVoice = voices.find(voice => voice.lang === 'en-US') || voices[0];
       };
     } catch (e) {
-      // ignore in environments without speech synthesis
     };
   }
 

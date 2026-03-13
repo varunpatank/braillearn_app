@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Use Gemini API key from environment variables only
 const GEMINI_API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -69,9 +68,6 @@ export async function verifyWasteImage(
   }
 }
 
-/**
- * Verify braille in user-submitted images using Gemini Vision.
- */
 export async function verifyBrailleImage(
   imageBase64: string,
   mimeType: string,

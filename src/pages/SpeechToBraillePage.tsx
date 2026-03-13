@@ -54,7 +54,6 @@ const SpeechToBraillePage: React.FC = () => {
   };
 
   const handleImageAnalysisComplete = (_result: string, extractedText?: string) => {
-    // If text was extracted from the braille image, translate it
     if (extractedText) {
       setRecognizedText(extractedText);
       translateSpeechToBraille(extractedText);
@@ -69,7 +68,6 @@ const SpeechToBraillePage: React.FC = () => {
       const brailleCells = await translateTextToBraille(text);
       setBrailleResult(brailleCells);
       
-      // Send to Arduino if connected (send first word's first letter for demo)
       if (isArduinoConnected && brailleCells.length > 0 && brailleCells[0].length > 0) {
         const firstCell = brailleCells[0][0];
         if (firstCell?.dots) {
@@ -104,7 +102,6 @@ const SpeechToBraillePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-50 braille-bg">
-      {/* Hero Section */}
       <section className="bg-gradient-to-b from-green-500 to-blue-500 text-white py-12 relative rounded-b-3xl shadow-lg">
         <div className="absolute inset-0 braille-bg opacity-10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
@@ -118,7 +115,6 @@ const SpeechToBraillePage: React.FC = () => {
       </section>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Input Mode Toggle */}
         <div className="flex justify-center gap-4 mt-8 mb-4">
           <button
             onClick={() => setShowImageAnalyzer(false)}
@@ -142,14 +138,12 @@ const SpeechToBraillePage: React.FC = () => {
           </button>
         </div>
 
-        {/* Image Analyzer Section */}
         {showImageAnalyzer && (
           <div className="mb-8">
             <BrailleImageAnalyzer onAnalysisComplete={handleImageAnalysisComplete} />
           </div>
         )}
 
-        {/* Speech/Text Input Section */}
         {!showImageAnalyzer && (
           <div className="bg-white rounded-3xl shadow-xl border-2 border-green-400 p-8 mb-8">
             <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
@@ -337,7 +331,7 @@ const SpeechToBraillePage: React.FC = () => {
                           size="md"
                           word={recognizedText.split(' ')[wordIndex] || ''}
                           showText={true}
-                          triggerSolenoids={wordIndex === 0} // Only first word triggers Arduino
+                          triggerSolenoids={wordIndex === 0}
                         />
                       </div>
                     ))}

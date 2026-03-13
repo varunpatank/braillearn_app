@@ -4,10 +4,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const disableSupabase = import.meta.env.VITE_DISABLE_SUPABASE === 'true'
 
-// Ensure a named export exists for TypeScript/ES module resolution
 export let supabase: any = null
 
-// If env vars are missing or supabase is explicitly disabled in dev, use a lightweight mock
 if (!supabaseUrl || !supabaseAnonKey || disableSupabase) {
   console.warn('Supabase disabled or missing env vars (using in-memory mock).', {
     url: !!supabaseUrl,
@@ -22,12 +20,11 @@ if (!supabaseUrl || !supabaseAnonKey || disableSupabase) {
       update: async (_vals: any) => ({ data: null, error: null }),
       delete: async () => ({ data: null, error: null }),
       eq: (_col: string, _val: any) => chain,
-      not: (_col: string, _op: string, _val: any) => chain, // support .not('latitude','is', null)
+      not: (_col: string, _op: string, _val: any) => chain,
       order: (_col: string, _opts?: any) => chain,
       limit: (_n: number) => chain,
       single: async () => ({ data: null, error: null }),
       maybeSingle: async () => ({ data: null, error: null }),
-      // make the chain thenable so `await query` returns a sensible default
       then: function (resolve: any, reject: any) {
         return Promise.resolve({ data: [], error: null }).then(resolve, reject)
       }
@@ -52,16 +49,16 @@ if (!supabaseUrl || !supabaseAnonKey || disableSupabase) {
     }
   }
 } else {
-  // Create a real client. Auth is managed by Clerk, so disable Supabase's own session handling entirely.
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: 'supabase-legacy-client',
     }
   })
 }
 
-// Database types
 export interface User {
   id: string
   email: string

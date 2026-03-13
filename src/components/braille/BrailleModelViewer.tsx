@@ -18,12 +18,10 @@ const BrailleModelViewer: React.FC<BrailleModelViewerProps> = ({
 }) => {
   const groupRef = useRef();
 
-  // Constants for braille dimensions (matching 2D version)
-  const BRAILLE_DOT_SPACING = 2.34; // Same spacing as 2D
-  const BRAILLE_CELL_SPACING = 6.2; // Same cell spacing as 2D
+  const BRAILLE_DOT_SPACING = 2.34;
+  const BRAILLE_CELL_SPACING = 6.2;
 
-  // Calculate base dimensions with padding
-  const PADDING = BRAILLE_CELL_SPACING * 2; // Add padding around the edges
+  const PADDING = BRAILLE_CELL_SPACING * 2;
   const baseWidth = cells.reduce((width, word) => 
     width + word.length * BRAILLE_CELL_SPACING, 0) + PADDING;
   const baseHeight = BRAILLE_CELL_SPACING * 3 + PADDING;
@@ -40,22 +38,19 @@ const BrailleModelViewer: React.FC<BrailleModelViewerProps> = ({
           position={[-baseWidth/2, -baseHeight/2, 0]}
           rotation={[-Math.PI/6, 0, 0]}
         >
-          {/* Base plate */}
           <mesh position={[baseWidth/2, baseHeight/2, baseThickness/2]}>
             <boxGeometry args={[baseWidth, baseHeight, baseThickness]} />
             <meshStandardMaterial 
-              color="#f1f5f9" // Lighter gray for better contrast
+              color="#f1f5f9"
               roughness={0.7}
               metalness={0.1}
             />
           </mesh>
 
-          {/* Braille dots */}
           {cells.map((word, wordIndex) => {
-            let xOffset = PADDING/2; // Start with padding
+            let xOffset = PADDING/2;
             
             return word.map((cell, cellIndex) => {
-              // Create dots only for raised positions
               const dots = cell.dots.map((dotNumber, dotIndex) => {
                 const [dotX, dotY] = getDotPosition(dotNumber);
                 const x = xOffset + (dotX * BRAILLE_DOT_SPACING);
@@ -72,7 +67,7 @@ const BrailleModelViewer: React.FC<BrailleModelViewerProps> = ({
                       rotation={[Math.PI/2, 0, 0]}
                     />
                     <meshStandardMaterial 
-                      color="#1d4ed8" // Primary blue color matching 2D
+                      color="#1d4ed8"
                       roughness={0.5}
                       metalness={0.2}
                     />
@@ -80,9 +75,8 @@ const BrailleModelViewer: React.FC<BrailleModelViewerProps> = ({
                 );
               });
 
-              // Update offset for next cell
               xOffset += cellIndex === word.length - 1 ? 
-                BRAILLE_CELL_SPACING * 1.5 : // Extra space between words
+                BRAILLE_CELL_SPACING * 1.5 :
                 BRAILLE_CELL_SPACING;
 
               return dots;
@@ -103,15 +97,14 @@ const BrailleModelViewer: React.FC<BrailleModelViewerProps> = ({
   );
 };
 
-// Helper function to get dot positions (matching 2D layout)
 const getDotPosition = (dot: number): [number, number] => {
   const positions: Record<number, [number, number]> = {
-    1: [0, 2], // Top left
-    2: [0, 1], // Middle left
-    3: [0, 0], // Bottom left
-    4: [1, 2], // Top right
-    5: [1, 1], // Middle right
-    6: [1, 0]  // Bottom right
+    1: [0, 2],
+    2: [0, 1],
+    3: [0, 0],
+    4: [1, 2],
+    5: [1, 1],
+    6: [1, 0]
   };
   return positions[dot];
 };

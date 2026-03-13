@@ -1,6 +1,5 @@
 import { Category, Exercise, ExerciseType, Lesson } from '../types/lessons';
 
-// Comprehensive braille patterns matching Arduino setup
 const braillePatterns = {
   letters: [
     { char: 'A', dots: [1] }, { char: 'B', dots: [1, 2] }, { char: 'C', dots: [1, 4] },
@@ -35,7 +34,6 @@ const braillePatterns = {
   ]
 };
 
-// Vocabulary banks for different levels
 const vocabularyByLevel = {
   basic: ['CAT', 'DOG', 'SUN', 'HAT', 'RUN', 'BIG', 'RED', 'TOP', 'CUP', 'BOX'],
   intermediate: ['HOUSE', 'WATER', 'HAPPY', 'SCHOOL', 'FRIEND', 'FAMILY', 'COLOR', 'MUSIC', 'STORY', 'DREAM'],
@@ -57,7 +55,6 @@ const sentenceTemplates = {
   ]
 };
 
-// Generate comprehensive exercises for different types
 const generateExercise = (level: number, lessonIndex: number, exerciseIndex: number, type: ExerciseType): Exercise => {
   const category = getLevelCategory(level);
   let pattern: { char: string; dots: number[] };
@@ -172,7 +169,6 @@ const getLevelCategory = (level: number): Category => {
   return 'advanced';
 };
 
-// Comprehensive lesson themes and topics
 const lessonThemes = {
   basics: [
     'Single Letters A-E', 'Letters F-J', 'Letters K-O', 'Letters P-T', 'Letters U-Z',
@@ -223,7 +219,6 @@ export const generateLessonContent = (level: number, index: number): Lesson => {
   const title = generateLessonTitle(level, index);
   const category = getLevelCategory(level);
   
-  // Generate 4-8 exercises per lesson with variety
   const exerciseTypes: ExerciseType[] = ['multiple-choice', 'braille-to-text', 'text-to-braille', 'match'];
   const exerciseCount = Math.min(4 + Math.floor(level / 5), 8);
   
@@ -246,8 +241,7 @@ export const generateLessonContent = (level: number, index: number): Lesson => {
 };
 
 export const generateLevelLessons = (level: number): Lesson[] => {
-  // Generate 6-8 lessons per level for comprehensive coverage
-  const lessonCount = 6 + Math.floor(level / 5); // 6-12 lessons per level
+  const lessonCount = 6 + Math.floor(level / 5);
   return Array.from({ length: lessonCount }, (_, i) => 
     generateLessonContent(level, i)
   );
@@ -267,7 +261,6 @@ export const generateFullCurriculum = (): Lesson[] => {
   return allLessons;
 };
 
-// Customization functions for AI-driven reordering
 export const customizeLessonOrder = (
   lessons: Lesson[], 
   focusArea: string, 
@@ -276,7 +269,6 @@ export const customizeLessonOrder = (
 ): Lesson[] => {
   let customized = [...lessons];
   
-  // Sort by focus area preference
   if (focusArea === 'letters') {
     customized.sort((a, b) => {
       if (a.category === 'basics' && b.category !== 'basics') return -1;
@@ -291,9 +283,7 @@ export const customizeLessonOrder = (
     });
   }
   
-  // Adjust for learning style
   if (learningStyle === 'kinesthetic') {
-    // Prefer hands-on exercises
     customized = customized.map(lesson => ({
       ...lesson,
       exercises: lesson.exercises.sort((a, b) => 
@@ -302,7 +292,6 @@ export const customizeLessonOrder = (
     }));
   }
   
-  // Adjust for difficulty
   if (difficulty === 'beginner') {
     customized = customized.filter(lesson => lesson.level <= 15);
   } else if (difficulty === 'advanced') {
@@ -316,10 +305,10 @@ export const generateCustomSchedule = (
   lessons: Lesson[],
   dailyTime: number,
   availableDays: string[],
-  _goals: string // Prefix with underscore to indicate intentionally unused
+  _goals: string
 ): { week: number; lessons: Lesson[]; totalTime: number }[] => {
   const schedule = [];
-  const lessonsPerDay = Math.floor(dailyTime / 30); // ~30 min per lesson
+  const lessonsPerDay = Math.floor(dailyTime / 30);
   const daysPerWeek = availableDays.length;
   const lessonsPerWeek = lessonsPerDay * daysPerWeek;
   

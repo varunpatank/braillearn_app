@@ -39,7 +39,6 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
       const { error } = await ClassService.enrollInClass(selectedClass.id, userId);
       if (error) throw error;
       
-      // Open the meeting link in a new tab immediately
       if (selectedClass.meetingLink) {
         window.location.href = selectedClass.meetingLink;
       }

@@ -25,7 +25,6 @@ interface Triangle {
   v3: Point3D;
 }
 
-// Generate STL file content
 const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string => {
   const vertices: Point3D[] = [];
   const triangles: Triangle[] = [];
@@ -36,12 +35,10 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
   const BRAILLE_CELL_SPACING = 6.2;
   const BASE_THICKNESS = options.baseThickness || 1.0;
   
-  // Add base plate vertices
   const baseWidth = brailleCells.reduce((width, word) => 
     width + word.length * BRAILLE_CELL_SPACING, 0);
   const baseHeight = BRAILLE_CELL_SPACING * 3;
   
-  // Base plate vertices
   const baseVertices = [
     { x: 0, y: 0, z: 0 },
     { x: baseWidth, y: 0, z: 0 },
@@ -55,15 +52,11 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
   
   vertices.push(...baseVertices);
   
-  // Add base plate triangles
   triangles.push(
-    // Bottom
     { v1: baseVertices[0], v2: baseVertices[1], v3: baseVertices[2] },
     { v1: baseVertices[0], v2: baseVertices[2], v3: baseVertices[3] },
-    // Top
     { v1: baseVertices[4], v2: baseVertices[5], v3: baseVertices[6] },
     { v1: baseVertices[4], v2: baseVertices[6], v3: baseVertices[7] },
-    // Sides
     { v1: baseVertices[0], v2: baseVertices[1], v3: baseVertices[5] },
     { v1: baseVertices[0], v2: baseVertices[5], v3: baseVertices[4] },
     { v1: baseVertices[1], v2: baseVertices[2], v3: baseVertices[6] },
@@ -74,7 +67,6 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
     { v1: baseVertices[3], v2: baseVertices[4], v3: baseVertices[7] }
   );
   
-  // Add braille dots
   let xOffset = BRAILLE_CELL_SPACING;
   
   brailleCells.forEach(word => {
@@ -85,11 +77,9 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
         const y = BRAILLE_CELL_SPACING + (dotY * BRAILLE_DOT_SPACING);
         const z = BASE_THICKNESS;
         
-        // Generate cylinder vertices for each dot
         const segments = 8;
         const dotVertices: Point3D[] = [];
         
-        // Bottom circle
         for (let i = 0; i < segments; i++) {
           const angle = (i / segments) * Math.PI * 2;
           dotVertices.push({
@@ -99,7 +89,6 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
           });
         }
         
-        // Top circle
         for (let i = 0; i < segments; i++) {
           const angle = (i / segments) * Math.PI * 2;
           dotVertices.push({
@@ -109,22 +98,18 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
           });
         }
         
-        // Add dot vertices
         const startIndex = vertices.length;
         vertices.push(...dotVertices);
         
-        // Add triangles for the dot
         for (let i = 0; i < segments; i++) {
           const next = (i + 1) % segments;
           
-          // Bottom circle
           triangles.push({
             v1: vertices[startIndex + i],
             v2: vertices[startIndex + next],
             v3: vertices[startIndex + segments + i]
           });
           
-          // Top circle
           triangles.push({
             v1: vertices[startIndex + segments + i],
             v2: vertices[startIndex + segments + next],
@@ -139,7 +124,6 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
     xOffset += BRAILLE_CELL_SPACING/2;
   });
   
-  // Generate STL file content
   let stlContent = 'solid brailleDocument\n';
   
   triangles.forEach(triangle => {
@@ -158,7 +142,6 @@ const generateSTL = (brailleCells: BrailleCell[][], options: PdfOptions): string
   return stlContent;
 };
 
-// Calculate normal vector for a triangle
 const calculateNormal = (triangle: Triangle): Point3D => {
   const v1 = {
     x: triangle.v2.x - triangle.v1.x,
@@ -192,7 +175,6 @@ const calculateNormal = (triangle: Triangle): Point3D => {
 };
 
 export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOptions): string => {
-  // If 3D export is requested, generate STL file
   if (options.is3D) {
     const stlContent = generateSTL(brailleCells, options);
     const blob = new Blob([stlContent], { type: 'text/plain' });
@@ -204,21 +186,18 @@ export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOp
     unit: 'mm'
   });
 
-  // Standard braille dimensions (in mm)
-  const BRAILLE_DOT_HEIGHT = options.dotHeight || 0.48; // Standard height for braille dots
-  const BRAILLE_DOT_DIAMETER = options.dotDiameter || 1.44; // Standard diameter for braille dots
-  const BRAILLE_DOT_SPACING = 2.34; // Horizontal and vertical spacing between dots in a cell
-  const BRAILLE_CELL_SPACING = 6.2; // Spacing between braille cells
-  const BASE_THICKNESS = options.baseThickness || 1.0; // Thickness of the base layer
+  const BRAILLE_DOT_HEIGHT = options.dotHeight || 0.48;
+  const BRAILLE_DOT_DIAMETER = options.dotDiameter || 1.44;
+  const BRAILLE_DOT_SPACING = 2.34;
+  const BRAILLE_CELL_SPACING = 6.2;
+  const BASE_THICKNESS = options.baseThickness || 1.0;
 
-  // Set document properties
   doc.setProperties({
     title: options.title,
     subject: '3D Printable Braille Document',
     creator: 'BrailleLearn'
   });
 
-  // Add title and metadata
   doc.setFontSize(16);
   doc.text(options.title, 20, 20);
   doc.setFontSize(10);
@@ -232,28 +211,23 @@ export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOp
   const xStart = 20;
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
-  const maxWidth = pageWidth - 40; // 20mm margins on each side
+  const maxWidth = pageWidth - 40;
 
-  // Process each word
   brailleCells.forEach((word, wordIndex) => {
     let xOffset = xStart;
     const wordWidth = word.length * (BRAILLE_CELL_SPACING + BRAILLE_DOT_DIAMETER);
 
-    // Check if we need to start a new line or page
     if (xOffset + wordWidth > maxWidth) {
       yOffset += BRAILLE_CELL_SPACING * 2;
       xOffset = xStart;
     }
 
-    // Check if we need a new page
     if (yOffset > pageHeight - 30) {
       doc.addPage();
       yOffset = 70;
     }
 
-    // Process each cell in the word
     word.forEach((cell, cellIndex) => {
-      // Draw cell boundary for reference (dotted line)
       if (options.is3D) {
         doc.setLineDashPattern([0.5, 0.5], 0);
         doc.rect(
@@ -265,29 +239,24 @@ export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOp
         );
       }
 
-      // Process each dot in the cell
       cell.dots.forEach(dotNumber => {
         const [dotX, dotY] = getDotPosition(dotNumber);
         const x = xOffset + (dotX * BRAILLE_DOT_SPACING);
         const y = yOffset + (dotY * BRAILLE_DOT_SPACING);
 
         if (options.is3D) {
-          // Add 3D printing instructions in comments
           doc.setTextColor(100, 100, 100);
           doc.setFontSize(6);
           doc.text(`; Dot ${dotNumber} at (${x}, ${y})`, x + 3, y);
           doc.text(`; Height: ${BRAILLE_DOT_HEIGHT}mm`, x + 3, y + 1);
           
-          // Draw dot representation
           doc.setFillColor(200, 200, 200);
           doc.circle(x, y, BRAILLE_DOT_DIAMETER/2, 'F');
         } else {
-          // Standard 2D representation
           doc.circle(x, y, BRAILLE_DOT_DIAMETER/2, 'F');
         }
       });
 
-      // Add text representation if enabled
       if (options.includeText && cell.char) {
         doc.setFontSize(8);
         doc.text(
@@ -301,11 +270,9 @@ export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOp
       xOffset += BRAILLE_CELL_SPACING;
     });
 
-    // Add space between words
     xOffset += BRAILLE_CELL_SPACING/2;
   });
 
-  // Add 3D printing instructions at the end
   if (options.is3D) {
     doc.addPage();
     doc.setFontSize(12);
@@ -336,7 +303,6 @@ export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOp
     ], 20, 50);
   }
 
-  // Add page numbers
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -351,7 +317,6 @@ export const generateBraillePdf = (brailleCells: BrailleCell[][], options: PdfOp
   return doc.output('datauristring');
 };
 
-// Helper function to get dot positions
 const getDotPosition = (dot: number): [number, number] => {
   const positions: Record<number, [number, number]> = {
     1: [0, 0], 2: [0, 1], 3: [0, 2],
@@ -360,7 +325,6 @@ const getDotPosition = (dot: number): [number, number] => {
   return positions[dot];
 };
 
-// Download the file (PDF or STL)
 export const downloadPdf = (dataUrl: string, filename: string) => {
   const link = document.createElement('a');
   link.href = dataUrl;
@@ -369,7 +333,6 @@ export const downloadPdf = (dataUrl: string, filename: string) => {
   link.click();
   document.body.removeChild(link);
   
-  // Clean up object URL if it was created
   if (dataUrl.startsWith('blob:')) {
     URL.revokeObjectURL(dataUrl);
   }

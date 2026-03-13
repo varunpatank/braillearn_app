@@ -31,7 +31,6 @@ export const TeamService = {
 
       if (error) throw error;
 
-      // add owner as member
       if (ownerId) {
         await supabase.from('team_members').insert([{ team_id: data.id, user_id: ownerId, role: 'teacher' }]);
       }
@@ -123,7 +122,6 @@ export const TeamService = {
   async getTeamLeaderboard(teamId: string) {
     try {
       const members = await this.getTeamMembers(teamId);
-      // sort by total_points (fallback to 0)
       return members.sort((a: any, b: any) => (b.total_points || 0) - (a.total_points || 0));
     } catch (err) {
       console.error('getTeamLeaderboard error', err);

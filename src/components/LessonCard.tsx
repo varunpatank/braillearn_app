@@ -28,7 +28,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked }) =
         ${progress?.completed ? 'ring-2 ring-green-500 ring-opacity-50' : ''}
       `}
     >
-      {/* Status Indicator */}
       <div className="absolute top-3 right-3">
         {isLocked ? (
           <Lock className="w-5 h-5 text-gray-400" />
@@ -38,7 +37,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked }) =
       </div>
 
       <div className="p-4">
-        {/* Title and Description */}
         <h3 className="text-lg font-semibold text-gray-900 mb-2 pr-8">
           {lesson.title}
         </h3>
@@ -46,7 +44,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked }) =
           {lesson.description}
         </p>
 
-        {/* Lesson Details */}
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center text-gray-500">
             <Clock className="w-4 h-4 mr-1" />
@@ -58,7 +55,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked }) =
           </div>
         </div>
 
-        {/* Progress Bar (if started) */}
         {progress && !progress.completed && (
           <div className="mt-3">
             <div className="w-full bg-gray-100 rounded-full h-2">
@@ -71,7 +67,6 @@ const LessonCard: React.FC<LessonCardProps> = ({ lesson, progress, isLocked }) =
         )}
       </div>
 
-      {/* Locked Overlay */}
       {isLocked && (
         <div className="absolute inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center">
           <div className="text-center p-4">

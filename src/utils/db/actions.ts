@@ -11,7 +11,6 @@ import {
 } from './schema';
 import { eq, desc } from 'drizzle-orm';
 
-// In-memory storage for notifications and reports
 let notifications: Array<{
   id: number;
   userId: number;
@@ -27,8 +26,6 @@ let nextNotificationId = 1;
 
 export async function createUser(email: string, name: string): Promise<User> {
   try {
-    // Attempt to insert a new user.
-    // If a conflict occurs on the email field, do nothing.
     const [newUser] = await db
       .insert(Users)
       .values({
@@ -38,10 +35,9 @@ export async function createUser(email: string, name: string): Promise<User> {
         totalWaste: '0',
         totalReports: 0
       })
-      .onConflictDoNothing() // This prevents duplicate key error
+      .onConflictDoNothing()
       .returning();
 
-    // If the insert did not create a new record, fetch the existing user.
     if (!newUser) {
       const [existingUser] = await db
         .select()
@@ -94,7 +90,6 @@ export async function createReport(
                       'Hard';
     const points = calculatePoints(difficulty, numericAmount);
 
-    // Create in-memory report
     const report: Report = {
       id: nextReportId++,
       location,
@@ -105,10 +100,8 @@ export async function createReport(
       longitude
     };
 
-    // Add to in-memory storage
     reports.unshift(report);
 
-    // Update user's total points and waste
     await db
       .update(Users)
       .set({
@@ -118,11 +111,9 @@ export async function createReport(
       })
       .where(eq(Users.id, userId));
 
-    // Store points in database
     await createTransaction(userId, 'earned_report', points, `Reported ${amount} of ${wasteType} waste`);
     await updateRewardPoints(userId, points);
 
-    // Create notification
     notifications.push({
       id: nextNotificationId++,
       userId,

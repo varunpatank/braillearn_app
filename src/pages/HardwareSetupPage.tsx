@@ -12,7 +12,6 @@ const HardwareSetupPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'setup' | 'test' | 'troubleshoot'>('setup');
 
-  // ─── Braylin voice tab events ───
   useEffect(() => {
     const onTab = (e: Event) => {
       const { page, tab } = (e as CustomEvent).detail || {};
@@ -25,7 +24,6 @@ const HardwareSetupPage: React.FC = () => {
     return () => window.removeEventListener('braylin-tab', onTab);
   }, []);
 
-  // ─── Narrate tab switches ───
   useEffect(() => {
     const labels: Record<string, string> = { setup: 'Connection Setup', test: 'Test Dots', troubleshoot: 'Troubleshooting' };
     window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Hardware: ${labels[activeTab] || activeTab}. Say "setup", "test", or "troubleshoot" to switch.` } }));
@@ -34,14 +32,12 @@ const HardwareSetupPage: React.FC = () => {
   const [testRunning, setTestRunning] = useState(false);
   const [currentTestDot, setCurrentTestDot] = useState<number | null>(null);
   
-  // Mock Bluetooth UI states
   const [showBluetoothModal, setShowBluetoothModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
   const [connectionAnimation, setConnectionAnimation] = useState(false);
   const [mockConnected, setMockConnected] = useState(false);
   
-  // Mock Braille device
   const mockBrailleDevice = {
     id: 'braille-solenoid-1',
     name: 'Braille Solenoid Display',
@@ -50,7 +46,6 @@ const HardwareSetupPage: React.FC = () => {
     batteryLevel: 85
   };
 
-  // Use mock connected state instead of real Bluetooth
   const isDeviceConnected = mockConnected || isArduinoConnected;
 
   useEffect(() => {
@@ -58,17 +53,15 @@ const HardwareSetupPage: React.FC = () => {
   }, []);
 
   const handleConnect = async () => {
-    // Show mock Bluetooth device selection instead of real Bluetooth
     setShowBluetoothModal(true);
     setIsSearching(true);
     setError(null);
     setSuccessMessage(null);
     
-    // Simulate device search
     setTimeout(() => {
       setIsSearching(false);
       setShowDevices(true);
-    }, 2500); // Search for 2.5 seconds
+    }, 2500);
   };
 
   const handleMockDeviceSelect = async () => {
@@ -76,7 +69,6 @@ const HardwareSetupPage: React.FC = () => {
     setConnectionAnimation(true);
     setConnecting(true);
     
-    // Simulate connection process
     setTimeout(async () => {
       setSuccessMessage('Successfully connected to Braille Solenoid Display');
       setConnectionAnimation(false);
@@ -84,9 +76,7 @@ const HardwareSetupPage: React.FC = () => {
       setConnecting(false);
       setMockConnected(true);
       
-      // Set Arduino as connected without calling real Bluetooth
-      // This bypasses the system Bluetooth popup completely
-    }, 3000); // 3 second connection animation
+    }, 3000);
   };
 
   const handleDisconnect = () => {
@@ -96,24 +86,20 @@ const HardwareSetupPage: React.FC = () => {
     setCurrentTestDot(null);
     setMockConnected(false);
     
-    // Reset mock UI states
     setShowBluetoothModal(false);
     setIsSearching(false);
     setShowDevices(false);
     setConnectionAnimation(false);
   };
 
-  // Test individual dots - sends correct format to Arduino
   const testSingleDot = async (dotNumber: number) => {
     if (!isDeviceConnected) return;
     
     setCurrentTestDot(dotNumber);
     try {
-      // Send array of dot numbers - Arduino expects this format
       console.log(`Testing dot ${dotNumber} - sending pattern:`, [dotNumber]);
       await sendBraillePattern([dotNumber]);
       
-      // Clear the dot after 1.2 seconds
       setTimeout(async () => {
         try {
           console.log('Clearing all dots - sending empty pattern');
@@ -129,7 +115,6 @@ const HardwareSetupPage: React.FC = () => {
     }
   };
 
-  // Run sequential test of all dots
   const runSequentialTest = async () => {
     if (!isDeviceConnected || testRunning) return;
     
@@ -137,28 +122,23 @@ const HardwareSetupPage: React.FC = () => {
     setError(null);
     
     try {
-      // Test each dot sequentially
       for (let dot = 1; dot <= 6; dot++) {
         setCurrentTestDot(dot);
         console.log(`Sequential test: Testing dot ${dot}`);
         await sendBraillePattern([dot]);
         
-        // Wait 1 second before next dot
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Clear the dot
         await sendBraillePattern([]);
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      // Test all dots together
-      setCurrentTestDot(0); // Special indicator for "all dots"
+      setCurrentTestDot(0);
       console.log('Sequential test: Testing all dots together');
       await sendBraillePattern([1, 2, 3, 4, 5, 6]);
       
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Clear all
       await sendBraillePattern([]);
       setSuccessMessage('Sequential test completed successfully!');
       
@@ -171,7 +151,6 @@ const HardwareSetupPage: React.FC = () => {
     }
   };
 
-  // Stop any running test
   const stopTest = async () => {
     setTestRunning(false);
     setCurrentTestDot(null);
@@ -186,9 +165,7 @@ const HardwareSetupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 braille-bg">
-      {/* Hero Banner — Circuit Board Theme */}
       <section className="relative bg-gradient-to-bl from-blue-600 via-blue-800 to-indigo-900 text-white py-14 overflow-hidden">
-        {/* Circuit trace pattern */}
         <div className="absolute inset-0 opacity-[0.08]">
           <svg width="100%" height="100%"><defs><pattern id="circuit" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M30 0v20M0 30h20M30 40v20M40 30h20M30 20h10v10M20 30v10h10" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round"/><circle cx="30" cy="20" r="2" fill="white"/><circle cx="30" cy="40" r="2" fill="white"/><circle cx="20" cy="30" r="2" fill="white"/><circle cx="40" cy="30" r="2" fill="white"/></pattern></defs><rect width="100%" height="100%" fill="url(#circuit)"/></svg>
         </div>
@@ -209,7 +186,6 @@ const HardwareSetupPage: React.FC = () => {
                 Connect and test your Arduino Braille Display device. Accessible for partially sighted and blind users — use the voice assistant to navigate.
               </p>
             </div>
-            {/* Hardware illustration */}
             <div className="hidden md:flex items-center gap-3">
               {[1,2,3,4,5,6].map(dot => (
                 <div key={dot} className={`w-5 h-5 rounded-full border-2 ${dot <= 3 ? 'bg-green-400/60 border-green-300' : 'border-white/30'} transition-all`} />
@@ -220,7 +196,6 @@ const HardwareSetupPage: React.FC = () => {
       </section>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Status Card */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8 mt-12">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
@@ -279,7 +254,6 @@ const HardwareSetupPage: React.FC = () => {
             </div>
           </div>
           
-          {/* Status Messages */}
           {error && (
             <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-start">
               <AlertCircle size={18} className="mt-0.5 mr-2 flex-shrink-0" />
@@ -295,7 +269,6 @@ const HardwareSetupPage: React.FC = () => {
           )}
         </div>
         
-        {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
           <div className="border-b border-gray-200">
             <nav className="flex">
@@ -453,7 +426,6 @@ const HardwareSetupPage: React.FC = () => {
                       </p>
                     </div>
 
-                    {/* Individual Dot Testing */}
                     <div className="mb-8">
                       <h4 className="text-base font-medium text-gray-900 mb-4">Individual Dot Testing</h4>
                       <p className="text-sm text-gray-600 mb-4">
@@ -502,7 +474,6 @@ const HardwareSetupPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Sequential Testing */}
                     <div className="mb-6">
                       <h4 className="text-base font-medium text-gray-900 mb-4">Sequential Testing</h4>
                       <p className="text-sm text-gray-600 mb-4">
@@ -539,7 +510,6 @@ const HardwareSetupPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Test Status */}
                     {testRunning && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                         <div className="flex items-center">
@@ -668,7 +638,6 @@ const HardwareSetupPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Mock Bluetooth Device Selection Modal */}
       {showBluetoothModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
@@ -750,7 +719,6 @@ const HardwareSetupPage: React.FC = () => {
         </div>
       )}
 
-      {/* Connection Animation Overlay */}
       {connectionAnimation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl p-8 text-center">

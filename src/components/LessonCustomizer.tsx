@@ -54,7 +54,6 @@ const LessonCustomizer: React.FC<LessonCustomizerProps> = ({ onCustomLessonsGene
       </h3>
 
       <div className="space-y-4">
-        {/* Current Level */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Current Level
@@ -72,7 +71,6 @@ const LessonCustomizer: React.FC<LessonCustomizerProps> = ({ onCustomLessonsGene
           </select>
         </div>
 
-        {/* Learning Style */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Learning Style
@@ -89,7 +87,6 @@ const LessonCustomizer: React.FC<LessonCustomizerProps> = ({ onCustomLessonsGene
           </select>
         </div>
 
-        {/* Focus Areas */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Focus Areas
@@ -118,7 +115,6 @@ const LessonCustomizer: React.FC<LessonCustomizerProps> = ({ onCustomLessonsGene
           </div>
         </div>
 
-        {/* Time Available */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Daily Time Available (minutes)
@@ -137,7 +133,6 @@ const LessonCustomizer: React.FC<LessonCustomizerProps> = ({ onCustomLessonsGene
           </select>
         </div>
 
-        {/* Additional Preferences */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Additional Preferences (Optional)
@@ -150,7 +145,6 @@ const LessonCustomizer: React.FC<LessonCustomizerProps> = ({ onCustomLessonsGene
           />
         </div>
 
-        {/* Submit Button */}
         <button
           onClick={handleSubmit}
           disabled={loading}

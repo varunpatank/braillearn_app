@@ -30,17 +30,14 @@ function App() {
   const { user, isSignedIn } = useUser();
   const supabase = useSupabase();
 
-  // Sync Clerk user to localStorage AND Supabase
   useEffect(() => {
     if (isSignedIn && user) {
-      // localStorage fallback
       createOrUpdateUser(user.id, {
         email: user.primaryEmailAddress?.emailAddress || '',
         name: user.fullName || user.firstName || '',
         avatarUrl: user.imageUrl || '',
       });
 
-      // Supabase profile sync
       upsertProfile(supabase, {
         id: user.id,
         email: user.primaryEmailAddress?.emailAddress || null,
@@ -50,7 +47,6 @@ function App() {
     }
   }, [isSignedIn, user, supabase]);
 
-  // Scroll to top on route change
   useEffect(() => {
     const handleRouteChange = () => {
       window.scrollTo(0, 0);

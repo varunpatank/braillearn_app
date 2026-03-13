@@ -1,7 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 
-// ═══ Types ═══
-
 export interface Profile {
   id: string
   email: string | null
@@ -35,7 +33,6 @@ export interface Course {
   schedule: Record<string, unknown> | null
   created_at: string
   updated_at: string
-  // joined fields
   creator?: Profile
   enrollment_count?: number
 }
@@ -49,7 +46,6 @@ export interface Enrollment {
   progress_pct: number
   completed_lessons: string[]
   last_active: string | null
-  // joined
   course?: Course
   profile?: Profile
 }
@@ -88,8 +84,6 @@ export interface LessonProgress {
   completed_at: string | null
   created_at: string
 }
-
-// ═══ Profile Operations ═══
 
 export async function upsertProfile(
   supabase: SupabaseClient,
@@ -132,15 +126,11 @@ export async function addXP(supabase: SupabaseClient, userId: string, amount: nu
   await supabase.from('profiles').update({ xp: profile.xp + amount }).eq('id', userId)
 }
 
-// ═══ Leaderboard ═══
-
 export async function getLeaderboard(supabase: SupabaseClient, limit = 20): Promise<Profile[]> {
   const { data, error } = await supabase.from('profiles').select('*').order('xp', { ascending: false }).limit(limit)
   if (error) { console.error('[db] getLeaderboard error:', error); return [] }
   return data || []
 }
-
-// ═══ Course Operations ═══
 
 export async function createCourse(
   supabase: SupabaseClient,
@@ -158,13 +148,13 @@ export async function getCourse(supabase: SupabaseClient, courseId: string): Pro
 }
 
 export async function getMyCourses(supabase: SupabaseClient, userId: string): Promise<Course[]> {
-  const { data, error } = await supabase.from('courses').select('*').eq('creator_id', userId).order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('courses').select('*, creator:profiles(*)').eq('creator_id', userId).order('created_at', { ascending: false })
   if (error) { console.error('[db] getMyCourses error:', error); return [] }
   return data || []
 }
 
 export async function getPublicCourses(supabase: SupabaseClient, limit = 50): Promise<Course[]> {
-  const { data, error } = await supabase.from('courses').select('*').eq('is_public', true).order('created_at', { ascending: false }).limit(limit)
+  const { data, error } = await supabase.from('courses').select('*, creator:profiles(*)').eq('is_public', true).order('created_at', { ascending: false }).limit(limit)
   if (error) { console.error('[db] getPublicCourses error:', error); return [] }
   return data || []
 }
@@ -185,20 +175,26 @@ export async function deleteCourse(supabase: SupabaseClient, courseId: string): 
   return true
 }
 
-// ═══ Enrollment Operations ═══
-
 export async function enrollInCourse(
   supabase: SupabaseClient,
   courseId: string,
   userId: string,
   role: Enrollment['role'] = 'student'
 ): Promise<Enrollment | null> {
-  const { data, error } = await supabase.from('enrollments').upsert({
+  const { data, error } = await supabase.from('enrollments').insert({
     course_id: courseId,
     user_id: userId,
     role,
-  }, { onConflict: 'course_id,user_id' }).select().single()
-  if (error) { console.error('[db] enrollInCourse error:', error); return null }
+  }).select().single()
+  if (error) {
+    if (error.code === '23505') {
+      const { data: existing } = await supabase.from('enrollments')
+        .select('*').eq('course_id', courseId).eq('user_id', userId).maybeSingle()
+      return existing
+    }
+    console.error('[db] enrollInCourse error:', error)
+    return null
+  }
   return data
 }
 
@@ -234,8 +230,6 @@ export async function updateEnrollmentProgress(
   }).eq('course_id', courseId).eq('user_id', userId)
 }
 
-// ═══ Course Permissions ═══
-
 export async function grantPermission(
   supabase: SupabaseClient,
   courseId: string,
@@ -259,15 +253,11 @@ export async function getUserPermissions(supabase: SupabaseClient, courseId: str
   return data
 }
 
-// ═══ Course Stats ═══
-
 export async function getCourseStats(supabase: SupabaseClient, courseId: string): Promise<CourseStats | null> {
   const { data, error } = await supabase.from('course_stats').select('*').eq('course_id', courseId).single()
   if (error) return null
   return data
 }
-
-// ═══ Mission Completions ═══
 
 export async function completeMission(
   supabase: SupabaseClient,
@@ -289,7 +279,6 @@ export async function completeMission(
 
   if (error) { console.error('[db] completeMission error:', error); return null }
 
-  // Also add XP to profile
   await addXP(supabase, userId, xpEarned)
 
   return data
@@ -300,8 +289,6 @@ export async function getUserMissions(supabase: SupabaseClient, userId: string):
   if (error) { console.error('[db] getUserMissions error:', error); return [] }
   return data || []
 }
-
-// ═══ Lesson Progress ═══
 
 export async function upsertLessonProgress(
   supabase: SupabaseClient,
@@ -325,8 +312,6 @@ export async function getUserLessonProgress(supabase: SupabaseClient, userId: st
   if (error) { console.error('[db] getUserLessonProgress error:', error); return [] }
   return data || []
 }
-
-// ═══ Badges & Achievements ═══
 
 export async function awardBadge(supabase: SupabaseClient, userId: string, badgeId: string): Promise<boolean> {
   const { error } = await supabase.from('user_badges').upsert({ user_id: userId, badge_id: badgeId }, { onConflict: 'user_id,badge_id' })
@@ -362,8 +347,6 @@ export async function getUserAchievements(supabase: SupabaseClient, userId: stri
   if (error) return []
   return data || []
 }
-
-// ═══ User Study Plans ═══
 
 export interface UserStudyPlanRow {
   id: string
@@ -409,7 +392,7 @@ export async function getStudyPlan(
     .single()
 
   if (error) {
-    if (error.code !== 'PGRST116') console.error('[db] getStudyPlan error:', error) // PGRST116 = no rows
+    if (error.code !== 'PGRST116') console.error('[db] getStudyPlan error:', error)
     return null
   }
   return data

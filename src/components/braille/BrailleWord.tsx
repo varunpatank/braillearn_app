@@ -40,16 +40,12 @@ const BrailleWord: React.FC<BrailleWordProps> = ({
     }
   };
 
-  // Send the first cell's pattern to Arduino when word changes
   useEffect(() => {
-    // Only send to Arduino during lessons and speech-to-braille
     const currentPath = window.location.pathname;
     const isLessonPage = currentPath.includes('/learn/');
     const isSpeechToBraille = currentPath.includes('/speech-to-braille');
     
     if (isArduinoConnected && triggerSolenoids && cells.length > 0 && (isLessonPage || isSpeechToBraille)) {
-      // For words, send the first character's pattern to the Arduino
-      // This allows users to feel the first letter of each word
       const firstCell = cells[0];
       if (firstCell?.dots) {
         console.log('Sending first letter of word to Arduino:', firstCell.dots, 'for word:', word);
@@ -72,7 +68,7 @@ const BrailleWord: React.FC<BrailleWordProps> = ({
             onDotToggle={(dotNumber) => handleDotToggle(index, dotNumber)}
             showText={false}
             animateIn={true}
-            triggerSolenoids={index === 0 && triggerSolenoids} // Only first cell triggers solenoids
+            triggerSolenoids={index === 0 && triggerSolenoids}
           />
         ))}
       </div>

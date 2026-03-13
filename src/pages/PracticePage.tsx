@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Settings, Play, RotateCcw, Award, Clock, Target, Zap, Brain, 
-  Sparkles, CheckCircle, X, Search, Layers, Shield, Flame, Eye, 
-  Shuffle, Volume2, MessageCircle, Send, ArrowRight, Home, Star,
-  Timer, Trophy, Heart, RefreshCw
+  Play, RotateCcw, Target, Zap, Brain, 
+  CheckCircle, X, Search, Layers, Shield, Flame, Eye, 
+  Send, Home, Star,
+  Timer, Trophy, Heart
 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { useAppContext } from '../context/AppContext';
 import { geminiService } from '../services/geminiService';
 import { openRouterService } from '../services/openRouterService';
 import BrailleCell from '../components/braille/BrailleCell';
-import BrailleKeyboard from '../components/braille/BrailleKeyboard';
 import Logo from '../components/common/Logo';
-import { BrailleCell as BrailleCellType, Exercise } from '../types/types';
+import { BrailleCell as BrailleCellType } from '../types/types';
 import { braillePatterns } from '../data/lessons';
 import { translateTextToBraille } from '../services/brailleTranslator';
 
@@ -39,22 +38,21 @@ const PracticePage: React.FC = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [lives, setLives] = useState(3);
   const [selectedDots, setSelectedDots] = useState<number[]>([]);
-  const [draggedCells, setDraggedCells] = useState<BrailleCellType[]>([]);
-  const [targetWord, setTargetWord] = useState<BrailleCellType[]>([]);
+  const [, setDraggedCells] = useState<BrailleCellType[]>([]);
+  const [, setTargetWord] = useState<BrailleCellType[]>([]);
   const [memoryCards, setMemoryCards] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedCards, setMatchedCards] = useState<number[]>([]);
   const [chatMessages, setChatMessages] = useState<Array<{id: string, text: string, sender: 'user' | 'ai', timestamp: Date}>>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [showAIChat, setShowAIChat] = useState(true);
+  const [_showAIChat, _setShowAIChat] = useState(true);
   const [gameTimer, setGameTimer] = useState<NodeJS.Timeout | null>(null);
-  const [questionTimer, setQuestionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [questionTimer, _setQuestionTimer] = useState<NodeJS.Timeout | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const { playSound } = useAudio();
-  const { isArduinoConnected, sendBraillePattern } = useAppContext();
+  const { isArduinoConnected } = useAppContext();
 
-  // Enhanced practice modes
   const practiceModes = [
     {
       id: 'lightning-reader',
@@ -146,7 +144,6 @@ const PracticePage: React.FC = () => {
     }
   ];
 
-  // Customization options
   const practiceOptions = {
     levels: [
       { id: 'basics', name: 'Basics', emoji: '🌱', description: 'Letters, numbers, and punctuation' },
@@ -220,7 +217,6 @@ const PracticePage: React.FC = () => {
     document.title = 'Practice Sessions - BrailleLearn';
     window.scrollTo(0, 0);
     
-    // Test Gemini API connection when page loads
     const testAPI = async () => {
       try {
         console.log('🔍 Testing Gemini API connection on page load...');
@@ -236,9 +232,8 @@ const PracticePage: React.FC = () => {
     };
     
     testAPI();
-  }, [speak]);
+  }, []);
 
-  // Timer effects
   useEffect(() => {
     if (gameActive && timeLeft > 0 && !showResults) {
       const timer = setTimeout(() => {
@@ -305,7 +300,6 @@ const PracticePage: React.FC = () => {
     setMatchedCards([]);
     setIsAnswered(false);
     
-    // Always generate practice content successfully
     const practiceData = await generatePracticeContent(modeId);
     setGameState(practiceData);
     setGameActive(true);
@@ -313,7 +307,6 @@ const PracticePage: React.FC = () => {
     if (practiceData.questions && practiceData.questions.length > 0) {
       setCurrentQuestion(practiceData.questions[0]);
       
-      // Initialize mode-specific state
       if (modeId === 'memory-champion') {
         setMemoryCards(practiceData.questions[0].cards || []);
       }
@@ -375,7 +368,6 @@ const PracticePage: React.FC = () => {
     const numQuestions = Math.min(selectedDuration * 2, 30);
     const difficultySettings = practiceOptions.difficulties.find(d => d.id === selectedDifficulty);
     
-    // Generate mode-specific content
     switch (modeId) {
       case 'lightning-reader':
         for (let i = 0; i < numQuestions; i++) {
@@ -621,18 +613,15 @@ const PracticePage: React.FC = () => {
       const secondCard = memoryCards[second];
       
       if (firstCard.matchId === secondCard.matchId) {
-        // Match found
         setTimeout(() => {
           setMatchedCards(prev => [...prev, first, second]);
           setFlippedCards([]);
           
-          // Check if all cards are matched
           if (matchedCards.length + 2 >= memoryCards.length) {
             handleAnswer('all-matched');
           }
         }, 1000);
       } else {
-        // No match
         setTimeout(() => {
           setFlippedCards([]);
         }, 1500);
@@ -673,8 +662,6 @@ const PracticePage: React.FC = () => {
     }
     
     const finalScore = Math.round((correctAnswers / questionsAnswered) * 100) || 0;
-    const mode = practiceModes.find(m => m.id === selectedMode);
-    
     playSound('achievement');
     window.dispatchEvent(new CustomEvent('braylin-narrate', { detail: { text: `Practice session complete! You scored ${finalScore} percent and earned ${score} points.` } }));
   };
@@ -685,7 +672,6 @@ const PracticePage: React.FC = () => {
     }
   };
 
-  // ─── Braylin voice control for practice ───
   useEffect(() => {
     const onAction = (e: Event) => {
       const { action, mode, level, duration } = (e as CustomEvent).detail || {};
@@ -714,7 +700,6 @@ const PracticePage: React.FC = () => {
       if (showCustomization && selectedMode && !gameActive) {
         startPracticeSession(selectedMode);
       } else if (showResults) {
-        // "OK" on results → new game
         setShowResults(false); setSelectedMode(null); setShowCustomization(false); setGameActive(false);
       }
     };
@@ -724,7 +709,6 @@ const PracticePage: React.FC = () => {
     return () => { window.removeEventListener('braylin-practice-action', onAction); window.removeEventListener('braylin-dismiss', onDismiss); window.removeEventListener('braylin-confirm', onConfirm); };
   }, [selectedMode, showCustomization, gameActive, showResults]);
 
-  // ─── Narrate game results ───
   useEffect(() => {
     if (showResults) {
       const pct = questionsAnswered > 0 ? Math.round((correctAnswers / questionsAnswered) * 100) : 0;
@@ -747,7 +731,6 @@ const PracticePage: React.FC = () => {
     setChatLoading(true);
     
     try {
-      // Try OpenRouter first (Gemma 3 4B), fallback to Gemini
       const context = `The student is practicing ${selectedMode} mode with ${selectedDifficulty} difficulty. Current score: ${score}, streak: ${streak}.`;
       let response: string;
       
@@ -786,7 +769,6 @@ const PracticePage: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Full screen loader component
   const FullScreenLoader = () => (
     <motion.div
       className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center"
@@ -824,7 +806,6 @@ const PracticePage: React.FC = () => {
     </motion.div>
   );
 
-  // Results screen
   if (showResults) {
     const finalScore = Math.round((correctAnswers / questionsAnswered) * 100) || 0;
     const stars = finalScore >= 90 ? 3 : finalScore >= 70 ? 2 : 1;
@@ -900,7 +881,6 @@ const PracticePage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 braille-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {!selectedMode ? (
-            // Practice Mode Selection
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -971,7 +951,6 @@ const PracticePage: React.FC = () => {
               </div>
             </motion.div>
           ) : showCustomization ? (
-            // Customization Screen
             <div className="flex gap-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -994,7 +973,6 @@ const PracticePage: React.FC = () => {
                 </div>
 
                 <div className="space-y-8">
-                  {/* Practice Level */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Practice Level</h3>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -1022,7 +1000,6 @@ const PracticePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Difficulty Level */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Difficulty Level</h3>
                     <div className="space-y-3">
@@ -1060,7 +1037,6 @@ const PracticePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Duration */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Session Duration</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1087,7 +1063,6 @@ const PracticePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Focus Area */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Focus Area</h3>
                     <div className="space-y-3">
@@ -1116,7 +1091,6 @@ const PracticePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Start Button */}
                   <div className="text-center pt-6 border-t border-gray-200">
                     <button
                       onClick={() => startPracticeSession(selectedMode)}
@@ -1135,7 +1109,6 @@ const PracticePage: React.FC = () => {
                 </div>
               </motion.div>
               
-              {/* AI Assistant Sidebar */}
               <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[600px]">
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-670 to-primary-700 text-white rounded-t-xl">
                   <div className="flex items-center space-x-2">
@@ -1206,10 +1179,8 @@ const PracticePage: React.FC = () => {
               </div>
             </div>
           ) : gameActive ? (
-            // Active Game Screen
             <div className="flex gap-8">
               <div className="flex-1">
-                {/* Game Header */}
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-4">
@@ -1256,7 +1227,6 @@ const PracticePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Game Content */}
                 <div className="bg-white rounded-xl shadow-sm p-8">
                   {currentQuestion && (
                     <div>
@@ -1264,7 +1234,6 @@ const PracticePage: React.FC = () => {
                         {currentQuestion.question}
                       </h3>
 
-                      {/* Lightning Reader */}
                       {currentQuestion.type === 'text-input' && (
                         <div className="text-center">
                           <div className="mb-8">
@@ -1297,7 +1266,6 @@ const PracticePage: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Precision Master */}
                       {currentQuestion.type === 'pattern-choice' && (
                         <div className="text-center">
                           <div className="mb-8">
@@ -1327,7 +1295,6 @@ const PracticePage: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Pattern Detective */}
                       {currentQuestion.type === 'complete-pattern' && (
                         <div className="text-center">
                           <div className="mb-8">
@@ -1369,7 +1336,6 @@ const PracticePage: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Memory Champion */}
                       {currentQuestion.type === 'memory-match' && (
                         <div className="text-center">
                           <div className="grid grid-cols-4 gap-4 max-w-2xl mx-auto">
@@ -1405,7 +1371,6 @@ const PracticePage: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Feedback */}
                       {showFeedback && (
                         <div className={`mt-6 p-4 rounded-lg ${
                           userAnswer.toLowerCase().trim() === currentQuestion.correctAnswer.toLowerCase().trim() || 
@@ -1431,7 +1396,6 @@ const PracticePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* AI Assistant Sidebar */}
               <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[600px]">
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-t-xl">
                   <div className="flex items-center space-x-2">

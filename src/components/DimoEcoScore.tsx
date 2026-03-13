@@ -22,7 +22,6 @@ const DimoEcoScore: React.FC = () => {
           const data = await getDeviceData(deviceId);
           const trips = await getDeviceTrips(deviceId);
           
-          // Calculate eco-score based on DIMO data
           const fuelEfficiency = data.fuelPercentRemaining || 0;
           const ecoFriendlyTrips = trips.trips.filter((trip: any) => trip.averageSpeed < 60).length || 0;
           const score = Math.min(100, Math.round((fuelEfficiency * 10) + (ecoFriendlyTrips * 2)));

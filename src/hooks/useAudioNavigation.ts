@@ -50,7 +50,6 @@ export function useAudioNavigation(
       element.addEventListener('mouseenter', handleHover);
       element.addEventListener('click', handleClick);
 
-      // Add ARIA attributes
       element.setAttribute('role', 'button');
       element.setAttribute('aria-label', description);
 

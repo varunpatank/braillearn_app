@@ -22,11 +22,10 @@ export const ProgressPath: React.FC<Props> = ({ levels, currentLevel = 1, onSele
         {levels.map((node, idx) => {
           const isCurrent = node.level === currentLevel
           const isCompleted = !!node.completed || node.level < currentLevel
-          const isLocked = !!node.locked || node.level > currentLevel + 3 // lightly lock far nodes
+          const isLocked = !!node.locked || node.level > currentLevel + 3
 
           return (
             <div key={node.level} className="flex items-center gap-4">
-              {/* connector line (except for first) */}
               {idx > 0 && (
                 <div className="w-12 h-1 bg-gradient-to-r from-gray-200 to-gray-300" aria-hidden />
               )}

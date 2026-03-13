@@ -15,7 +15,6 @@ import { Line, Bar } from 'react-chartjs-2';
 import { BrailleClass } from '../types/classTypes';
 import { Users, BookOpen, Star, Clock } from 'lucide-react';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -35,7 +34,6 @@ interface ClassDashboardProps {
 }
 
 const generateAttendanceData = () => {
-  // Generate sample attendance data for last 7 sessions
   return Array.from({ length: 7 }, (_, i) => ({
     date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
     attendance: Math.floor(Math.random() * 5) + 5,
@@ -43,7 +41,6 @@ const generateAttendanceData = () => {
 };
 
 const generateProgressData = () => {
-  // Generate sample progress data for different skills
   return {
     labels: ['Reading', 'Writing', 'Comprehension', 'Speed', 'Accuracy'],
     data: Array.from({ length: 5 }, () => Math.floor(Math.random() * 40) + 60),
@@ -153,7 +150,6 @@ export const ClassDashboard: React.FC<ClassDashboardProps> = ({ classData, onClo
         </button>
       </div>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {metrics.map((metric, index) => (
           <div
@@ -169,7 +165,6 @@ export const ClassDashboard: React.FC<ClassDashboardProps> = ({ classData, onClo
         ))}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl border-2 border-gray-900 shadow-lg hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Attendance Trend</h3>
@@ -181,7 +176,6 @@ export const ClassDashboard: React.FC<ClassDashboardProps> = ({ classData, onClo
         </div>
       </div>
 
-      {/* Enrolled Students */}
       <div className="bg-white p-6 rounded-xl border-2 border-gray-900 shadow-lg hover:shadow-xl transition-all duration-300">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Enrolled Students ({classData.enrolledStudents.length})</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -217,7 +211,6 @@ export const ClassDashboard: React.FC<ClassDashboardProps> = ({ classData, onClo
         </div>
       </div>
 
-      {/* Upcoming Milestones */}
       <div className="bg-white p-6 rounded-xl border-2 border-gray-900 shadow-lg hover:shadow-xl transition-all duration-300">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Upcoming Milestones</h3>
         <div className="space-y-3">

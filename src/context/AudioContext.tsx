@@ -27,13 +27,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('audioEnabled', JSON.stringify(isEnabled));
     audioFeedback.setEnabled(isEnabled);
     
-    // Toggle screen reader based on audio setting
     if (!isEnabled) {
       window.speechSynthesis.cancel();
     }
   }, [isEnabled]);
 
-  // Set initial zoom level
   useEffect(() => {
     document.body.style.zoom = "140%";
   }, []);
@@ -41,7 +39,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleAudio = () => {
     setIsEnabled(!isEnabled);
     if (isEnabled) {
-      window.speechSynthesis.cancel(); // Stop any ongoing speech
+      window.speechSynthesis.cancel();
     }
   };
 

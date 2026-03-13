@@ -29,10 +29,8 @@ async function awardPointsToUserByEmail(email: string, points: number, descripti
     if (!userRow) return false;
     const userId = userRow.id;
 
-    // insert transaction (if table exists)
     try { await supabase.from('transactions').insert([{ user_id: userId, type: 'earned_braillequest', amount: points, description }]); } catch (err) { /* ignore */ }
 
-    // update user's total_points
     try {
       const newTotal = (userRow.total_points || 0) + points;
       await supabase.from('users').update({ total_points: newTotal }).eq('id', userId);
@@ -77,7 +75,6 @@ export const MissionService = {
     }
   },
 
-  // Upload image to Supabase storage and create a submission row
   async uploadSubmission(
     userId: string,
     missionId: string,
@@ -142,10 +139,8 @@ export const MissionService = {
     }
   },
 
-  // Run AI verification on a submission and update the DB
   async verifySubmission(submission: MissionSubmission, expectedText?: string, userEmail?: string) {
     try {
-      // 1) download image blob and convert to base64 (if needed)
       const resp = await fetch(submission.imageUrl || '');
       const blob = await resp.blob();
       const reader = new FileReader();
@@ -156,7 +151,6 @@ export const MissionService = {
         reader.readAsDataURL(blob);
       });
 
-      // 2) ask server-side API to verify braille (keeps model keys server-only)
       const verifyRes = await fetch('/api/verify-braille', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,11 +160,9 @@ export const MissionService = {
       const verifyJson = await verifyRes.json()
       const aiResult = verifyJson.result || verifyJson
 
-      // 3) determine status and score
       const status = aiResult.isBraille && aiResult.readable && (aiResult.confidence ?? 0) > 0.6 ? 'verified' : 'rejected';
       const score = Math.max(0, Math.min(100, Math.round((aiResult.score ?? ((aiResult.confidence || 0) * 100)))));
 
-      // 4) update DB row
       const { error: updateError } = await supabase
         .from('mission_submissions')
         .update({
@@ -186,7 +178,6 @@ export const MissionService = {
         return { success: false, error: updateError };
       }
 
-      // 5) If verified, award XP/points (update Drizzle rewards DB via helper functions)
       if (status === 'verified' && userEmail) {
         try {
           const points = Math.max(10, Math.floor((submission as any).xpReward || 50));
@@ -243,7 +234,6 @@ export const MissionService = {
         return { success: false, error };
       }
 
-      // award points if requested
       if (awardPoints) {
         try {
           const missionRes = await supabase.from('missions').select('xp_reward').eq('id', data.mission_id).single();
