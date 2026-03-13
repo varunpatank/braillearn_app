@@ -25,3 +25,5 @@ dist-ssr
 .env
 .next/
 supabase/config/config.json
+
+pnpm-lock.yaml
